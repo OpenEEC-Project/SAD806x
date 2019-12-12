@@ -1,0 +1,231 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.21022</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{FFA58682-B688-42B1-BFE5-461EB80A08FC}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SAD806x</RootNamespace>
+    <AssemblyName>SAD806x</AssemblyName>
+    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ApplicationIcon>sad806x 256.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Accessibility" />
+    <Reference Include="NCalc, Version=1.3.8.0, Culture=neutral, PublicKeyToken=973cde3f1cafed03, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>.\NCalc.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Windows.Forms.DataVisualization, Version=3.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>.\System.Windows.Forms.DataVisualization.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="BitFlagsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="BitFlagsForm.Designer.cs">
+      <DependentUpon>BitFlagsForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="CompareForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="CompareForm.Designer.cs">
+      <DependentUpon>CompareForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="CompareGraphForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="CompareGraphForm.Designer.cs">
+      <DependentUpon>CompareGraphForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="CompareRoutinesForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="CompareRoutinesForm.Designer.cs">
+      <DependentUpon>CompareRoutinesForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ConversionRepoForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ConversionRepoForm.Designer.cs">
+      <DependentUpon>ConversionRepoForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ElemSigForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ElemSigForm.Designer.cs">
+      <DependentUpon>ElemSigForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="HexForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="HexForm.Designer.cs">
+      <DependentUpon>HexForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="OutputTools.cs" />
+    <Compile Include="Repository.cs" />
+    <Compile Include="RepositoryForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="RepositoryForm.Designer.cs">
+      <DependentUpon>RepositoryForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="RoutineForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="RoutineForm.Designer.cs">
+      <DependentUpon>RoutineForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SADCalib.cs" />
+    <Compile Include="MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainForm.Designer.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="BitFlagsForm.resx">
+      <DependentUpon>BitFlagsForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="CompareForm.resx">
+      <DependentUpon>CompareForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="CompareGraphForm.resx">
+      <DependentUpon>CompareGraphForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="CompareRoutinesForm.resx">
+      <DependentUpon>CompareRoutinesForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ConversionRepoForm.resx">
+      <DependentUpon>ConversionRepoForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ElemSigForm.resx">
+      <DependentUpon>ElemSigForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="HexForm.resx">
+      <DependentUpon>HexForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MainForm.resx">
+      <DependentUpon>MainForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="RepositoryForm.resx">
+      <DependentUpon>RepositoryForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="RoutineForm.resx">
+      <DependentUpon>RoutineForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SearchForm.resx">
+      <DependentUpon>SearchForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SearchSignatureForm.resx">
+      <DependentUpon>SearchSignatureForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SigForm.resx">
+      <DependentUpon>SigForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <Compile Include="SADBank.cs" />
+    <Compile Include="SADBin.cs" />
+    <Compile Include="SADDef.cs" />
+    <Compile Include="SADOPCode.cs" />
+    <Compile Include="SADS6x.cs" />
+    <Compile Include="SADFixedSigs.cs" />
+    <Compile Include="SADXdf.cs" />
+    <Compile Include="SearchForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SearchForm.Designer.cs">
+      <DependentUpon>SearchForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SearchSignatureForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SearchSignatureForm.Designer.cs">
+      <DependentUpon>SearchSignatureForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Shared.cs" />
+    <Compile Include="SigForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SigForm.Designer.cs">
+      <DependentUpon>SigForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Tools.cs" />
+    <Compile Include="ToolsDebug.cs" />
+    <Compile Include="ToolsXml.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="Resources\question.png" />
+    <Content Include="sad806x 256.ico" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
