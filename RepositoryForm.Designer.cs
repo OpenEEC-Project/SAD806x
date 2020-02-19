@@ -107,37 +107,37 @@
             this.listLoadS6xToolStripSeparator,
             this.listLoadS6xToolStripMenuItem});
             this.listContextMenuStrip.Name = "listContextMenuStrip";
-            this.listContextMenuStrip.Size = new System.Drawing.Size(150, 82);
+            this.listContextMenuStrip.Size = new System.Drawing.Size(151, 82);
             // 
             // listAddToolStripMenuItem
             // 
             this.listAddToolStripMenuItem.Name = "listAddToolStripMenuItem";
             this.listAddToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.N)));
-            this.listAddToolStripMenuItem.Size = new System.Drawing.Size(149, 22);
+            this.listAddToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
             this.listAddToolStripMenuItem.Text = "Add";
             this.listAddToolStripMenuItem.Click += new System.EventHandler(this.listAddToolStripMenuItem_Click);
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(146, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(147, 6);
             // 
             // listRemoveToolStripMenuItem
             // 
             this.listRemoveToolStripMenuItem.Name = "listRemoveToolStripMenuItem";
-            this.listRemoveToolStripMenuItem.Size = new System.Drawing.Size(149, 22);
+            this.listRemoveToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
             this.listRemoveToolStripMenuItem.Text = "Remove";
             this.listRemoveToolStripMenuItem.Click += new System.EventHandler(this.listRemoveToolStripMenuItem_Click);
             // 
             // listLoadS6xToolStripSeparator
             // 
             this.listLoadS6xToolStripSeparator.Name = "listLoadS6xToolStripSeparator";
-            this.listLoadS6xToolStripSeparator.Size = new System.Drawing.Size(146, 6);
+            this.listLoadS6xToolStripSeparator.Size = new System.Drawing.Size(147, 6);
             // 
             // listLoadS6xToolStripMenuItem
             // 
             this.listLoadS6xToolStripMenuItem.Name = "listLoadS6xToolStripMenuItem";
-            this.listLoadS6xToolStripMenuItem.Size = new System.Drawing.Size(149, 22);
+            this.listLoadS6xToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
             this.listLoadS6xToolStripMenuItem.Text = "Load from S6x";
             this.listLoadS6xToolStripMenuItem.Click += new System.EventHandler(this.listLoadS6xToolStripMenuItem_Click);
             // 

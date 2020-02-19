@@ -91,7 +91,10 @@
     <Compile Include="HexForm.Designer.cs">
       <DependentUpon>HexForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="OutputText.cs" />
+    <Compile Include="OutputTextV.cs" />
     <Compile Include="OutputTools.cs" />
+    <Compile Include="RecentFiles.cs" />
     <Compile Include="Repository.cs" />
     <Compile Include="RepositoryForm.cs">
       <SubType>Form</SubType>
@@ -167,6 +170,10 @@
       <DependentUpon>SearchSignatureForm.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <EmbeddedResource Include="SettingsForm.resx">
+      <DependentUpon>SettingsForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
     <EmbeddedResource Include="SigForm.resx">
       <DependentUpon>SigForm.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -204,6 +211,13 @@
     <Compile Include="SearchSignatureForm.Designer.cs">
       <DependentUpon>SearchSignatureForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="SettingsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SettingsForm.Designer.cs">
+      <DependentUpon>SettingsForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SettingsLst.cs" />
     <Compile Include="Shared.cs" />
     <Compile Include="SigForm.cs">
       <SubType>Form</SubType>
@@ -213,6 +227,7 @@
     </Compile>
     <Compile Include="Tools.cs" />
     <Compile Include="ToolsDebug.cs" />
+    <Compile Include="ToolsSettings.cs" />
     <Compile Include="ToolsXml.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -62,6 +62,21 @@ namespace SAD806x
             repoToolStripTextBox.TextChanged += new EventHandler(repoToolStripTextBox_TextChanged);
             repoToolStripMenuItem.DropDownItemClicked += new ToolStripItemClickedEventHandler(repoToolStripMenuItem_DropDownItemClicked);
 
+            scalarScalePrecNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            scalarScalePrecNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            scalarScalePrecNumericUpDown.Value = SADDef.DefaultScalePrecision;
+
+            functionScalePrecInputNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            functionScalePrecInputNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            functionScalePrecInputNumericUpDown.Value = SADDef.DefaultScalePrecision;
+            functionScalePrecOutputNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            functionScalePrecOutputNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            functionScalePrecOutputNumericUpDown.Value = SADDef.DefaultScalePrecision;
+
+            tableScalePrecNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            tableScalePrecNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            tableScalePrecNumericUpDown.Value = SADDef.DefaultScalePrecision;
+
             Control.ControlCollection controls = null;
             controls = (Control.ControlCollection)elemHeaderPanel.Controls;
             attachPropertiesEventsControls(ref controls);
@@ -154,6 +169,7 @@ namespace SAD806x
                             s6xESig.Scalar.ShortLabel = SADDef.ShortScalarPrefix + string.Format("{0:d4}", S6x.slScalars.Count + 1);
                             s6xESig.Scalar.Byte = true;
                             s6xESig.Scalar.ScaleExpression = "X";
+                            s6xESig.Scalar.ScalePrecision = SADDef.DefaultScalePrecision;
                         }
                         s6xESig.Function = null;
                         s6xESig.Table = null;
@@ -170,6 +186,8 @@ namespace SAD806x
                             s6xESig.Function.ByteOutput = true;
                             s6xESig.Function.InputScaleExpression = "X";
                             s6xESig.Function.OutputScaleExpression = "X";
+                            s6xESig.Function.InputScalePrecision = SADDef.DefaultScalePrecision;
+                            s6xESig.Function.OutputScalePrecision = SADDef.DefaultScalePrecision;
                         }
                         s6xESig.Scalar = null;
                         s6xESig.Table = null;
@@ -184,6 +202,7 @@ namespace SAD806x
                             s6xESig.Table.VariableColsNumber = "0";
                             s6xESig.Table.RowsNumber = 0;
                             s6xESig.Table.CellsScaleExpression = "X";
+                            s6xESig.Table.CellsScalePrecision = SADDef.DefaultScalePrecision;
                         }
                         s6xESig.Scalar = null;
                         s6xESig.Function = null;
@@ -311,6 +330,7 @@ namespace SAD806x
                     tableRowsTextBox.Text = sigIntTbl.RowsNumber.ToString();
                     tableRowsUnitsTextBox.Text = sigIntTbl.RowsUnits;
                     tableScaleTextBox.Text = sigIntTbl.CellsScaleExpression;
+                    tableScalePrecNumericUpDown.Value = sigIntTbl.CellsScalePrecision;
                     tableSignedCheckBox.Checked = sigIntTbl.SignedOutput;
                     tableWordCheckBox.Checked = sigIntTbl.WordOutput;
                     
@@ -333,6 +353,8 @@ namespace SAD806x
                     functionRowsTextBox.Text = sigIntFunc.RowsNumber.ToString();
                     functionScaleInputTextBox.Text = sigIntFunc.InputScaleExpression;
                     functionScaleOutputTextBox.Text = sigIntFunc.OutputScaleExpression;
+                    functionScalePrecInputNumericUpDown.Value = sigIntFunc.InputScalePrecision;
+                    functionScalePrecOutputNumericUpDown.Value = sigIntFunc.OutputScalePrecision;
                     functionSignedInputCheckBox.Checked = sigIntFunc.SignedInput;
                     functionSignedOutputCheckBox.Checked = sigIntFunc.SignedOutput;
                     functionUnitsInputTextBox.Text = sigIntFunc.InputUnits;
@@ -356,6 +378,7 @@ namespace SAD806x
                     scalarBitFlagsCheckBox.Checked = sigIntScal.isBitFlags;
                     scalarByteCheckBox.Checked = sigIntScal.Byte;
                     scalarScaleTextBox.Text = sigIntScal.ScaleExpression;
+                    scalarScalePrecNumericUpDown.Value = sigIntScal.ScalePrecision;
                     scalarSignedCheckBox.Checked = sigIntScal.Signed;
                     scalarUnitsTextBox.Text = sigIntScal.Units;
 
@@ -439,6 +462,7 @@ namespace SAD806x
                     sigIntTbl.RowsNumber = Convert.ToInt32(tableRowsTextBox.Text);
                     sigIntTbl.RowsUnits = tableRowsUnitsTextBox.Text;
                     sigIntTbl.CellsScaleExpression = tableScaleTextBox.Text;
+                    sigIntTbl.CellsScalePrecision = (int)tableScalePrecNumericUpDown.Value;
                     sigIntTbl.SignedOutput = tableSignedCheckBox.Checked;
                     sigIntTbl.WordOutput = tableWordCheckBox.Checked;
 
@@ -459,6 +483,8 @@ namespace SAD806x
                     sigIntFunc.RowsNumber = Convert.ToInt32(functionRowsTextBox.Text);
                     sigIntFunc.InputScaleExpression = functionScaleInputTextBox.Text;
                     sigIntFunc.OutputScaleExpression = functionScaleOutputTextBox.Text;
+                    sigIntFunc.InputScalePrecision = (int)functionScalePrecInputNumericUpDown.Value;
+                    sigIntFunc.OutputScalePrecision = (int)functionScalePrecOutputNumericUpDown.Value;
                     sigIntFunc.SignedInput = functionSignedInputCheckBox.Checked;
                     sigIntFunc.SignedOutput = functionSignedOutputCheckBox.Checked;
                     sigIntFunc.InputUnits = functionUnitsInputTextBox.Text;
@@ -479,6 +505,7 @@ namespace SAD806x
                     S6xRoutineInternalScalar sigIntScal = s6xESig.Scalar;
                     sigIntScal.Byte = scalarByteCheckBox.Checked;
                     sigIntScal.ScaleExpression = scalarScaleTextBox.Text;
+                    sigIntScal.ScalePrecision = (int)scalarScalePrecNumericUpDown.Value;
                     sigIntScal.Signed = scalarSignedCheckBox.Checked;
                     sigIntScal.Units = scalarUnitsTextBox.Text;
 

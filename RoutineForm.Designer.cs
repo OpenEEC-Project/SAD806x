@@ -71,6 +71,7 @@
             this.inputTableColsNumRegTextBox = new System.Windows.Forms.TextBox();
             this.label13 = new System.Windows.Forms.Label();
             this.inputTableTabPage = new System.Windows.Forms.TabPage();
+            this.inputTableScalePrecNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.inputTableScaleTextBox = new System.Windows.Forms.TextBox();
             this.label14 = new System.Windows.Forms.Label();
             this.inputTableRowsNumTextBox = new System.Windows.Forms.TextBox();
@@ -100,6 +101,8 @@
             this.label20 = new System.Windows.Forms.Label();
             this.label34 = new System.Windows.Forms.Label();
             this.inputFunctionTabPage = new System.Windows.Forms.TabPage();
+            this.inputFunctionScalePrecOutputNumericUpDown = new System.Windows.Forms.NumericUpDown();
+            this.inputFunctionScalePrecInputNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.label5 = new System.Windows.Forms.Label();
             this.inputFunctionOutputTextBox = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
@@ -120,6 +123,7 @@
             this.inputFunctionAddrTextBox = new System.Windows.Forms.TextBox();
             this.inputFunctionSignedInputCheckBox = new System.Windows.Forms.CheckBox();
             this.inputScalarTabPage = new System.Windows.Forms.TabPage();
+            this.inputScalarScalePrecNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.inputScalarUnitsTextBox = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
             this.inputScalarByteCheckBox = new System.Windows.Forms.CheckBox();
@@ -133,6 +137,7 @@
             this.repoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.advHeaderPanel.SuspendLayout();
             this.inputTableTabPage.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.inputTableScalePrecNumericUpDown)).BeginInit();
             this.advElemsContextMenuStrip.SuspendLayout();
             this.advMainSplitContainer.Panel1.SuspendLayout();
             this.advMainSplitContainer.Panel2.SuspendLayout();
@@ -143,7 +148,10 @@
             this.inputStructureTabPage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.inputStructureTipPictureBox)).BeginInit();
             this.inputFunctionTabPage.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.inputFunctionScalePrecOutputNumericUpDown)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.inputFunctionScalePrecInputNumericUpDown)).BeginInit();
             this.inputScalarTabPage.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.inputScalarScalePrecNumericUpDown)).BeginInit();
             this.advMainPanel.SuspendLayout();
             this.repoContextMenuStrip.SuspendLayout();
             this.SuspendLayout();
@@ -379,7 +387,7 @@
             this.inputTableCellsUnitsTextBox.Location = new System.Drawing.Point(366, 254);
             this.inputTableCellsUnitsTextBox.Name = "inputTableCellsUnitsTextBox";
             this.inputTableCellsUnitsTextBox.Size = new System.Drawing.Size(155, 20);
-            this.inputTableCellsUnitsTextBox.TabIndex = 14;
+            this.inputTableCellsUnitsTextBox.TabIndex = 15;
             // 
             // label12
             // 
@@ -408,6 +416,7 @@
             // 
             // inputTableTabPage
             // 
+            this.inputTableTabPage.Controls.Add(this.inputTableScalePrecNumericUpDown);
             this.inputTableTabPage.Controls.Add(this.label25);
             this.inputTableTabPage.Controls.Add(this.inputTableOutputTextBox);
             this.inputTableTabPage.Controls.Add(this.label23);
@@ -439,9 +448,26 @@
             this.inputTableTabPage.Text = "Input Table";
             this.inputTableTabPage.UseVisualStyleBackColor = true;
             // 
+            // inputTableScalePrecNumericUpDown
+            // 
+            this.inputTableScalePrecNumericUpDown.Location = new System.Drawing.Point(490, 200);
+            this.inputTableScalePrecNumericUpDown.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.inputTableScalePrecNumericUpDown.Name = "inputTableScalePrecNumericUpDown";
+            this.inputTableScalePrecNumericUpDown.Size = new System.Drawing.Size(31, 20);
+            this.inputTableScalePrecNumericUpDown.TabIndex = 12;
+            this.inputTableScalePrecNumericUpDown.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
+            // 
             // inputTableScaleTextBox
             // 
-            this.inputTableScaleTextBox.Location = new System.Drawing.Point(452, 200);
+            this.inputTableScaleTextBox.Location = new System.Drawing.Point(415, 200);
             this.inputTableScaleTextBox.Name = "inputTableScaleTextBox";
             this.inputTableScaleTextBox.Size = new System.Drawing.Size(69, 20);
             this.inputTableScaleTextBox.TabIndex = 11;
@@ -467,7 +493,7 @@
             this.inputTableRowsUnitsTextBox.Location = new System.Drawing.Point(196, 254);
             this.inputTableRowsUnitsTextBox.Name = "inputTableRowsUnitsTextBox";
             this.inputTableRowsUnitsTextBox.Size = new System.Drawing.Size(153, 20);
-            this.inputTableRowsUnitsTextBox.TabIndex = 13;
+            this.inputTableRowsUnitsTextBox.TabIndex = 14;
             // 
             // label15
             // 
@@ -483,7 +509,7 @@
             this.inputTableColsUnitsTextBox.Location = new System.Drawing.Point(3, 254);
             this.inputTableColsUnitsTextBox.Name = "inputTableColsUnitsTextBox";
             this.inputTableColsUnitsTextBox.Size = new System.Drawing.Size(153, 20);
-            this.inputTableColsUnitsTextBox.TabIndex = 12;
+            this.inputTableColsUnitsTextBox.TabIndex = 13;
             // 
             // label16
             // 
@@ -725,6 +751,8 @@
             // 
             // inputFunctionTabPage
             // 
+            this.inputFunctionTabPage.Controls.Add(this.inputFunctionScalePrecOutputNumericUpDown);
+            this.inputFunctionTabPage.Controls.Add(this.inputFunctionScalePrecInputNumericUpDown);
             this.inputFunctionTabPage.Controls.Add(this.label5);
             this.inputFunctionTabPage.Controls.Add(this.inputFunctionOutputTextBox);
             this.inputFunctionTabPage.Controls.Add(this.label3);
@@ -750,6 +778,40 @@
             this.inputFunctionTabPage.TabIndex = 2;
             this.inputFunctionTabPage.Text = "Input Function";
             this.inputFunctionTabPage.UseVisualStyleBackColor = true;
+            // 
+            // inputFunctionScalePrecOutputNumericUpDown
+            // 
+            this.inputFunctionScalePrecOutputNumericUpDown.Location = new System.Drawing.Point(490, 206);
+            this.inputFunctionScalePrecOutputNumericUpDown.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.inputFunctionScalePrecOutputNumericUpDown.Name = "inputFunctionScalePrecOutputNumericUpDown";
+            this.inputFunctionScalePrecOutputNumericUpDown.Size = new System.Drawing.Size(31, 20);
+            this.inputFunctionScalePrecOutputNumericUpDown.TabIndex = 12;
+            this.inputFunctionScalePrecOutputNumericUpDown.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
+            // 
+            // inputFunctionScalePrecInputNumericUpDown
+            // 
+            this.inputFunctionScalePrecInputNumericUpDown.Location = new System.Drawing.Point(160, 206);
+            this.inputFunctionScalePrecInputNumericUpDown.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.inputFunctionScalePrecInputNumericUpDown.Name = "inputFunctionScalePrecInputNumericUpDown";
+            this.inputFunctionScalePrecInputNumericUpDown.Size = new System.Drawing.Size(31, 20);
+            this.inputFunctionScalePrecInputNumericUpDown.TabIndex = 10;
+            this.inputFunctionScalePrecInputNumericUpDown.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
             // 
             // label5
             // 
@@ -804,10 +866,10 @@
             // 
             // inputFunctionScaleOutputTextBox
             // 
-            this.inputFunctionScaleOutputTextBox.Location = new System.Drawing.Point(452, 206);
+            this.inputFunctionScaleOutputTextBox.Location = new System.Drawing.Point(415, 206);
             this.inputFunctionScaleOutputTextBox.Name = "inputFunctionScaleOutputTextBox";
             this.inputFunctionScaleOutputTextBox.Size = new System.Drawing.Size(69, 20);
-            this.inputFunctionScaleOutputTextBox.TabIndex = 10;
+            this.inputFunctionScaleOutputTextBox.TabIndex = 11;
             // 
             // label10
             // 
@@ -820,7 +882,7 @@
             // 
             // inputFunctionScaleInputTextBox
             // 
-            this.inputFunctionScaleInputTextBox.Location = new System.Drawing.Point(122, 206);
+            this.inputFunctionScaleInputTextBox.Location = new System.Drawing.Point(85, 206);
             this.inputFunctionScaleInputTextBox.Name = "inputFunctionScaleInputTextBox";
             this.inputFunctionScaleInputTextBox.Size = new System.Drawing.Size(69, 20);
             this.inputFunctionScaleInputTextBox.TabIndex = 9;
@@ -846,7 +908,7 @@
             this.inputFunctionUnitsOutputTextBox.Location = new System.Drawing.Point(339, 245);
             this.inputFunctionUnitsOutputTextBox.Name = "inputFunctionUnitsOutputTextBox";
             this.inputFunctionUnitsOutputTextBox.Size = new System.Drawing.Size(182, 20);
-            this.inputFunctionUnitsOutputTextBox.TabIndex = 12;
+            this.inputFunctionUnitsOutputTextBox.TabIndex = 14;
             // 
             // label7
             // 
@@ -872,7 +934,7 @@
             this.inputFunctionUnitsInputTextBox.Location = new System.Drawing.Point(3, 245);
             this.inputFunctionUnitsInputTextBox.Name = "inputFunctionUnitsInputTextBox";
             this.inputFunctionUnitsInputTextBox.Size = new System.Drawing.Size(188, 20);
-            this.inputFunctionUnitsInputTextBox.TabIndex = 11;
+            this.inputFunctionUnitsInputTextBox.TabIndex = 13;
             // 
             // label4
             // 
@@ -912,6 +974,7 @@
             // inputScalarTabPage
             // 
             this.inputScalarTabPage.AutoScroll = true;
+            this.inputScalarTabPage.Controls.Add(this.inputScalarScalePrecNumericUpDown);
             this.inputScalarTabPage.Controls.Add(this.inputScalarUnitsTextBox);
             this.inputScalarTabPage.Controls.Add(this.label2);
             this.inputScalarTabPage.Controls.Add(this.inputScalarByteCheckBox);
@@ -927,6 +990,23 @@
             this.inputScalarTabPage.TabIndex = 0;
             this.inputScalarTabPage.Text = "Input Scalar";
             this.inputScalarTabPage.UseVisualStyleBackColor = true;
+            // 
+            // inputScalarScalePrecNumericUpDown
+            // 
+            this.inputScalarScalePrecNumericUpDown.Location = new System.Drawing.Point(387, 109);
+            this.inputScalarScalePrecNumericUpDown.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.inputScalarScalePrecNumericUpDown.Name = "inputScalarScalePrecNumericUpDown";
+            this.inputScalarScalePrecNumericUpDown.Size = new System.Drawing.Size(31, 20);
+            this.inputScalarScalePrecNumericUpDown.TabIndex = 7;
+            this.inputScalarScalePrecNumericUpDown.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
             // 
             // inputScalarUnitsTextBox
             // 
@@ -996,7 +1076,7 @@
             this.repoContextMenuStrip.Name = "repoContextMenuStrip";
             this.repoContextMenuStrip.ShowCheckMargin = true;
             this.repoContextMenuStrip.ShowImageMargin = false;
-            this.repoContextMenuStrip.Size = new System.Drawing.Size(173, 79);
+            this.repoContextMenuStrip.Size = new System.Drawing.Size(173, 57);
             // 
             // repoToolStripTextBox
             // 
@@ -1031,6 +1111,7 @@
             this.advHeaderPanel.PerformLayout();
             this.inputTableTabPage.ResumeLayout(false);
             this.inputTableTabPage.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.inputTableScalePrecNumericUpDown)).EndInit();
             this.advElemsContextMenuStrip.ResumeLayout(false);
             this.advMainSplitContainer.Panel1.ResumeLayout(false);
             this.advMainSplitContainer.Panel2.ResumeLayout(false);
@@ -1045,8 +1126,11 @@
             ((System.ComponentModel.ISupportInitialize)(this.inputStructureTipPictureBox)).EndInit();
             this.inputFunctionTabPage.ResumeLayout(false);
             this.inputFunctionTabPage.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.inputFunctionScalePrecOutputNumericUpDown)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.inputFunctionScalePrecInputNumericUpDown)).EndInit();
             this.inputScalarTabPage.ResumeLayout(false);
             this.inputScalarTabPage.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.inputScalarScalePrecNumericUpDown)).EndInit();
             this.advMainPanel.ResumeLayout(false);
             this.repoContextMenuStrip.ResumeLayout(false);
             this.repoContextMenuStrip.PerformLayout();
@@ -1147,5 +1231,9 @@
         private System.Windows.Forms.ToolStripTextBox repoToolStripTextBox;
         private System.Windows.Forms.ToolStripSeparator repoToolStripSeparator;
         private System.Windows.Forms.ToolStripMenuItem repoToolStripMenuItem;
+        private System.Windows.Forms.NumericUpDown inputTableScalePrecNumericUpDown;
+        private System.Windows.Forms.NumericUpDown inputFunctionScalePrecInputNumericUpDown;
+        private System.Windows.Forms.NumericUpDown inputFunctionScalePrecOutputNumericUpDown;
+        private System.Windows.Forms.NumericUpDown inputScalarScalePrecNumericUpDown;
     }
 }

@@ -42,6 +42,7 @@
             this.advMainSplitContainer = new System.Windows.Forms.SplitContainer();
             this.elemTabControl = new System.Windows.Forms.TabControl();
             this.bitFlagTabPage = new System.Windows.Forms.TabPage();
+            this.bitFlagHParentCheckBox = new System.Windows.Forms.CheckBox();
             this.bitFlagSkipCheckBox = new System.Windows.Forms.CheckBox();
             this.label6 = new System.Windows.Forms.Label();
             this.bitFlagSLabelTextBox = new System.Windows.Forms.TextBox();
@@ -80,40 +81,40 @@
             this.removeAllToolStripMenuItem,
             this.copyXdfToolStripMenuItem});
             this.advElemsContextMenuStrip.Name = "advSigElemsContextMenuStrip";
-            this.advElemsContextMenuStrip.Size = new System.Drawing.Size(145, 114);
+            this.advElemsContextMenuStrip.Size = new System.Drawing.Size(153, 136);
             // 
             // newElementToolStripMenuItem
             // 
             this.newElementToolStripMenuItem.Name = "newElementToolStripMenuItem";
-            this.newElementToolStripMenuItem.Size = new System.Drawing.Size(144, 22);
+            this.newElementToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.newElementToolStripMenuItem.Text = "New Element";
             this.newElementToolStripMenuItem.Click += new System.EventHandler(this.newElementToolStripMenuItem_Click);
             // 
             // createAllToolStripMenuItem
             // 
             this.createAllToolStripMenuItem.Name = "createAllToolStripMenuItem";
-            this.createAllToolStripMenuItem.Size = new System.Drawing.Size(144, 22);
+            this.createAllToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.createAllToolStripMenuItem.Text = "Create All";
             this.createAllToolStripMenuItem.Click += new System.EventHandler(this.createAllToolStripMenuItem_Click);
             // 
             // delElementToolStripMenuItem
             // 
             this.delElementToolStripMenuItem.Name = "delElementToolStripMenuItem";
-            this.delElementToolStripMenuItem.Size = new System.Drawing.Size(144, 22);
+            this.delElementToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.delElementToolStripMenuItem.Text = "Remove";
             this.delElementToolStripMenuItem.Click += new System.EventHandler(this.delElementToolStripMenuItem_Click);
             // 
             // removeAllToolStripMenuItem
             // 
             this.removeAllToolStripMenuItem.Name = "removeAllToolStripMenuItem";
-            this.removeAllToolStripMenuItem.Size = new System.Drawing.Size(144, 22);
+            this.removeAllToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.removeAllToolStripMenuItem.Text = "Remove All";
             this.removeAllToolStripMenuItem.Click += new System.EventHandler(this.removeAllToolStripMenuItem_Click);
             // 
             // copyXdfToolStripMenuItem
             // 
             this.copyXdfToolStripMenuItem.Name = "copyXdfToolStripMenuItem";
-            this.copyXdfToolStripMenuItem.Size = new System.Drawing.Size(144, 22);
+            this.copyXdfToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.copyXdfToolStripMenuItem.Text = "Copy (xdf)";
             this.copyXdfToolStripMenuItem.Click += new System.EventHandler(this.copyXdfToolStripMenuItem_Click);
             // 
@@ -181,6 +182,7 @@
             // 
             // bitFlagTabPage
             // 
+            this.bitFlagTabPage.Controls.Add(this.bitFlagHParentCheckBox);
             this.bitFlagTabPage.Controls.Add(this.bitFlagSkipCheckBox);
             this.bitFlagTabPage.Controls.Add(this.label6);
             this.bitFlagTabPage.Controls.Add(this.bitFlagSLabelTextBox);
@@ -200,6 +202,16 @@
             this.bitFlagTabPage.TabIndex = 13;
             this.bitFlagTabPage.Text = "Bit Flag";
             this.bitFlagTabPage.UseVisualStyleBackColor = true;
+            // 
+            // bitFlagHParentCheckBox
+            // 
+            this.bitFlagHParentCheckBox.AutoSize = true;
+            this.bitFlagHParentCheckBox.Location = new System.Drawing.Point(114, 71);
+            this.bitFlagHParentCheckBox.Name = "bitFlagHParentCheckBox";
+            this.bitFlagHParentCheckBox.Size = new System.Drawing.Size(82, 17);
+            this.bitFlagHParentCheckBox.TabIndex = 77;
+            this.bitFlagHParentCheckBox.Text = "Hide Parent";
+            this.bitFlagHParentCheckBox.UseVisualStyleBackColor = true;
             // 
             // bitFlagSkipCheckBox
             // 
@@ -437,5 +449,6 @@
         private System.Windows.Forms.ToolStripMenuItem createAllToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem removeAllToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem copyXdfToolStripMenuItem;
+        private System.Windows.Forms.CheckBox bitFlagHParentCheckBox;
     }
 }

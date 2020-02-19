@@ -12,6 +12,10 @@ namespace SAD806x
         // TunerPro Clipboard Format
         public const string XdfClipboardFormat = "TPXDFCLIPBOARDFMT_1.0";
         
+        // Settings file names
+        public const string recentFilesFileName = "recent.xml";
+        public const string settingsTextOuputFileName = "settingstextoutput.xml";
+        
         // Repository file names
         public const string repoFileNameRegisters = "registers.xml";
         public const string repoFileNameStructures = "structures.xml";
@@ -24,6 +28,11 @@ namespace SAD806x
         // Fixed EEC Bank Start Address 2000
         public const int EecBankStartAddress = 0x2000;
 
+        // Default Values
+        public const int DefaultScalePrecision = 2;
+        public const int DefaultScaleMinPrecision = 0;
+        public const int DefaultScaleMaxPrecision = 8;
+        
         // Banks identification
 
         public const int Bank_Prev_Pattern_String_Length = 8;
@@ -31,7 +40,9 @@ namespace SAD806x
         public static string[] Bank_Prev_Pattern_Possible_Fixed_Last_Bytes = new string[] {"91"};
         // To obtain "FFFFFFFF" or "FFFFFF91"
 
-        public const string Bank_8_Early_SigStart = "FFFA201C";
+        public const string Bank_8_Early_SigStart_1 = "FFFA201C";
+        public const string Bank_8_Early_SigStart_2 = "FFFA2021";
+        public const string Bank_8_Early_SigStart_3 = "FFFA2023";
         public const string Bank_8_9_0_SigStart = "FFFA";
         public const string Bank_9_0_SigStart = "FFFA27";
         public const string Bank_1_SigStart = "27FE";
@@ -53,7 +64,7 @@ namespace SAD806x
         public const string Info_8061_FirstRBase_Signature_2 = "A1" + "%CPOI%" + "..........A1%FRBASE%00..B301" + "%LNUM%" + "..A2....C2....E0";
         public const string Info_8061_FirstRBase_Signature_3 = "0901..A1%FRBASE%00..B301" + "%LNUM%" + "..A2....C2....E0";
         // Checksum Calculation Signature
-        public const string Info_8061_CheckSumCalc_Signature_1 = "A301" + "%CSCSTARTP%" + "..A301" + "%CSCENDP%" + "..01..110566....88....D1..8800..";
+        public const string Info_8061_CheckSumCalc_Signature_1 = "A301" + "%CSCSTARTP%" + "..A301" + "%CSCENDP%" + "..01..110566....88....D...8800..";
         public const string Info_8061_CheckSumCalc_Signature_2 = "A1" + "%CSCSTARTP%" + "......00..DF..A2..........66....88....";
         public const string Info_8061_CheckSumCalc_Signature_3 = "A1" + "%CSCSTARTP%" + "......00..DF..A2....66....88....";
         public const string Info_8061_CheckSumCalc_Signature_4 = "C3....00A1" + "%CSCSTARTP%" + "..17..F0A3......A2....8800..";
@@ -97,8 +108,6 @@ namespace SAD806x
         public const string NamingLongBankSeparator = " ";
         public const string NamingShortBankSeparator = "_";
         public const string VariableValuesSeparator = ".";
-        public const string BitByteGotoOPAltSeparator = ".";
-        public const string BitByteGotoOPAltComparison = " == ";
         public const string ShortRegisterPrefix = "R";
         public const string ShortPointerPrefix = "R";
         public const string LongRegisterPointerPrefix = "[";
@@ -106,6 +115,14 @@ namespace SAD806x
         public static string LongRegisterTemplate = LongRegisterPointerPrefix + "%LREG%" + LongRegisterPointerSuffix;
         public static string LongPointerTemplate = LongRegisterPointerPrefix + "%POINTER%" + LongRegisterPointerSuffix;
         public const string IncrementSuffix = "++";
+
+        public const string BitByteGotoOPAltSeparator = ".";
+        public const string BitByteGotoOPAltComparison = " == ";
+        public const string BitByteGotoOPAltHRegPrefix = "<";
+        public const string BitByteGotoOPAltHRegSuffix = ">";
+        public const string BitByteSetOPAltTemplate = "%1% = %2%;";
+        public const string BitByteSetOPAltDefVal = "true";
+        public const string BitByteUnSetOPAltDefVal = "false";
 
         // Signatures Keywords
         public const string SignatureParamBytePrefixSuffix = "#";
@@ -380,7 +397,7 @@ namespace SAD806x
             new object[] { 1, "IPT_HSO_2", "Interrupt High Speed Output 2", "Interrupt High Speed Output"},
             new object[] { 2, "IPT_Timer_OVF", "Interrupt Timer OVF", "Interrupt Timer OVF"},
             new object[] { 3, "IPT_HSI_0", "Interrupt High Speed Input 0", "Interrupt High Speed Input"},
-            new object[] { 4, "IPT_HSI_Data", "Interrupt Hight Speed Input Data", "Interrupt Hight Speed Input Data"},
+            new object[] { 4, "IPT_HSI_Data", "Interrupt High Speed Input Data", "Interrupt High Speed Input Data"},
             new object[] { 5, "IPT_HSI_0", "Interrupt High Speed Input 0", "Interrupt High Speed Input"},
             new object[] { 6, "IPT_HSO_1", "Interrupt High Speed Output 1", "Interrupt High Speed Output"},
             new object[] { 7, "IPT_HSI_0", "Interrupt High Speed Input 0", "Interrupt High Speed Input"},
@@ -407,7 +424,7 @@ namespace SAD806x
             new object[] { 17, "IPT_HSI_FIFO", "Interrupt High Speed Input FIFO", "Interrupt High Speed Input FIFO"},
             new object[] { 18, "IPT_External", "Interrupt External", "Interrupt External"},
             new object[] { 19, "IPT_HSI_0", "Interrupt High Speed Input 0", "Interrupt High Speed Input"},
-            new object[] { 20, "IPT_HSI_Data", "Interrupt Hight Speed Input Data", "Interrupt Hight Speed Input Data"},
+            new object[] { 20, "IPT_HSI_Data", "Interrupt High Speed Input Data", "Interrupt High Speed Input Data"},
             new object[] { 21, "IPT_HSI_1", "Interrupt High Speed Input 1", "Interrupt High Speed Input"},
             new object[] { 22, "IPT_AD_Imm_Rdy", "Interrupt Analogic/Digital Imm Ready", "Interrupt Analogic/Digital Imm Ready"},
             new object[] { 23, "IPT_AD_Timed_Rdy", "Interrupt Analogic/Digital Timed Ready", "Interrupt Analogic/Digital Timed Ready"},

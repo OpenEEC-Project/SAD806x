@@ -169,6 +169,24 @@ namespace SAD806x
                         break;
                     }
                 }
+                // BitFlags AddOn
+                if (!isResult && s6xObject.BitFlagsNum > 0)
+                {
+                    foreach (S6xBitFlag s6xBF in s6xObject.BitFlags)
+                    {
+                        searchValues = new string[] { s6xBF.ShortLabel, s6xBF.Label, s6xBF.SetValue, s6xBF.NotSetValue, s6xBF.Comments };
+                        foreach (string searchValue in searchValues)
+                        {
+                            string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                            if (cSearchValue.Contains(searchText))
+                            {
+                                isResult = true;
+                                break;
+                            }
+                        }
+                        if (isResult) break;
+                    }
+                }
                 if (isResult) results.Add(new string[] { "REGISTERS", s6xObject.UniqueAddress });
             }
             foreach (S6xRoutine s6xObject in sadS6x.slRoutines.Values)
@@ -199,6 +217,24 @@ namespace SAD806x
                         break;
                     }
                 }
+                // BitFlags AddOn
+                if (!isResult && s6xObject.BitFlagsNum > 0)
+                {
+                    foreach (S6xBitFlag s6xBF in s6xObject.BitFlags)
+                    {
+                        searchValues = new string[] { s6xBF.ShortLabel, s6xBF.Label, s6xBF.SetValue, s6xBF.NotSetValue, s6xBF.Comments };
+                        foreach (string searchValue in searchValues)
+                        {
+                            string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                            if (cSearchValue.Contains(searchText))
+                            {
+                                isResult = true;
+                                break;
+                            }
+                        }
+                        if (isResult) break;
+                    }
+                }
                 if (isResult) results.Add(new string[] { "SCALARS", s6xObject.UniqueAddress });
             }
             foreach (S6xSignature s6xObject in sadS6x.slSignatures.Values)
@@ -214,6 +250,7 @@ namespace SAD806x
                         break;
                     }
                 }
+                // TO BE EXTENDED
                 if (isResult) results.Add(new string[] { "SIGNATURES", s6xObject.UniqueKey });
             }
             foreach (S6xElementSignature s6xObject in sadS6x.slElementsSignatures.Values)
@@ -251,6 +288,27 @@ namespace SAD806x
                     {
                         isResult = true;
                         break;
+                    }
+                }
+                // BitFlags AddOn
+                if (!isResult && s6xObject.Scalar != null)
+                {
+                    if (s6xObject.Scalar.BitFlagsNum > 0)
+                    {
+                        foreach (S6xBitFlag s6xBF in s6xObject.Scalar.BitFlags)
+                        {
+                            searchValues = new string[] { s6xBF.ShortLabel, s6xBF.Label, s6xBF.SetValue, s6xBF.NotSetValue, s6xBF.Comments };
+                            foreach (string searchValue in searchValues)
+                            {
+                                string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                                if (cSearchValue.Contains(searchText))
+                                {
+                                    isResult = true;
+                                    break;
+                                }
+                            }
+                            if (isResult) break;
+                        }
                     }
                 }
                 if (isResult) results.Add(new string[] { "ELEMSSIGNATURES", s6xObject.UniqueKey });

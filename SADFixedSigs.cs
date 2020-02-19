@@ -51,6 +51,8 @@ namespace SAD806x
                     ((S6xRoutineInternalFunction)oRes).RowsNumber = 0;
                     ((S6xRoutineInternalFunction)oRes).InputScaleExpression = "X";
                     ((S6xRoutineInternalFunction)oRes).OutputScaleExpression = "X";
+                    ((S6xRoutineInternalFunction)oRes).InputScalePrecision = SADDef.DefaultScalePrecision;
+                    ((S6xRoutineInternalFunction)oRes).OutputScalePrecision = SADDef.DefaultScalePrecision;
                     break;
                 default:
                     break;

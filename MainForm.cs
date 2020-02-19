@@ -33,6 +33,8 @@ namespace SAD806x
         
         private ArrayList alClipBoardTempUniqueAddresses = null;
 
+        private RecentFiles recentFiles = null;
+
         private Repository repoRegisters = null;
         private Repository repoTables = null;
         private Repository repoFunctions = null;
@@ -120,10 +122,26 @@ namespace SAD806x
             structureTipPictureBox.Tag = Tools.StructureTip();
             signatureTipPictureBox.Tag = Tools.SignatureTip();
             elementSignatureTipPictureBox.Tag = Tools.ElementSignatureTip();
+
+            scalarScalePrecNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            scalarScalePrecNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            scalarScalePrecNumericUpDown.Value = SADDef.DefaultScalePrecision;
+
+            functionScalePrecInputNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            functionScalePrecInputNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            functionScalePrecInputNumericUpDown.Value = SADDef.DefaultScalePrecision;
+            functionScalePrecOutputNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            functionScalePrecOutputNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            functionScalePrecOutputNumericUpDown.Value = SADDef.DefaultScalePrecision;
+
+            tableScalePrecNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            tableScalePrecNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            tableScalePrecNumericUpDown.Value = SADDef.DefaultScalePrecision;
             
             attachPropertiesEvents();
             
             initForm();
+            initRecentFiles();
             initRepositories();
             initRepositoryConversion();
 
@@ -332,6 +350,7 @@ namespace SAD806x
             compareS6xToolStripMenuItem.Enabled = false;
             routinesComparisonToolStripMenuItem.Enabled = false;
             calibChartViewToolStripMenuItem.Enabled = false;
+            massUpdateToolStripMenuItem.Enabled = false;
 
             if (sadBin != null)
             {
@@ -347,6 +366,7 @@ namespace SAD806x
                     searchObjectsToolStripMenuItem.Enabled = true;
                     searchSignatureToolStripMenuItem.Enabled = true;
                     compareS6xToolStripMenuItem.Enabled = true;
+                    massUpdateToolStripMenuItem.Enabled = true;
                     if (sadBin.isDisassembled)
                     {
                         compareBinariesToolStripMenuItem.Enabled = true;
@@ -459,6 +479,9 @@ namespace SAD806x
                         break;
                     case "ComboBox":
                         ((ComboBox)control).SelectionChangeCommitted += new EventHandler(elemProperties_Modified);
+                        break;
+                    case "NumericUpDown":
+                        ((NumericUpDown)control).ValueChanged += new EventHandler(elemProperties_Modified);
                         break;
                     case "PictureBox":
                         // For Tips only for now
@@ -673,6 +696,28 @@ namespace SAD806x
             if (elemTabControl.TabPages.Contains(s6xPropertiesTabPage)) elemTabControl.TabPages.Remove(s6xPropertiesTabPage);
         }
 
+        private void initRecentFiles()
+        {
+            recentToolStripMenuItem.DropDownItems.Clear();
+
+            string rfsFilePath = Application.StartupPath + "\\" + SADDef.recentFilesFileName;
+            
+            recentFiles = (RecentFiles)ToolsXml.DeserializeFile(rfsFilePath, typeof(RecentFiles));
+            if (recentFiles == null) recentFiles = new RecentFiles();
+            recentFiles.rfsFilePath = rfsFilePath;
+
+            foreach (RecentFile rfItem in recentFiles.Items)
+            {
+                ToolStripMenuItem tsItem = new ToolStripMenuItem(rfItem.Label);
+                tsItem.Tag = rfItem;
+                tsItem.ToolTipText = rfItem.Details;
+                tsItem.Click += new EventHandler(recentFileToolStripMenuItem_Click);
+                recentToolStripMenuItem.DropDownItems.Add(tsItem);
+
+                if (recentToolStripMenuItem.DropDownItems.Count >= 10) break;
+            }
+        }
+
         private void initRepositories()
         {
             repoRegisters = (Repository)ToolsXml.DeserializeFile(Application.StartupPath + "\\" + SADDef.repoFileNameRegisters, typeof(Repository));
@@ -808,6 +853,22 @@ namespace SAD806x
             startLoadProcess();
         }
 
+        private void recentFileToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            RecentFile rfItem = (RecentFile)((ToolStripMenuItem)sender).Tag;
+            if (rfItem == null) return;
+
+            string bFilePath = rfItem.binPath + "\\" + rfItem.binFileName;
+            string sFilePath = string.Empty;
+            if (rfItem.s6xFileName != null || rfItem.s6xFileName != string.Empty) sFilePath = rfItem.s6xPath + "\\" + rfItem.s6xFileName;
+            rfItem = null;
+
+            if (!File.Exists(bFilePath)) return;
+            if (!File.Exists(sFilePath)) sFilePath = string.Empty;
+
+            selectBinary(bFilePath, sFilePath);
+        }
+
         private void saveS6xToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (sadS6x == null) return;
@@ -838,6 +899,8 @@ namespace SAD806x
             sadS6x.ResetBanksProperties(ref slBanksInfos);
             slBanksInfos = null;
 
+            bool newS6xFile = !File.Exists(sadS6x.FilePath);
+
             if (!sadS6x.Save())
             {
                 MessageBox.Show("Saving S6x Definition has failed.", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -852,6 +915,13 @@ namespace SAD806x
             if (sadBin != null)
             {
                 disassemblyToolStripMenuItem.Enabled = (sadBin.isLoaded && sadBin.isValid && sadS6x.isSaved);
+            }
+
+            if (sadBin != null && newS6xFile && sadS6x.isSaved)
+            {
+                recentFiles.Update(new RecentFile(sadBin.BinaryFilePath, sadS6x.FilePath));
+                recentFiles.Save();
+                initRecentFiles();
             }
         }
 
@@ -999,6 +1069,11 @@ namespace SAD806x
                 analysis3ToolStripStatusLabel.Font = new Font(FontFamily.GenericMonospace, analysis3ToolStripStatusLabel.Font.Size);
                 analysis3ToolStripStatusLabel.Text = getLoadStatus3();
 
+                //Recent Files Update
+                recentFiles.Update(new RecentFile(binaryFilePath, sadS6x.FilePath));
+                recentFiles.Save();
+                initRecentFiles();
+                
                 if (sadBin.isValid)
                 {
                     disassemblyToolStripMenuItem.Enabled = true;
@@ -1094,7 +1169,7 @@ namespace SAD806x
         private void startOutputProcess()
         {
             if (sadBin == null) return;
-
+            
             processPreviousCursor = Cursor;
 
             Cursor = System.Windows.Forms.Cursors.WaitCursor;
@@ -1119,6 +1194,9 @@ namespace SAD806x
 
         private void startOutputTextProcess()
         {
+            sadBin.ProgressStatus = 0;
+            sadBin.ProgressLabel = string.Empty;
+            
             // Remap Calibration Objects with Current S6x
             foreach (S6xTable s6xObject in sadS6x.slTables.Values)
             {
@@ -1193,7 +1271,24 @@ namespace SAD806x
             }
             
             // Processing
-            sadBin.processOutputText(textOutputFilePath);
+            SettingsLst toSettings = (SettingsLst)ToolsXml.DeserializeFile(Application.StartupPath + "\\" + SADDef.settingsTextOuputFileName, typeof(SettingsLst));
+            if (toSettings == null) toSettings = new SettingsLst();
+            ToolsSettings.Update(ref toSettings, "TEXTOUTPUT");
+
+            bool applySettings = toSettings.Get<bool>("ACTIVE");
+
+            if (applySettings)
+            {
+                OutputTextV outputText = new OutputTextV(ref sadBin, textOutputFilePath, ref toSettings);
+                outputText.processOutputText();
+            }
+            else
+            {
+                OutputText outputText = new OutputText(ref sadBin, textOutputFilePath, ref toSettings);
+                outputText.processOutputText();
+            }
+
+            //sadBin.processOutputText(textOutputFilePath, Application.StartupPath + "\\" + SADDef.settingsTextOuputFileName);
         }
         
         private void endOutputProcess()
@@ -1740,18 +1835,30 @@ namespace SAD806x
             {
                 if (calElem.isTable)
                 {
-                    if (sadS6x.slTables.ContainsKey(calElem.TableElem.UniqueAddress))
+                    S6xTable s6xObject = (S6xTable)sadS6x.slTables[calElem.TableElem.UniqueAddress];
+                    if (s6xObject != null)
                     {
                         // Skipped and stored Element is moved to Duplicates before being overwritten
-                        if (((S6xTable)sadS6x.slTables[calElem.TableElem.UniqueAddress]).Skip && ((S6xTable)sadS6x.slTables[calElem.TableElem.UniqueAddress]).Store)
+                        if (s6xObject.Skip && s6xObject.Store)
                         {
-                            S6xTable s6xDup = (S6xTable)sadS6x.slTables[calElem.TableElem.UniqueAddress];
+                            S6xTable s6xDup = s6xObject;
                             s6xDup.DuplicateNum = 1;
                             while (sadS6x.slDupTables.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
                             sadS6x.slDupTables.Add(s6xDup.DuplicateAddress, s6xDup);
+                            s6xObject = null;
                         }
-
-                        sadS6x.slTables[calElem.TableElem.UniqueAddress] = (calElem.TableElem.S6xTable == null) ? new S6xTable(calElem) : calElem.TableElem.S6xTable;
+                        else if (s6xObject.Store)
+                        {
+                            calElem.TableElem.S6xTable = s6xObject;
+                        }
+                        else
+                        {
+                            s6xObject = null;
+                        }
+                        if (s6xObject == null)
+                        {
+                            sadS6x.slTables[calElem.TableElem.UniqueAddress] = (calElem.TableElem.S6xTable == null) ? new S6xTable(calElem) : calElem.TableElem.S6xTable;
+                        }
                     }
                     else
                     {
@@ -1760,18 +1867,30 @@ namespace SAD806x
                 }
                 else if (calElem.isFunction)
                 {
-                    if (sadS6x.slFunctions.ContainsKey(calElem.FunctionElem.UniqueAddress))
+                    S6xFunction s6xObject = (S6xFunction)sadS6x.slFunctions[calElem.FunctionElem.UniqueAddress];
+                    if (s6xObject != null)
                     {
                         // Skipped and stored Element is moved to Duplicates before being overwritten
-                        if (((S6xFunction)sadS6x.slFunctions[calElem.FunctionElem.UniqueAddress]).Skip && ((S6xFunction)sadS6x.slFunctions[calElem.FunctionElem.UniqueAddress]).Store)
+                        if (s6xObject.Skip && s6xObject.Store)
                         {
-                            S6xFunction s6xDup = (S6xFunction)sadS6x.slFunctions[calElem.FunctionElem.UniqueAddress];
+                            S6xFunction s6xDup = s6xObject;
                             s6xDup.DuplicateNum = 1;
                             while (sadS6x.slDupFunctions.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
                             sadS6x.slDupFunctions.Add(s6xDup.DuplicateAddress, s6xDup);
+                            s6xObject = null;
                         }
-
-                        sadS6x.slFunctions[calElem.FunctionElem.UniqueAddress] = (calElem.FunctionElem.S6xFunction == null) ? new S6xFunction(calElem) : calElem.FunctionElem.S6xFunction;
+                        else if (s6xObject.Store)
+                        {
+                            calElem.FunctionElem.S6xFunction = s6xObject;
+                        }
+                        else
+                        {
+                            s6xObject = null;
+                        }
+                        if (s6xObject == null)
+                        {
+                            sadS6x.slFunctions[calElem.FunctionElem.UniqueAddress] = (calElem.FunctionElem.S6xFunction == null) ? new S6xFunction(calElem) : calElem.FunctionElem.S6xFunction;
+                        }
                     }
                     else
                     {
@@ -1780,18 +1899,30 @@ namespace SAD806x
                 }
                 else if (calElem.isScalar)
                 {
-                    if (sadS6x.slScalars.ContainsKey(calElem.ScalarElem.UniqueAddress))
+                    S6xScalar s6xObject = (S6xScalar)sadS6x.slScalars[calElem.ScalarElem.UniqueAddress];
+                    if (s6xObject != null)
                     {
                         // Skipped and stored Element is moved to Duplicates before being overwritten
-                        if (((S6xScalar)sadS6x.slScalars[calElem.ScalarElem.UniqueAddress]).Skip && ((S6xScalar)sadS6x.slScalars[calElem.ScalarElem.UniqueAddress]).Store)
+                        if (s6xObject.Skip && s6xObject.Store)
                         {
-                            S6xScalar s6xDup = (S6xScalar)sadS6x.slScalars[calElem.ScalarElem.UniqueAddress];
+                            S6xScalar s6xDup = s6xObject;
                             s6xDup.DuplicateNum = 1;
                             while (sadS6x.slDupScalars.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
                             sadS6x.slDupScalars.Add(s6xDup.DuplicateAddress, s6xDup);
+                            s6xObject = null;
                         }
-
-                        sadS6x.slScalars[calElem.ScalarElem.UniqueAddress] = (calElem.ScalarElem.S6xScalar == null) ? new S6xScalar(calElem) : calElem.ScalarElem.S6xScalar;
+                        else if (s6xObject.Store)
+                        {
+                            calElem.ScalarElem.S6xScalar = s6xObject;
+                        }
+                        else
+                        {
+                            s6xObject = null;
+                        }
+                        if (s6xObject == null)
+                        {
+                            sadS6x.slScalars[calElem.ScalarElem.UniqueAddress] = (calElem.ScalarElem.S6xScalar == null) ? new S6xScalar(calElem) : calElem.ScalarElem.S6xScalar;
+                        }
                     }
                     else
                     {
@@ -1802,18 +1933,30 @@ namespace SAD806x
                 {
                     if (calElem.StructureElem.ParentStructure == null)  // Included / Duplicated elements are not generated
                     {
-                        if (sadS6x.slStructures.ContainsKey(calElem.StructureElem.UniqueAddress))
+                        S6xStructure s6xObject = (S6xStructure)sadS6x.slStructures[calElem.StructureElem.UniqueAddress];
+                        if (s6xObject != null)
                         {
                             // Skipped and stored Element is moved to Duplicates before being overwritten
-                            if (((S6xStructure)sadS6x.slStructures[calElem.StructureElem.UniqueAddress]).Skip && ((S6xStructure)sadS6x.slStructures[calElem.StructureElem.UniqueAddress]).Store)
+                            if (s6xObject.Skip && s6xObject.Store)
                             {
-                                S6xStructure s6xDup = (S6xStructure)sadS6x.slStructures[calElem.StructureElem.UniqueAddress];
+                                S6xStructure s6xDup = s6xObject;
                                 s6xDup.DuplicateNum = 1;
                                 while (sadS6x.slDupStructures.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
                                 sadS6x.slDupStructures.Add(s6xDup.DuplicateAddress, s6xDup);
+                                s6xObject = null;
                             }
-
-                            sadS6x.slStructures[calElem.StructureElem.UniqueAddress] = (calElem.StructureElem.S6xStructure == null) ? new S6xStructure(calElem) : calElem.StructureElem.S6xStructure;
+                            else if (s6xObject.Store)
+                            {
+                                calElem.StructureElem.S6xStructure = s6xObject;
+                            }
+                            else
+                            {
+                                s6xObject = null;
+                            }
+                            if (s6xObject == null)
+                            {
+                                sadS6x.slStructures[calElem.StructureElem.UniqueAddress] = (calElem.StructureElem.S6xStructure == null) ? new S6xStructure(calElem) : calElem.StructureElem.S6xStructure;
+                            }
                         }
                         else
                         {
@@ -1827,18 +1970,30 @@ namespace SAD806x
             {
                 int bankBinAddress = sadBin.getBankBinAddress(extObject.BankNum);
                 if (bankBinAddress < 0) continue;
-                if (sadS6x.slTables.ContainsKey(extObject.UniqueAddress))
+                S6xTable s6xObject = (S6xTable)sadS6x.slTables[extObject.UniqueAddress];
+                if (s6xObject != null)
                 {
                     // Skipped and stored Element is moved to Duplicates before being overwritten
-                    if (((S6xTable)sadS6x.slTables[extObject.UniqueAddress]).Skip && ((S6xTable)sadS6x.slTables[extObject.UniqueAddress]).Store)
+                    if (s6xObject.Skip && s6xObject.Store)
                     {
                         S6xTable s6xDup = (S6xTable)sadS6x.slTables[extObject.UniqueAddress];
                         s6xDup.DuplicateNum = 1;
                         while (sadS6x.slDupTables.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
                         sadS6x.slDupTables.Add(s6xDup.DuplicateAddress, s6xDup);
+                        s6xObject = null;
                     }
-
-                    sadS6x.slTables[extObject.UniqueAddress] = (extObject.S6xTable == null) ? new S6xTable(extObject, bankBinAddress) : extObject.S6xTable;
+                    else if (s6xObject.Store)
+                    {
+                        extObject.S6xTable = s6xObject;
+                    }
+                    else
+                    {
+                        s6xObject = null;
+                    }
+                    if (s6xObject == null)
+                    {
+                        sadS6x.slTables[extObject.UniqueAddress] = (extObject.S6xTable == null) ? new S6xTable(extObject, bankBinAddress) : extObject.S6xTable;
+                    }
                 }
                 else
                 {
@@ -1850,18 +2005,30 @@ namespace SAD806x
             {
                 int bankBinAddress = sadBin.getBankBinAddress(extObject.BankNum);
                 if (bankBinAddress < 0) continue;
-                if (sadS6x.slFunctions.ContainsKey(extObject.UniqueAddress))
+                S6xFunction s6xObject = (S6xFunction)sadS6x.slFunctions[extObject.UniqueAddress];
+                if (s6xObject != null)
                 {
                     // Skipped and stored Element is moved to Duplicates before being overwritten
-                    if (((S6xFunction)sadS6x.slFunctions[extObject.UniqueAddress]).Skip && ((S6xFunction)sadS6x.slFunctions[extObject.UniqueAddress]).Store)
+                    if (s6xObject.Skip && s6xObject.Store)
                     {
-                        S6xFunction s6xDup = (S6xFunction)sadS6x.slFunctions[extObject.UniqueAddress];
+                        S6xFunction s6xDup = s6xObject;
                         s6xDup.DuplicateNum = 1;
                         while (sadS6x.slDupFunctions.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
                         sadS6x.slDupFunctions.Add(s6xDup.DuplicateAddress, s6xDup);
+                        s6xObject = null;
                     }
-
-                    sadS6x.slFunctions[extObject.UniqueAddress] = (extObject.S6xFunction == null) ? new S6xFunction(extObject, bankBinAddress) : extObject.S6xFunction;
+                    else if (s6xObject.Store)
+                    {
+                        extObject.S6xFunction = s6xObject;
+                    }
+                    else
+                    {
+                        s6xObject = null;
+                    }
+                    if (s6xObject == null)
+                    {
+                        sadS6x.slFunctions[extObject.UniqueAddress] = (extObject.S6xFunction == null) ? new S6xFunction(extObject, bankBinAddress) : extObject.S6xFunction;
+                    }
                 }
                 else
                 {
@@ -1873,18 +2040,30 @@ namespace SAD806x
             {
                 int bankBinAddress = sadBin.getBankBinAddress(extObject.BankNum);
                 if (bankBinAddress < 0) continue;
-                if (sadS6x.slScalars.ContainsKey(extObject.UniqueAddress))
+                S6xScalar s6xObject = (S6xScalar)sadS6x.slScalars[extObject.UniqueAddress];
+                if (s6xObject != null)
                 {
                     // Skipped and stored Element is moved to Duplicates before being overwritten
-                    if (((S6xScalar)sadS6x.slScalars[extObject.UniqueAddress]).Skip && ((S6xScalar)sadS6x.slScalars[extObject.UniqueAddress]).Store)
+                    if (s6xObject.Skip && s6xObject.Store)
                     {
-                        S6xScalar s6xDup = (S6xScalar)sadS6x.slScalars[extObject.UniqueAddress];
+                        S6xScalar s6xDup = s6xObject;
                         s6xDup.DuplicateNum = 1;
                         while (sadS6x.slDupScalars.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
                         sadS6x.slDupScalars.Add(s6xDup.DuplicateAddress, s6xDup);
+                        s6xObject = null;
                     }
-
-                    sadS6x.slScalars[extObject.UniqueAddress] = (extObject.S6xScalar == null) ? new S6xScalar(extObject, bankBinAddress) : extObject.S6xScalar;
+                    else if (s6xObject.Store)
+                    {
+                        extObject.S6xScalar = s6xObject;
+                    }
+                    else
+                    {
+                        s6xObject = null;
+                    }
+                    if (s6xObject == null)
+                    {
+                        sadS6x.slScalars[extObject.UniqueAddress] = (extObject.S6xScalar == null) ? new S6xScalar(extObject, bankBinAddress) : extObject.S6xScalar;
+                    }
                 }
                 else
                 {
@@ -1896,18 +2075,30 @@ namespace SAD806x
             {
                 if (sStruct.ParentStructure == null)    // Included / Duplicated elements are not generated
                 {
-                    if (sadS6x.slStructures.ContainsKey(sStruct.UniqueAddress))
+                    S6xStructure s6xObject = (S6xStructure)sadS6x.slStructures[sStruct.UniqueAddress];
+                    if (s6xObject != null)
                     {
                         // Skipped and stored Element is moved to Duplicates before being overwritten
-                        if (((S6xStructure)sadS6x.slStructures[sStruct.UniqueAddress]).Skip && ((S6xStructure)sadS6x.slStructures[sStruct.UniqueAddress]).Store)
+                        if (s6xObject.Skip && s6xObject.Store)
                         {
-                            S6xStructure s6xDup = (S6xStructure)sadS6x.slStructures[sStruct.UniqueAddress];
+                            S6xStructure s6xDup = s6xObject;
                             s6xDup.DuplicateNum = 1;
                             while (sadS6x.slDupStructures.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
                             sadS6x.slDupStructures.Add(s6xDup.DuplicateAddress, s6xDup);
+                            s6xObject = null;
                         }
-
-                        sadS6x.slStructures[sStruct.UniqueAddress] = (sStruct.S6xStructure == null) ? new S6xStructure(sStruct) : sStruct.S6xStructure;
+                        else if (s6xObject.Store)
+                        {
+                            sStruct.S6xStructure = s6xObject;
+                        }
+                        else
+                        {
+                            s6xObject = null;
+                        }
+                        if (s6xObject == null)
+                        {
+                            sadS6x.slStructures[sStruct.UniqueAddress] = (sStruct.S6xStructure == null) ? new S6xStructure(sStruct) : sStruct.S6xStructure;
+                        }
                     }
                     else
                     {
@@ -1921,9 +2112,17 @@ namespace SAD806x
                 Call cCall = (Call)sadBin.Calibration.slCalls[callAddress];
                 Routine rRoutine = null;
                 if (cCall.isRoutine) rRoutine = (Routine)sadBin.Calibration.slRoutines[cCall.UniqueAddress];
-                if (sadS6x.slRoutines.ContainsKey(cCall.UniqueAddress))
+                S6xRoutine s6xObject = (S6xRoutine)sadS6x.slRoutines[cCall.UniqueAddress];
+                if (s6xObject != null)
                 {
-                    sadS6x.slRoutines[cCall.UniqueAddress] = (cCall.S6xRoutine == null) ? new S6xRoutine(cCall, rRoutine) : cCall.S6xRoutine;
+                    if (s6xObject.Skip || !s6xObject.Store)
+                    {
+                        sadS6x.slRoutines[cCall.UniqueAddress] = (cCall.S6xRoutine == null) ? new S6xRoutine(cCall, rRoutine) : cCall.S6xRoutine;
+                    }
+                    else 
+                    {
+                        cCall.S6xRoutine = s6xObject;
+                    }
                 }
                 else
                 {
@@ -2432,6 +2631,7 @@ namespace SAD806x
             dirtyProperties = false;
             lastElemTreeNode = null;
             nextElemTreeNode = null;
+            elemsTreeView.SelectedNode = null;
             elemPanel.Visible = false;
             elemDataGridView.Visible = false;
 
@@ -2650,6 +2850,10 @@ namespace SAD806x
                 case "OTHER":
                     e.CancelEdit = true;
                     break;
+                default:
+                    // To prevent removing element when editing it - Deactivation
+                    shortCutsElementResetRemoveToolStripMenuItem.Enabled = false;
+                    break;
             }
         }
 
@@ -2666,6 +2870,10 @@ namespace SAD806x
                     case "REGISTERS":
                     case "OTHER":
                         e.CancelEdit = true;
+                        break;
+                    default:
+                        // To prevent removing element when editing it - Reactivation
+                        shortCutsElementResetRemoveToolStripMenuItem.Enabled = true;
                         break;
                 }
             }
@@ -3730,8 +3938,10 @@ namespace SAD806x
                 // Thinking about Transfer function on 5v12
                 if (scaleValues[iStep] > 6.0) lowNumberFormat = false;
             }
-            string sFormat = "{0:F2}";
-            if (pureIntFormat || !lowNumberFormat) sFormat = "{0:F0}";
+            string sFormat = "{0:0}";
+            if (pureIntFormat || !lowNumberFormat) sFormat = "{0:0}";
+            // New Scale Precision field
+            if (s6xScaler.InputScalePrecision >= 0 && s6xScaler.InputScalePrecision <= 8) sFormat = "{0:0." + new string('0', s6xScaler.InputScalePrecision) + "}";
             for (int iStep = 0; iStep < stepNumber; iStep++) scaleResult[iStep] = string.Format(sFormat, scaleValues[iStep]);
 
             return scaleResult;
@@ -3774,6 +3984,7 @@ namespace SAD806x
 
             dataDecimal = decimalToolStripMenuItem.Checked;
             dataType = typeof(double);
+            dataType = typeof(string);
             if (!dataDecimal) dataType = typeof(string);
             ignoreDefinedConversion = decimalNotConvertedToolStripMenuItem.Checked;
             dataReversed = reverseOrderToolStripMenuItem.Checked;
@@ -3786,6 +3997,8 @@ namespace SAD806x
                     if (isDuplicate(nextElemTreeNode)) s6xScalar = (S6xScalar)sadS6x.slDupScalars[nextElemTreeNode.Name];
                     else s6xScalar = (S6xScalar)sadS6x.slScalars[nextElemTreeNode.Name];
                     if (s6xScalar == null) return;
+
+                    elemDataGridView.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
 
                     s6xScalar.AddressBinInt = Tools.binAddressCorrected(s6xScalar.BankNum, s6xScalar.AddressInt, ref sadBin, s6xScalar.AddressBinInt);
 
@@ -3812,6 +4025,11 @@ namespace SAD806x
                                 arrCols = new string[iBfTop + 2];
                                 for (int iCol = 1; iCol < arrCols.Length; iCol++) arrCols[iCol] = "B" + iBf.ToString();
                             }
+                        }
+                        // For better output
+                        if (arrCols != null) 
+                        {
+                            for (int iCol = 1; iCol < arrCols.Length; iCol++) arrCols[iCol] = OutputTools.GetSpacesCenteredString(arrCols[iCol], 20);
                         }
                     }
                     else
@@ -3848,6 +4066,10 @@ namespace SAD806x
                             iValue = 0;
                         }
                     }
+                    // For better output
+                    if (arrCols.Length == 1) arrCols[0] = OutputTools.GetSpacesCenteredString(arrCols[0], 100);
+                    else arrCols[0] = OutputTools.GetSpacesCenteredString(arrCols[0], 50);
+
                     arrRow = new object[arrCols.Length];
                     if (s6xScalar.isBitFlags)
                     {
@@ -3868,12 +4090,12 @@ namespace SAD806x
                                 if (ignoreDefinedConversion)
                                 {
                                     if (rcOutput == null) arrRow[0] = iValue;
-                                    else arrRow[0] = Tools.ScaleValue(iValue, rcOutput.InternalFormula, true);
+                                    else arrRow[0] = Tools.ScaleValue(iValue, rcOutput.InternalFormula, 0, true);
                                 }
                                 else
                                 {
-                                    if (rcOutput == null) arrRow[0] = Tools.ScaleValue(iValue, s6xScalar.ScaleExpression, true);
-                                    else arrRow[0] = Tools.ScaleValue(iValue, rcOutput.InternalFormula.ToUpper().Replace("X", "(" + s6xScalar.ScaleExpression + ")"), true);
+                                    if (rcOutput == null) arrRow[0] = Tools.ScaleValue(iValue, s6xScalar.ScaleExpression, s6xScalar.ScalePrecision, true);
+                                    else arrRow[0] = Tools.ScaleValue(iValue, rcOutput.InternalFormula.ToUpper().Replace("X", "(" + s6xScalar.ScaleExpression + ")"), s6xScalar.ScalePrecision, true);
                                 }
                             }
                             catch
@@ -3896,6 +4118,8 @@ namespace SAD806x
                     else s6xFunction = (S6xFunction)sadS6x.slFunctions[nextElemTreeNode.Name];
                     if (s6xFunction == null) return;
 
+                    elemDataGridView.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+
                     s6xFunction.AddressBinInt = Tools.binAddressCorrected(s6xFunction.BankNum, s6xFunction.AddressInt, ref sadBin, s6xFunction.AddressBinInt);
 
                     arrCols = new string[2];
@@ -3913,6 +4137,8 @@ namespace SAD806x
                         arrCols[1] = "Byte Output";
                         iValue--;
                     }
+                    arrCols[0] = OutputTools.GetSpacesCenteredString(arrCols[0], 50);   // For better output
+                    arrCols[1] = OutputTools.GetSpacesCenteredString(arrCols[1], 50);   // For better output
 
                     if (s6xFunction.RowsNumber <= 0)
                     {
@@ -3968,12 +4194,12 @@ namespace SAD806x
                                                 if (ignoreDefinedConversion)
                                                 {
                                                     if (rcInput == null) arrRow[iCol] = iValue;
-                                                    else arrRow[iCol] = Tools.ScaleValue(iValue, rcInput.InternalFormula, true);
+                                                    else arrRow[iCol] = Tools.ScaleValue(iValue, rcInput.InternalFormula, 0, true);
                                                 }
                                                 else
                                                 {
-                                                    if (rcInput == null) arrRow[iCol] = Tools.ScaleValue(iValue, s6xFunction.InputScaleExpression, true);
-                                                    else arrRow[iCol] = Tools.ScaleValue(iValue, rcInput.InternalFormula.ToUpper().Replace("X", "(" + s6xFunction.InputScaleExpression + ")"), true);
+                                                    if (rcInput == null) arrRow[iCol] = Tools.ScaleValue(iValue, s6xFunction.InputScaleExpression, s6xFunction.InputScalePrecision, true);
+                                                    else arrRow[iCol] = Tools.ScaleValue(iValue, rcInput.InternalFormula.ToUpper().Replace("X", "(" + s6xFunction.InputScaleExpression + ")"), s6xFunction.InputScalePrecision, true);
                                                 }
                                             }
                                             catch
@@ -4025,12 +4251,12 @@ namespace SAD806x
                                                 if (ignoreDefinedConversion)
                                                 {
                                                     if (rcOutput == null) arrRow[iCol] = iValue;
-                                                    else arrRow[iCol] = Tools.ScaleValue(iValue, rcOutput.InternalFormula, true);
+                                                    else arrRow[iCol] = Tools.ScaleValue(iValue, rcOutput.InternalFormula, 0, true);
                                                 }
                                                 else
                                                 {
-                                                    if (rcOutput == null) arrRow[iCol] = Tools.ScaleValue(iValue, s6xFunction.OutputScaleExpression, true);
-                                                    else arrRow[iCol] = Tools.ScaleValue(iValue, rcOutput.InternalFormula.ToUpper().Replace("X", "(" + s6xFunction.OutputScaleExpression + ")"), true);
+                                                    if (rcOutput == null) arrRow[iCol] = Tools.ScaleValue(iValue, s6xFunction.OutputScaleExpression, s6xFunction.OutputScalePrecision, true);
+                                                    else arrRow[iCol] = Tools.ScaleValue(iValue, rcOutput.InternalFormula.ToUpper().Replace("X", "(" + s6xFunction.OutputScaleExpression + ")"), s6xFunction.OutputScalePrecision, true);
                                                 }
                                             }
                                             catch
@@ -4053,12 +4279,20 @@ namespace SAD806x
                     if (s6xTable == null) return;
                     if (s6xTable.ColsNumber <= 0) return;
 
+                    elemDataGridView.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+
                     s6xTable.AddressBinInt = Tools.binAddressCorrected(s6xTable.BankNum, s6xTable.AddressInt, ref sadBin, s6xTable.AddressBinInt);
 
                     //arrCols = new string[s6xTable.ColsNumber];
                     //for (int iCol = 0; iCol < arrCols.Length; iCol++) arrCols[iCol] = (iCol + 1).ToString();
                     arrCols = getTableElemDataScale(s6xTable.ColsScalerAddress, s6xTable.ColsNumber);
 
+                    // For better output
+                    if (arrCols != null)
+                    {
+                        for (int iCol = 0; iCol < arrCols.Length; iCol++) arrCols[iCol] = OutputTools.GetSpacesCenteredString(arrCols[iCol], 10);
+                    }
+                    
                     if (s6xTable.RowsNumber <= 0)
                     {
                         arrRows = new object[] {};
@@ -4106,12 +4340,12 @@ namespace SAD806x
                                             if (ignoreDefinedConversion)
                                             {
                                                 if (rcOutput == null) arrRow[iCol] = iValue;
-                                                else arrRow[iCol] = Tools.ScaleValue(iValue, rcOutput.InternalFormula, true);
+                                                else arrRow[iCol] = Tools.ScaleValue(iValue, rcOutput.InternalFormula, 0, true);
                                             }
                                             else
                                             {
-                                                if (rcOutput == null) arrRow[iCol] = Tools.ScaleValue(iValue, s6xTable.CellsScaleExpression, true);
-                                                else arrRow[iCol] = Tools.ScaleValue(iValue, rcOutput.InternalFormula.ToUpper().Replace("X", "(" + s6xTable.CellsScaleExpression + ")"), true);
+                                                if (rcOutput == null) arrRow[iCol] = Tools.ScaleValue(iValue, s6xTable.CellsScaleExpression, s6xTable.CellsScalePrecision, true);
+                                                else arrRow[iCol] = Tools.ScaleValue(iValue, rcOutput.InternalFormula.ToUpper().Replace("X", "(" + s6xTable.CellsScaleExpression + ")"), s6xTable.CellsScalePrecision, true);
                                             }
                                         }
                                         catch
@@ -4137,6 +4371,8 @@ namespace SAD806x
                     if (!s6xStruct.Structure.isValid) return;
                     if (s6xStruct.Structure.isEmpty) return;
 
+                    elemDataGridView.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+
                     s6xStruct.Structure.AddressBinInt = Tools.binAddressCorrected(s6xStruct.Structure.BankNum, s6xStruct.Structure.AddressInt, ref sadBin, s6xStruct.Structure.AddressBinInt);
 
                     arrBytes = sadBin.getBytesArray(s6xStruct.Structure.AddressBinInt, s6xStruct.Structure.MaxSizeSingle * s6xStruct.Number);
@@ -4145,6 +4381,9 @@ namespace SAD806x
 
                     arrCols = new string[s6xStruct.Structure.MaxLineItemsNum];
                     for (int iCol = 0; iCol < arrCols.Length; iCol++) arrCols[iCol] = (iCol + 1).ToString();
+
+                    // For better output
+                    for (int iCol = 0; iCol < arrCols.Length; iCol++) arrCols[iCol] = OutputTools.GetSpacesCenteredString(arrCols[iCol], 10);
 
                     dataType = typeof(string);
                     
@@ -4209,7 +4448,19 @@ namespace SAD806x
             elemDataGridView.DataSource = dtTable;
 
             // For Speed purpose
-            elemDataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            switch (getCategName(nextElemTreeNode))
+            {
+                case "SCALARS":
+                case "FUNCTIONS":
+                    elemDataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+                    break;
+                case "TABLES":
+                case "STUCTURES":
+                    //elemDataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+                    elemDataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+                    break;
+            }
+
             elemDataGridView.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
             elemDataGridView.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.AutoSizeToAllHeaders;
 
@@ -4767,6 +5018,7 @@ namespace SAD806x
             scalarByteCheckBox.Checked = true;
             scalarSignedCheckBox.Checked = false;
             scalarScaleTextBox.Text = "X";
+            scalarScalePrecNumericUpDown.Value = SADDef.DefaultScalePrecision;
             scalarUnitsTextBox.Text = string.Empty;
             scalarSkipCheckBox.Checked = false;
             scalarLabelTextBox.Text = elemLabelTextBox.Text;
@@ -4788,6 +5040,8 @@ namespace SAD806x
             functionUnitsOutputTextBox.Text = string.Empty;
             functionScaleInputTextBox.Text = "X";
             functionScaleOutputTextBox.Text = "X";
+            functionScalePrecInputNumericUpDown.Value = SADDef.DefaultScalePrecision;
+            functionScalePrecOutputNumericUpDown.Value = SADDef.DefaultScalePrecision;
             functionSkipCheckBox.Checked = false;
             functionLabelTextBox.Text = elemLabelTextBox.Text;
             functionSLabelTextBox.Text = SADDef.ShortFunctionPrefix + string.Format("{0:d3}", sadS6x.slFunctions.Count + 1);
@@ -4804,6 +5058,7 @@ namespace SAD806x
             tableWordCheckBox.Checked = false;
             tableSignedCheckBox.Checked = false;
             tableScaleTextBox.Text = "X";
+            tableScalePrecNumericUpDown.Value = SADDef.DefaultScalePrecision;
             tableCellsUnitsTextBox.Text = string.Empty;
             tableColsUnitsTextBox.Text = string.Empty;
             tableRowsUnitsTextBox.Text = string.Empty;
@@ -4909,6 +5164,7 @@ namespace SAD806x
             scalarByteCheckBox.Checked = s6xScalar.Byte;
             scalarSignedCheckBox.Checked = s6xScalar.Signed;
             scalarScaleTextBox.Text = s6xScalar.ScaleExpression;
+            scalarScalePrecNumericUpDown.Value = s6xScalar.ScalePrecision;
             scalarUnitsTextBox.Text = s6xScalar.Units;
             scalarSkipCheckBox.Checked = s6xScalar.Skip;
             scalarLabelTextBox.Text = s6xScalar.Label;
@@ -4950,6 +5206,8 @@ namespace SAD806x
             functionUnitsOutputTextBox.Text = s6xFunction.OutputUnits;
             functionScaleInputTextBox.Text = s6xFunction.InputScaleExpression;
             functionScaleOutputTextBox.Text = s6xFunction.OutputScaleExpression;
+            functionScalePrecInputNumericUpDown.Value = s6xFunction.InputScalePrecision;
+            functionScalePrecOutputNumericUpDown.Value = s6xFunction.OutputScalePrecision;
             functionSkipCheckBox.Checked = s6xFunction.Skip;
             functionLabelTextBox.Text = s6xFunction.Label;
             functionSLabelTextBox.Text = s6xFunction.ShortLabel;
@@ -5097,6 +5355,7 @@ namespace SAD806x
             tableWordCheckBox.Checked = s6xTable.WordOutput;
             tableSignedCheckBox.Checked = s6xTable.SignedOutput;
             tableScaleTextBox.Text = s6xTable.CellsScaleExpression;
+            tableScalePrecNumericUpDown.Value = s6xTable.CellsScalePrecision;
             tableCellsUnitsTextBox.Text = s6xTable.CellsUnits;
             tableColsUnitsTextBox.Text = s6xTable.ColsUnits;
             tableRowsUnitsTextBox.Text = s6xTable.RowsUnits;
@@ -5580,6 +5839,7 @@ namespace SAD806x
                     s6xTable.ColsNumber = Convert.ToInt32(tableColsTextBox.Text);
                     s6xTable.RowsNumber = Convert.ToInt32(tableRowsTextBox.Text);
                     s6xTable.CellsScaleExpression = tableScaleTextBox.Text;
+                    s6xTable.CellsScalePrecision = (int)tableScalePrecNumericUpDown.Value;
                     s6xTable.CellsUnits = tableCellsUnitsTextBox.Text;
                     s6xTable.ColsUnits = tableColsUnitsTextBox.Text;
                     s6xTable.RowsUnits = tableRowsUnitsTextBox.Text;
@@ -5674,6 +5934,8 @@ namespace SAD806x
                     s6xFunction.RowsNumber = Convert.ToInt32(functionRowsTextBox.Text);
                     s6xFunction.InputScaleExpression = functionScaleInputTextBox.Text;
                     s6xFunction.OutputScaleExpression = functionScaleOutputTextBox.Text;
+                    s6xFunction.InputScalePrecision = (int)functionScalePrecInputNumericUpDown.Value;
+                    s6xFunction.OutputScalePrecision = (int)functionScalePrecOutputNumericUpDown.Value;
                     s6xFunction.InputUnits = functionUnitsInputTextBox.Text;
                     s6xFunction.OutputUnits = functionUnitsOutputTextBox.Text;
 
@@ -5768,6 +6030,7 @@ namespace SAD806x
                     s6xScalar.Byte = scalarByteCheckBox.Checked;
                     s6xScalar.Signed = scalarSignedCheckBox.Checked;
                     s6xScalar.ScaleExpression = scalarScaleTextBox.Text;
+                    s6xScalar.ScalePrecision = (int)scalarScalePrecNumericUpDown.Value;
                     s6xScalar.Units = scalarUnitsTextBox.Text;
 
                     if (isAddressChange)
@@ -7299,6 +7562,7 @@ namespace SAD806x
                         if (sadS6x.slOperations.ContainsKey(newObject.UniqueAddress)) continue;
 
                         sadS6x.slScalars.Add(newObject.UniqueAddress, newObject);
+                        sadS6x.isSaved = false;
 
                         if (elemsTreeView.Nodes[categ].Nodes.ContainsKey(newObject.UniqueAddress)) continue;
 
@@ -7323,6 +7587,7 @@ namespace SAD806x
             TreeNode tnNode = null;
             string categ = string.Empty;
             string uniqueAddress = string.Empty;
+            string dupAddress = string.Empty;
             string label = string.Empty;
             string shortLabel = string.Empty;
             string comments = string.Empty;
@@ -7375,7 +7640,7 @@ namespace SAD806x
             {
                 case "S6xTable":
                     categ = "TABLES";
-                    if (isXdfData)
+                    if (isXdfData && overNode == null)
                     {
                         tnNode = checkDuplicate(((S6xTable)s6xData).UniqueAddress, false);
                         if (tnNode != null)
@@ -7430,7 +7695,7 @@ namespace SAD806x
 
                     if (((S6xTable)s6xData).DuplicateNum > 0 && sadS6x.slTables.ContainsKey(uniqueAddress))
                     {
-                        string dupAddress = ((S6xTable)s6xData).DuplicateAddress;
+                        dupAddress = ((S6xTable)s6xData).DuplicateAddress;
                         if (sadS6x.slDupTables.ContainsKey(dupAddress)) sadS6x.slDupTables[dupAddress] = s6xData;
                         else sadS6x.slDupTables.Add(dupAddress, s6xData);
                     }
@@ -7450,7 +7715,7 @@ namespace SAD806x
                     break;
                 case "S6xFunction":
                     categ = "FUNCTIONS";
-                    if (isXdfData)
+                    if (isXdfData && overNode == null)
                     {
                         tnNode = checkDuplicate(((S6xFunction)s6xData).UniqueAddress, false);
                         if (tnNode != null)
@@ -7498,7 +7763,7 @@ namespace SAD806x
                     comments = ((S6xFunction)s6xData).Comments;
                     if (((S6xFunction)s6xData).DuplicateNum > 0 && sadS6x.slFunctions.ContainsKey(uniqueAddress))
                     {
-                        string dupAddress = ((S6xFunction)s6xData).DuplicateAddress;
+                        dupAddress = ((S6xFunction)s6xData).DuplicateAddress;
                         if (sadS6x.slDupFunctions.ContainsKey(dupAddress)) sadS6x.slDupFunctions[dupAddress] = s6xData;
                         else sadS6x.slDupFunctions.Add(dupAddress, s6xData);
                     }
@@ -7521,7 +7786,7 @@ namespace SAD806x
                     break;
                 case "S6xScalar":
                     categ = "SCALARS";
-                    if (isXdfData)
+                    if (isXdfData && overNode == null)
                     {
                         tnNode = checkDuplicate(((S6xScalar)s6xData).UniqueAddress, false);
                         if (tnNode != null)
@@ -7567,7 +7832,7 @@ namespace SAD806x
                     uniqueAddress = ((S6xScalar)s6xData).UniqueAddress;
                     if (((S6xScalar)s6xData).DuplicateNum > 0 && sadS6x.slScalars.ContainsKey(uniqueAddress))
                     {
-                        string dupAddress = ((S6xScalar)s6xData).DuplicateAddress;
+                        dupAddress = ((S6xScalar)s6xData).DuplicateAddress;
                         if (sadS6x.slDupScalars.ContainsKey(dupAddress))
                         {
                             if (((S6xScalar)s6xData).isBitFlags)
@@ -7662,7 +7927,7 @@ namespace SAD806x
                     comments = s6xStruct.Comments;
                     if (s6xStruct.DuplicateNum > 0 && sadS6x.slStructures.ContainsKey(uniqueAddress))
                     {
-                        string dupAddress = s6xStruct.DuplicateAddress;
+                        dupAddress = s6xStruct.DuplicateAddress;
                         if (sadS6x.slDupStructures.ContainsKey(dupAddress)) sadS6x.slDupStructures[dupAddress] = s6xStruct;
                         else sadS6x.slDupStructures.Add(dupAddress, s6xStruct);
                     }
@@ -7774,6 +8039,10 @@ namespace SAD806x
                 if (elemsTreeView.Nodes[categ].Nodes.ContainsKey(uniqueAddress))
                 {
                     tnNode = elemsTreeView.Nodes[categ].Nodes[uniqueAddress];
+                    if (dupAddress != string.Empty)
+                    {
+                        if (tnNode.Nodes.ContainsKey(dupAddress)) tnNode = tnNode.Nodes[dupAddress];
+                    }
                 }
                 else
                 {
@@ -7805,7 +8074,6 @@ namespace SAD806x
                     setElementsTreeCategLabel(categ);
                 }
 
-
                 elemsTreeView.SelectedNode = tnNode;
                 tnNode = null;
 
@@ -7816,6 +8084,7 @@ namespace SAD806x
                 }
             }
 
+            sadS6x.isSaved = false;
             s6xData = null;
         }
 
@@ -7823,8 +8092,8 @@ namespace SAD806x
         {
             TreeNode tnNode = null;
             TreeNode tnDup = null;
-            bool bDuplicate = false;
             string uniqueAddress = string.Empty;
+            string duplicateAddress = string.Empty;
 
             if (lastElemTreeNode != null && dirtyProperties)
             {
@@ -7842,17 +8111,26 @@ namespace SAD806x
             if (tnNode == null) return;
             if (tnNode.Parent == null) return;
 
-            if (isDuplicate(tnNode)) tnNode = tnNode.Parent;
+            tnDup = new TreeNode();
+            tnDup.Text = tnNode.Text;
+            tnDup.ToolTipText = tnNode.ToolTipText;
+            tnDup.ContextMenuStrip = tnNode.ContextMenuStrip;
+
+            if (isDuplicate(tnNode))
+            {
+                duplicateAddress = tnNode.Name;
+                tnNode = tnNode.Parent;
+            }
             uniqueAddress = tnNode.Name;
             
-            tnDup = new TreeNode();
-
             switch (getCategName(tnNode))
             {
                 case "TABLES":
                     ((S6xTable)sadS6x.slTables[uniqueAddress]).DuplicateNum = 0;
                     ((S6xTable)sadS6x.slTables[uniqueAddress]).Store = true;
-                    S6xTable dupTable = ((S6xTable)sadS6x.slTables[uniqueAddress]).Clone();
+                    S6xTable dupTable = null;
+                    if (duplicateAddress == string.Empty) dupTable = ((S6xTable)sadS6x.slTables[uniqueAddress]).Clone();
+                    else dupTable = ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Clone();
                     dupTable.DuplicateNum = 1; 
                     while (sadS6x.slDupTables.ContainsKey(dupTable.DuplicateAddress)) dupTable.DuplicateNum++;
                     sadS6x.slDupTables.Add(dupTable.DuplicateAddress, dupTable);
@@ -7862,7 +8140,9 @@ namespace SAD806x
                 case "FUNCTIONS":
                     ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).DuplicateNum = 0;
                     ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Store = true;
-                    S6xFunction dupFunction = ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Clone();
+                    S6xFunction dupFunction = null;
+                    if (duplicateAddress == string.Empty) dupFunction = ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Clone();
+                    else dupFunction = ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Clone();
                     dupFunction.DuplicateNum = 1;
                     while (sadS6x.slDupFunctions.ContainsKey(dupFunction.DuplicateAddress)) dupFunction.DuplicateNum++;
                     sadS6x.slDupFunctions.Add(dupFunction.DuplicateAddress, dupFunction);
@@ -7872,7 +8152,9 @@ namespace SAD806x
                 case "SCALARS":
                     ((S6xScalar)sadS6x.slScalars[uniqueAddress]).DuplicateNum = 0;
                     ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Store = true;
-                    S6xScalar dupScalar = ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Clone();
+                    S6xScalar dupScalar = null;
+                    if (duplicateAddress == string.Empty) dupScalar = ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Clone();
+                    else dupScalar = ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Clone();
                     dupScalar.DuplicateNum = 1;
                     while (sadS6x.slDupScalars.ContainsKey(dupScalar.DuplicateAddress)) dupScalar.DuplicateNum++;
                     sadS6x.slDupScalars.Add(dupScalar.DuplicateAddress, dupScalar);
@@ -7882,7 +8164,9 @@ namespace SAD806x
                 case "STRUCTURES":
                     ((S6xStructure)sadS6x.slStructures[uniqueAddress]).DuplicateNum = 0;
                     ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Store = true;
-                    S6xStructure dupStructure = ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Clone();
+                    S6xStructure dupStructure = null;
+                    if (duplicateAddress == string.Empty) dupStructure = ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Clone();
+                    else dupStructure = ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Clone();
                     dupStructure.DuplicateNum = 1;
                     while (sadS6x.slDupStructures.ContainsKey(dupStructure.DuplicateAddress)) dupStructure.DuplicateNum++;
                     sadS6x.slDupStructures.Add(dupStructure.DuplicateAddress, dupStructure);
@@ -7895,11 +8179,7 @@ namespace SAD806x
                     return;
             }
 
-            tnDup.Text = tnNode.Text;
-            tnDup.ToolTipText = tnNode.ToolTipText;
-            tnDup.ContextMenuStrip = tnNode.ContextMenuStrip;
-            if (bDuplicate) tnNode.Parent.Nodes.Add(tnDup);
-            else tnNode.Nodes.Add(tnDup);
+            tnNode.Nodes.Add(tnDup);
 
             sadS6x.isSaved = false;
 
@@ -10452,6 +10732,7 @@ namespace SAD806x
                 tempESig.Scalar.ShortLabel = SADDef.ShortScalarPrefix + string.Format("{0:d4}", sadS6x.slScalars.Count + 1);
                 tempESig.Scalar.Byte = true;
                 tempESig.Scalar.ScaleExpression = "X";
+                tempESig.Scalar.ScalePrecision = SADDef.DefaultScalePrecision;
             }
             else
             {
@@ -11326,6 +11607,151 @@ namespace SAD806x
                     break;
             }
             alRemoval = null;
+        }
+
+        private void shortCutsElementResetRemoveToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            deleteToolStripMenuItem_Click(sender, e);
+        }
+
+        private void settingsTextOutputToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            new SettingsForm("Text Output Settings", Application.StartupPath + "\\" + SADDef.settingsTextOuputFileName, "TEXTOUTPUT").ShowDialog();
+        }
+
+        private void muCBSLLToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            TreeNode tnCateg = null;
+
+            if ((ToolStripMenuItem)sender == muCBSLLTablesToolStripMenuItem)
+            {
+                tnCateg = elemsTreeView.Nodes["TABLES"];
+                foreach (S6xTable s6xObject in sadS6x.slTables.Values)
+                {
+                    if (s6xObject == null) continue;
+                    if (s6xObject.Skip || !s6xObject.Store) continue;
+                    if (!s6xObject.isUserDefined) continue;
+                    string newComments = Tools.CommentsFirstLineShortLabelLabel(s6xObject.Comments, s6xObject.ShortLabel, s6xObject.Label);
+                    if (newComments != s6xObject.Comments)
+                    {
+                        s6xObject.Comments = newComments;
+                        sadS6x.isSaved = false;
+
+                        if (tnCateg == null) continue;
+                        TreeNode tnNode = tnCateg.Nodes[s6xObject.UniqueAddress];
+                        if (tnNode == null) continue;
+                        tnNode.ToolTipText = s6xObject.Comments;
+                        tnNode.ForeColor = Color.Purple;
+                    }
+                }
+                foreach (S6xTable s6xObject in sadS6x.slDupTables.Values)
+                {
+                    if (s6xObject == null) continue;
+                    if (s6xObject.Skip || !s6xObject.Store) continue;
+                    if (!s6xObject.isUserDefined) continue;
+                    string newComments = Tools.CommentsFirstLineShortLabelLabel(s6xObject.Comments, s6xObject.ShortLabel, s6xObject.Label);
+                    if (newComments != s6xObject.Comments)
+                    {
+                        s6xObject.Comments = newComments;
+                        sadS6x.isSaved = false;
+
+                        if (tnCateg == null) continue;
+                        TreeNode tnNode = tnCateg.Nodes[s6xObject.UniqueAddress];
+                        if (tnNode == null) continue;
+                        TreeNode tnDupNode = tnNode.Nodes[s6xObject.DuplicateAddress];
+                        if (tnDupNode == null) continue;
+                        tnDupNode.ToolTipText = s6xObject.Comments;
+                        tnDupNode.ForeColor = Color.Purple;
+                        tnNode.ForeColor = Color.Purple;
+                    }
+                }
+            }
+            else if ((ToolStripMenuItem)sender == muCBSLLFunctionsToolStripMenuItem)
+            {
+                tnCateg = elemsTreeView.Nodes["FUNCTIONS"];
+                foreach (S6xFunction s6xObject in sadS6x.slFunctions.Values)
+                {
+                    if (s6xObject == null) continue;
+                    if (s6xObject.Skip || !s6xObject.Store) continue;
+                    if (!s6xObject.isUserDefined) continue;
+                    string newComments = Tools.CommentsFirstLineShortLabelLabel(s6xObject.Comments, s6xObject.ShortLabel, s6xObject.Label);
+                    if (newComments != s6xObject.Comments)
+                    {
+                        s6xObject.Comments = newComments;
+                        sadS6x.isSaved = false;
+
+                        if (tnCateg == null) continue;
+                        TreeNode tnNode = tnCateg.Nodes[s6xObject.UniqueAddress];
+                        if (tnNode == null) continue;
+                        tnNode.ToolTipText = s6xObject.Comments;
+                        tnNode.ForeColor = Color.Purple;
+                    }
+                }
+                foreach (S6xFunction s6xObject in sadS6x.slDupFunctions.Values)
+                {
+                    if (s6xObject == null) continue;
+                    if (s6xObject.Skip || !s6xObject.Store) continue;
+                    if (!s6xObject.isUserDefined) continue;
+                    string newComments = Tools.CommentsFirstLineShortLabelLabel(s6xObject.Comments, s6xObject.ShortLabel, s6xObject.Label);
+                    if (newComments != s6xObject.Comments)
+                    {
+                        s6xObject.Comments = newComments;
+                        sadS6x.isSaved = false;
+
+                        if (tnCateg == null) continue;
+                        TreeNode tnNode = tnCateg.Nodes[s6xObject.UniqueAddress];
+                        if (tnNode == null) continue;
+                        TreeNode tnDupNode = tnNode.Nodes[s6xObject.DuplicateAddress];
+                        if (tnDupNode == null) continue;
+                        tnDupNode.ToolTipText = s6xObject.Comments;
+                        tnDupNode.ForeColor = Color.Purple;
+                        tnNode.ForeColor = Color.Purple;
+                    }
+                }
+            }
+            else if ((ToolStripMenuItem)sender == muCBSLLScalarsToolStripMenuItem)
+            {
+                tnCateg = elemsTreeView.Nodes["SCALARS"];
+                foreach (S6xScalar s6xObject in sadS6x.slScalars.Values)
+                {
+                    if (s6xObject == null) continue;
+                    if (s6xObject.Skip || !s6xObject.Store) continue;
+                    if (!s6xObject.isUserDefined) continue;
+                    string newComments = Tools.CommentsFirstLineShortLabelLabel(s6xObject.Comments, s6xObject.ShortLabel, s6xObject.Label);
+                    if (newComments != s6xObject.Comments)
+                    {
+                        s6xObject.Comments = newComments;
+                        sadS6x.isSaved = false;
+
+                        if (tnCateg == null) continue;
+                        TreeNode tnNode = tnCateg.Nodes[s6xObject.UniqueAddress];
+                        if (tnNode == null) continue;
+                        tnNode.ToolTipText = s6xObject.Comments;
+                        tnNode.ForeColor = Color.Purple;
+                    }
+                }
+                foreach (S6xScalar s6xObject in sadS6x.slDupScalars.Values)
+                {
+                    if (s6xObject == null) continue;
+                    if (s6xObject.Skip || !s6xObject.Store) continue;
+                    if (!s6xObject.isUserDefined) continue;
+                    string newComments = Tools.CommentsFirstLineShortLabelLabel(s6xObject.Comments, s6xObject.ShortLabel, s6xObject.Label);
+                    if (newComments != s6xObject.Comments)
+                    {
+                        s6xObject.Comments = newComments;
+                        sadS6x.isSaved = false;
+
+                        if (tnCateg == null) continue;
+                        TreeNode tnNode = tnCateg.Nodes[s6xObject.UniqueAddress];
+                        if (tnNode == null) continue;
+                        TreeNode tnDupNode = tnNode.Nodes[s6xObject.DuplicateAddress];
+                        if (tnDupNode == null) continue;
+                        tnDupNode.ToolTipText = s6xObject.Comments;
+                        tnDupNode.ForeColor = Color.Purple;
+                        tnNode.ForeColor = Color.Purple;
+                    }
+                }
+            }
         }
     }
 }

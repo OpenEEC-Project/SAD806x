@@ -78,6 +78,21 @@ namespace SAD806x
             repoToolStripTextBox.TextChanged += new EventHandler(repoToolStripTextBox_TextChanged);
             repoToolStripMenuItem.DropDownItemClicked += new ToolStripItemClickedEventHandler(repoToolStripMenuItem_DropDownItemClicked);
 
+            inputScalarScalePrecNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            inputScalarScalePrecNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            inputScalarScalePrecNumericUpDown.Value = SADDef.DefaultScalePrecision;
+
+            inputFunctionScalePrecInputNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            inputFunctionScalePrecInputNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            inputFunctionScalePrecInputNumericUpDown.Value = SADDef.DefaultScalePrecision;
+            inputFunctionScalePrecOutputNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            inputFunctionScalePrecOutputNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            inputFunctionScalePrecOutputNumericUpDown.Value = SADDef.DefaultScalePrecision;
+
+            inputTableScalePrecNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            inputTableScalePrecNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            inputTableScalePrecNumericUpDown.Value = SADDef.DefaultScalePrecision;
+
             Control.ControlCollection controls = null;
             controls = (Control.ControlCollection)inputTableTabPage.Controls;
             attachPropertiesEventsControls(ref controls);
@@ -358,6 +373,9 @@ namespace SAD806x
                                 break;
                         }
                         break;
+                    case "NumericUpDown":
+                        ((NumericUpDown)control).Value = ((NumericUpDown)control).Minimum;
+                        break;
                 }
             }
         }
@@ -433,6 +451,7 @@ namespace SAD806x
                     inputTableRowsRegTextBox.Text = sigInpTbl.VariableRowsReg;
                     inputTableRowsUnitsTextBox.Text = sigInpTbl.ForcedRowsUnits;
                     inputTableScaleTextBox.Text = sigInpTbl.ForcedCellsScaleExpression;
+                    inputTableScalePrecNumericUpDown.Value = sigInpTbl.ForcedCellsScalePrecision;
                     inputTableSignedCheckBox.Checked = sigInpTbl.SignedOutput;
                     inputTableWordCheckBox.Checked = sigInpTbl.WordOutput;
                     sigInpTbl = null;
@@ -446,6 +465,8 @@ namespace SAD806x
                     inputFunctionRowsTextBox.Text = sigInpFunc.ForcedRowsNumber;
                     inputFunctionScaleInputTextBox.Text = sigInpFunc.ForcedInputScaleExpression;
                     inputFunctionScaleOutputTextBox.Text = sigInpFunc.ForcedOutputScaleExpression;
+                    inputFunctionScalePrecInputNumericUpDown.Value = sigInpFunc.ForcedInputScalePrecision;
+                    inputFunctionScalePrecOutputNumericUpDown.Value = sigInpFunc.ForcedOutputScalePrecision;
                     inputFunctionSignedInputCheckBox.Checked = sigInpFunc.SignedInput;
                     inputFunctionSignedOutputCheckBox.Checked = sigInpFunc.SignedOutput;
                     inputFunctionUnitsInputTextBox.Text = sigInpFunc.ForcedInputUnits;
@@ -457,6 +478,7 @@ namespace SAD806x
                     inputScalarAddrTextBox.Text = sigInpScal.VariableAddress;
                     inputScalarByteCheckBox.Checked = sigInpScal.Byte;
                     inputScalarScaleTextBox.Text = sigInpScal.ForcedScaleExpression;
+                    inputScalarScalePrecNumericUpDown.Value = sigInpScal.ForcedScalePrecision;
                     inputScalarSignedCheckBox.Checked = sigInpScal.Signed;
                     inputScalarUnitsTextBox.Text = sigInpScal.ForcedUnits;
                     sigInpScal = null;
@@ -642,6 +664,7 @@ namespace SAD806x
                     sigInpTbl.ForcedRowsNumber = inputTableRowsNumTextBox.Text;
                     sigInpTbl.ForcedRowsUnits = inputTableRowsUnitsTextBox.Text;
                     sigInpTbl.ForcedCellsScaleExpression = inputTableScaleTextBox.Text;
+                    sigInpTbl.ForcedCellsScalePrecision = (int)inputTableScalePrecNumericUpDown.Value;
 
                     uniqueKey = sigInpTbl.UniqueKey;
                     label = sigInpTbl.VariableAddress;
@@ -670,6 +693,8 @@ namespace SAD806x
                     sigInpFunc.ForcedRowsNumber = inputFunctionRowsTextBox.Text;
                     sigInpFunc.ForcedInputScaleExpression = inputFunctionScaleInputTextBox.Text;
                     sigInpFunc.ForcedOutputScaleExpression = inputFunctionScaleOutputTextBox.Text;
+                    sigInpFunc.ForcedInputScalePrecision = (int)inputFunctionScalePrecInputNumericUpDown.Value;
+                    sigInpFunc.ForcedOutputScalePrecision = (int)inputFunctionScalePrecOutputNumericUpDown.Value;
                     sigInpFunc.ForcedInputUnits = inputFunctionUnitsInputTextBox.Text;
                     sigInpFunc.ForcedOutputUnits = inputFunctionUnitsOutputTextBox.Text;
 
@@ -695,6 +720,7 @@ namespace SAD806x
                     sigInpScal.Signed = inputScalarSignedCheckBox.Checked;
 
                     sigInpScal.ForcedScaleExpression = inputScalarScaleTextBox.Text;
+                    sigInpScal.ForcedScalePrecision = (int)inputScalarScalePrecNumericUpDown.Value;
                     sigInpScal.ForcedUnits = inputScalarUnitsTextBox.Text;
 
                     uniqueKey = sigInpScal.UniqueKey;

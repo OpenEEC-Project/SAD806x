@@ -113,6 +113,36 @@ namespace SAD806x
             repoToolStripTextBox.TextChanged += new EventHandler(repoToolStripTextBox_TextChanged);
             repoToolStripMenuItem.DropDownItemClicked += new ToolStripItemClickedEventHandler(repoToolStripMenuItem_DropDownItemClicked);
 
+            inputScalarScalePrecNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            inputScalarScalePrecNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            inputScalarScalePrecNumericUpDown.Value = SADDef.DefaultScalePrecision;
+
+            inputFunctionScalePrecInputNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            inputFunctionScalePrecInputNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            inputFunctionScalePrecInputNumericUpDown.Value = SADDef.DefaultScalePrecision;
+            inputFunctionScalePrecOutputNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            inputFunctionScalePrecOutputNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            inputFunctionScalePrecOutputNumericUpDown.Value = SADDef.DefaultScalePrecision;
+
+            inputTableScalePrecNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            inputTableScalePrecNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            inputTableScalePrecNumericUpDown.Value = SADDef.DefaultScalePrecision;
+
+            internalScalarScalePrecNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            internalScalarScalePrecNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            internalScalarScalePrecNumericUpDown.Value = SADDef.DefaultScalePrecision;
+
+            internalFunctionScalePrecInputNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            internalFunctionScalePrecInputNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            internalFunctionScalePrecInputNumericUpDown.Value = SADDef.DefaultScalePrecision;
+            internalFunctionScalePrecOutputNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            internalFunctionScalePrecOutputNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            internalFunctionScalePrecOutputNumericUpDown.Value = SADDef.DefaultScalePrecision;
+
+            internalTableScalePrecNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            internalTableScalePrecNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            internalTableScalePrecNumericUpDown.Value = SADDef.DefaultScalePrecision;
+
             Control.ControlCollection controls = null;
             controls = (Control.ControlCollection)inputArgumentTabPage.Controls;
             attachPropertiesEventsControls(ref controls);
@@ -480,6 +510,9 @@ namespace SAD806x
                                 break;
                         }
                         break;
+                    case "NumericUpDown":
+                        ((NumericUpDown)control).Value = ((NumericUpDown)control).Minimum;
+                        break;
                     case "Button":
                         control.Tag = null;
                         break;
@@ -570,6 +603,7 @@ namespace SAD806x
                     inputTableRowsRegTextBox.Text = sigInpTbl.VariableRowsReg;
                     inputTableRowsUnitsTextBox.Text = sigInpTbl.ForcedRowsUnits;
                     inputTableScaleTextBox.Text = sigInpTbl.ForcedCellsScaleExpression;
+                    inputTableScalePrecNumericUpDown.Value = sigInpTbl.ForcedCellsScalePrecision;
                     inputTableSignedCheckBox.Checked = sigInpTbl.SignedOutput;
                     inputTableWordCheckBox.Checked = sigInpTbl.WordOutput;
                     sigInpTbl = null;
@@ -583,6 +617,8 @@ namespace SAD806x
                     inputFunctionRowsTextBox.Text = sigInpFunc.ForcedRowsNumber;
                     inputFunctionScaleInputTextBox.Text = sigInpFunc.ForcedInputScaleExpression;
                     inputFunctionScaleOutputTextBox.Text = sigInpFunc.ForcedOutputScaleExpression;
+                    inputFunctionScalePrecInputNumericUpDown.Value = sigInpFunc.ForcedInputScalePrecision;
+                    inputFunctionScalePrecOutputNumericUpDown.Value = sigInpFunc.ForcedOutputScalePrecision;
                     inputFunctionSignedInputCheckBox.Checked = sigInpFunc.SignedInput;
                     inputFunctionSignedOutputCheckBox.Checked = sigInpFunc.SignedOutput;
                     inputFunctionUnitsInputTextBox.Text = sigInpFunc.ForcedInputUnits;
@@ -594,6 +630,7 @@ namespace SAD806x
                     inputScalarAddrTextBox.Text = sigInpScal.VariableAddress;
                     inputScalarByteCheckBox.Checked = sigInpScal.Byte;
                     inputScalarScaleTextBox.Text = sigInpScal.ForcedScaleExpression;
+                    inputScalarScalePrecNumericUpDown.Value = sigInpScal.ForcedScalePrecision;
                     inputScalarSignedCheckBox.Checked = sigInpScal.Signed;
                     inputScalarUnitsTextBox.Text = sigInpScal.ForcedUnits;
                     inputScalarBitFlagsCheckBox.Checked = sigInpScal.isBitFlags;
@@ -644,6 +681,7 @@ namespace SAD806x
                     internalTableRowsTextBox.Text = sigIntTbl.RowsNumber.ToString();
                     internalTableRowsUnitsTextBox.Text = sigIntTbl.RowsUnits;
                     internalTableScaleTextBox.Text = sigIntTbl.CellsScaleExpression;
+                    internalTableScalePrecNumericUpDown.Value = sigIntTbl.CellsScalePrecision;
                     internalTableSignedCheckBox.Checked = sigIntTbl.SignedOutput;
                     internalTableSLabelTextBox.Text = sigIntTbl.ShortLabel;
                     internalTableWordCheckBox.Checked = sigIntTbl.WordOutput;
@@ -666,6 +704,8 @@ namespace SAD806x
                     internalFunctionRowsTextBox.Text = sigIntFunc.RowsNumber.ToString();
                     internalFunctionScaleInputTextBox.Text = sigIntFunc.InputScaleExpression;
                     internalFunctionScaleOutputTextBox.Text = sigIntFunc.OutputScaleExpression;
+                    internalFunctionScalePrecInputNumericUpDown.Value = sigIntFunc.InputScalePrecision;
+                    internalFunctionScalePrecOutputNumericUpDown.Value = sigIntFunc.OutputScalePrecision;
                     internalFunctionSignedInputCheckBox.Checked = sigIntFunc.SignedInput;
                     internalFunctionSignedOutputCheckBox.Checked = sigIntFunc.SignedOutput;
                     internalFunctionSLabelTextBox.Text = sigIntFunc.ShortLabel;
@@ -688,6 +728,7 @@ namespace SAD806x
                     internalScalarLabelTextBox.Text = sigIntScal.Label;
                     internalScalarOutputCommentsCheckBox.Checked = sigIntScal.OutputComments;
                     internalScalarScaleTextBox.Text = sigIntScal.ScaleExpression;
+                    internalScalarScalePrecNumericUpDown.Value = sigIntScal.ScalePrecision;
                     internalScalarSignedCheckBox.Checked = sigIntScal.Signed;
                     internalScalarSLabelTextBox.Text = sigIntScal.ShortLabel;
                     internalScalarUnitsTextBox.Text = sigIntScal.Units;
@@ -901,6 +942,7 @@ namespace SAD806x
                     sigInpTbl.ForcedRowsNumber = inputTableRowsNumTextBox.Text;
                     sigInpTbl.ForcedRowsUnits = inputTableRowsUnitsTextBox.Text;
                     sigInpTbl.ForcedCellsScaleExpression = inputTableScaleTextBox.Text;
+                    sigInpTbl.ForcedCellsScalePrecision = (int)inputTableScalePrecNumericUpDown.Value;
 
                     uniqueKey = sigInpTbl.UniqueKey;
                     label = sigInpTbl.VariableAddress;
@@ -929,6 +971,8 @@ namespace SAD806x
                     sigInpFunc.ForcedRowsNumber = inputFunctionRowsTextBox.Text;
                     sigInpFunc.ForcedInputScaleExpression = inputFunctionScaleInputTextBox.Text;
                     sigInpFunc.ForcedOutputScaleExpression = inputFunctionScaleOutputTextBox.Text;
+                    sigInpFunc.ForcedInputScalePrecision = (int)inputFunctionScalePrecInputNumericUpDown.Value;
+                    sigInpFunc.ForcedOutputScalePrecision = (int)inputFunctionScalePrecOutputNumericUpDown.Value;
                     sigInpFunc.ForcedInputUnits = inputFunctionUnitsInputTextBox.Text;
                     sigInpFunc.ForcedOutputUnits = inputFunctionUnitsOutputTextBox.Text;
 
@@ -954,6 +998,7 @@ namespace SAD806x
                     sigInpScal.Signed = inputScalarSignedCheckBox.Checked;
 
                     sigInpScal.ForcedScaleExpression = inputScalarScaleTextBox.Text;
+                    sigInpScal.ForcedScalePrecision = (int)inputScalarScalePrecNumericUpDown.Value;
                     sigInpScal.ForcedUnits = inputScalarUnitsTextBox.Text;
 
                     if (inputScalarBitFlagsButton.Tag != null)
@@ -1019,6 +1064,7 @@ namespace SAD806x
                     sigIntTbl.RowsNumber = Convert.ToInt32(internalTableRowsTextBox.Text);
                     sigIntTbl.RowsUnits = internalTableRowsUnitsTextBox.Text;
                     sigIntTbl.CellsScaleExpression = internalTableScaleTextBox.Text;
+                    sigIntTbl.CellsScalePrecision = (int)internalTableScalePrecNumericUpDown.Value;
                     sigIntTbl.SignedOutput = internalTableSignedCheckBox.Checked;
                     sigIntTbl.ShortLabel = internalTableSLabelTextBox.Text;
                     sigIntTbl.WordOutput = internalTableWordCheckBox.Checked;
@@ -1050,6 +1096,8 @@ namespace SAD806x
                     sigIntFunc.RowsNumber = Convert.ToInt32(internalFunctionRowsTextBox.Text);
                     sigIntFunc.InputScaleExpression = internalFunctionScaleInputTextBox.Text;
                     sigIntFunc.OutputScaleExpression = internalFunctionScaleOutputTextBox.Text;
+                    sigIntFunc.InputScalePrecision = (int)internalFunctionScalePrecInputNumericUpDown.Value;
+                    sigIntFunc.OutputScalePrecision = (int)internalFunctionScalePrecOutputNumericUpDown.Value;
                     sigIntFunc.SignedInput = internalFunctionSignedInputCheckBox.Checked;
                     sigIntFunc.SignedOutput = internalFunctionSignedOutputCheckBox.Checked;
                     sigIntFunc.ShortLabel = internalFunctionSLabelTextBox.Text;
@@ -1081,6 +1129,7 @@ namespace SAD806x
                     sigIntScal.Label = internalScalarLabelTextBox.Text;
                     sigIntScal.OutputComments = internalScalarOutputCommentsCheckBox.Checked;
                     sigIntScal.ScaleExpression = internalScalarScaleTextBox.Text;
+                    sigIntScal.ScalePrecision = (int)internalScalarScalePrecNumericUpDown.Value;
                     sigIntScal.Signed = internalScalarSignedCheckBox.Checked;
                     sigIntScal.ShortLabel = internalScalarSLabelTextBox.Text;
                     sigIntScal.Units = internalScalarUnitsTextBox.Text;

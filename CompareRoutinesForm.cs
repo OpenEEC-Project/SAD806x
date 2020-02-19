@@ -1709,7 +1709,7 @@ namespace SAD806x
                 {
                     case "ROUTINES":
                         if (cmpNode.Tag == null) continue;
-                        RoutineSkeleton rsSkt = ((RoutineSkeleton)((object[])cmpNode.Tag)[0]);
+                        RoutineSkeleton cmpRsSkt = ((RoutineSkeleton)((object[])cmpNode.Tag)[0]);
                         S6xRoutine cmpRoutine = ((S6xRoutine)((object[])cmpNode.Tag)[1]);
                         
                         if (!skeletonMode)
@@ -1719,16 +1719,18 @@ namespace SAD806x
                             if (!cmpRoutine.Store) continue;
                         }
 
+                        RoutineSkeleton curRsSkt = (RoutineSkeleton)currentSkeleton[topNode.Name];
                         S6xRoutine s6xRoutine = (S6xRoutine)sadBin.S6x.slRoutines[topNode.Name];
                         if (s6xRoutine == null)
                         {
+                            if (curRsSkt == null) continue;
                             s6xRoutine = new S6xRoutine();
-                            s6xRoutine.BankNum = rsSkt.BankNum;
-                            s6xRoutine.AddressInt = rsSkt.AddressInt;
+                            s6xRoutine.BankNum = curRsSkt.BankNum;
+                            s6xRoutine.AddressInt = curRsSkt.AddressInt;
                         }
-                        s6xRoutine.ShortLabel = rsSkt.ShortLabel;
-                        s6xRoutine.Label = rsSkt.Label;
-                        s6xRoutine.Comments = rsSkt.Comments;
+                        s6xRoutine.ShortLabel = cmpRsSkt.ShortLabel;
+                        s6xRoutine.Label = cmpRsSkt.Label;
+                        s6xRoutine.Comments = cmpRsSkt.Comments;
                         s6xRoutine.Store = true;
 
                         if (sadBin.S6x.slRoutines.ContainsKey(topNode.Name)) sadBin.S6x.slRoutines[topNode.Name] = s6xRoutine;
@@ -1983,18 +1985,20 @@ namespace SAD806x
             switch (topNode.Parent.Name)
             {
                 case "ROUTINES":
-                    RoutineSkeleton rsSkt = ((RoutineSkeleton)((object[])cmpNode.Tag)[0]);
+                    RoutineSkeleton cmpRtSkt = ((RoutineSkeleton)((object[])cmpNode.Tag)[0]);
                     S6xRoutine cmpRoutine = ((S6xRoutine)((object[])cmpNode.Tag)[1]);
+                    RoutineSkeleton curRtSkt = (RoutineSkeleton)currentSkeleton[topNode.Name];
                     S6xRoutine s6xRoutine = (S6xRoutine)sadBin.S6x.slRoutines[topNode.Name];
                     if (s6xRoutine == null)
                     {
+                        if (curRtSkt == null) return;
                         s6xRoutine = new S6xRoutine();
-                        s6xRoutine.BankNum = rsSkt.BankNum;
-                        s6xRoutine.AddressInt = rsSkt.AddressInt;
+                        s6xRoutine.BankNum = curRtSkt.BankNum;
+                        s6xRoutine.AddressInt = curRtSkt.AddressInt;
                     }
-                    s6xRoutine.ShortLabel = rsSkt.ShortLabel;
-                    s6xRoutine.Label = rsSkt.Label;
-                    s6xRoutine.Comments = rsSkt.Comments;
+                    s6xRoutine.ShortLabel = cmpRtSkt.ShortLabel;
+                    s6xRoutine.Label = cmpRtSkt.Label;
+                    s6xRoutine.Comments = cmpRtSkt.Comments;
                     s6xRoutine.Store = true;
 
                     if (sadBin.S6x.slRoutines.ContainsKey(topNode.Name)) sadBin.S6x.slRoutines[topNode.Name] = s6xRoutine;

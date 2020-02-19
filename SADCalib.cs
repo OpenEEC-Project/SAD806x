@@ -73,8 +73,8 @@ namespace SAD806x
 
         public string AddressBin { get { return string.Format("{0:x5}", AddressBinInt); } }
         public string AddressBinEnd { get { return string.Format("{0:x5}", AddressBinEndInt); } }
-        public string AddressBank { get { return string.Format("{0:x4}", SADDef.EecBankStartAddress + AddressBinInt); } }
-        public string AddressBankEnd { get { return string.Format("{0:x4}", SADDef.EecBankStartAddress + AddressBinEndInt); } }
+        public string AddressBank { get { return string.Format("{0:x4}", SADDef.EecBankStartAddress + AddressBankInt); } }
+        public string AddressBankEnd { get { return string.Format("{0:x4}", SADDef.EecBankStartAddress + AddressBankEndInt); } }
         public string AddressInternal { get { return string.Format("{0:x4}", SADDef.EecBankStartAddress + AddressInternalInt); } }
         public string AddressInternalEnd { get { return string.Format("{0:x4}", SADDef.EecBankStartAddress + AddressInternalEndInt); } }
 
@@ -622,8 +622,8 @@ namespace SAD806x
                 if (calElem == null)
                 // Calibration Element does not exist or has been removed on conflict
                 {
-                    calElem = new CalibrationElement(BankNum, s6xTable.UniqueAddress);
-                    calElem.RBaseCalc = s6xTable.UniqueAddress;
+                    calElem = new CalibrationElement(BankNum, s6xTable.UniqueAddressHex);
+                    calElem.RBaseCalc = s6xTable.UniqueAddressHex;
                     calElem.AddressInt = s6xTable.AddressInt - BankAddressInt;
                     calElem.AddressBinInt = calElem.AddressInt + BankAddressBinInt;
                     calElem.TableElem = new Table();
@@ -705,8 +705,8 @@ namespace SAD806x
                 if (calElem == null)
                 // Calibration Element does not exist or has been removed on conflict
                 {
-                    calElem = new CalibrationElement(BankNum, s6xFunction.UniqueAddress);
-                    calElem.RBaseCalc = s6xFunction.UniqueAddress;
+                    calElem = new CalibrationElement(BankNum, s6xFunction.UniqueAddressHex);
+                    calElem.RBaseCalc = s6xFunction.UniqueAddressHex;
                     calElem.AddressInt = s6xFunction.AddressInt - BankAddressInt;
                     calElem.AddressBinInt = calElem.AddressInt + BankAddressBinInt;
                     calElem.FunctionElem = new Function();
@@ -747,8 +747,8 @@ namespace SAD806x
                 if (calElem == null)
                 // Calibration Element does not exist or has been removed on conflict
                 {
-                    calElem = new CalibrationElement(BankNum, s6xScalar.UniqueAddress);
-                    calElem.RBaseCalc = s6xScalar.UniqueAddress;
+                    calElem = new CalibrationElement(BankNum, s6xScalar.UniqueAddressHex);
+                    calElem.RBaseCalc = s6xScalar.UniqueAddressHex;
                     calElem.AddressInt = s6xScalar.AddressInt - BankAddressInt;
                     calElem.AddressBinInt = calElem.AddressInt + BankAddressBinInt;
                     calElem.ScalarElem = new Scalar();
@@ -789,8 +789,8 @@ namespace SAD806x
                 if (calElem == null)
                 // Calibration Element does not exist or has been removed on conflict
                 {
-                    calElem = new CalibrationElement(BankNum, s6xStructure.UniqueAddress);
-                    calElem.RBaseCalc = s6xStructure.UniqueAddress;
+                    calElem = new CalibrationElement(BankNum, s6xStructure.UniqueAddressHex);
+                    calElem.RBaseCalc = s6xStructure.UniqueAddressHex;
                     calElem.AddressInt = s6xStructure.AddressInt - BankAddressInt;
                     calElem.AddressBinInt = calElem.AddressInt + BankAddressBinInt;
                     calElem.StructureElem = new Structure();
@@ -1208,6 +1208,7 @@ namespace SAD806x
                         if (ciCI.RoutineInputOutput.S6xInputScalar.ForcedScaleExpression != null && ciCI.RoutineInputOutput.S6xInputScalar.ForcedScaleExpression != string.Empty)
                         {
                             scalar.ScaleExpression = ciCI.RoutineInputOutput.S6xInputScalar.ForcedScaleExpression;
+                            scalar.ScalePrecision = ciCI.RoutineInputOutput.S6xInputScalar.ForcedScalePrecision;
                             break;
                         }
                     }
@@ -1420,11 +1421,13 @@ namespace SAD806x
                         if (ciCI.RoutineInputOutput.S6xInputFunction.ForcedInputScaleExpression != null && ciCI.RoutineInputOutput.S6xInputFunction.ForcedInputScaleExpression != string.Empty)
                         {
                             function.InputScaleExpression = ciCI.RoutineInputOutput.S6xInputFunction.ForcedInputScaleExpression;
+                            function.InputScalePrecision = ciCI.RoutineInputOutput.S6xInputFunction.ForcedInputScalePrecision;
                             foundInputScale = true;
                         }
                         if (ciCI.RoutineInputOutput.S6xInputFunction.ForcedOutputScaleExpression != null && ciCI.RoutineInputOutput.S6xInputFunction.ForcedOutputScaleExpression != string.Empty)
                         {
                             function.OutputScaleExpression = ciCI.RoutineInputOutput.S6xInputFunction.ForcedOutputScaleExpression;
+                            function.OutputScalePrecision = ciCI.RoutineInputOutput.S6xInputFunction.ForcedOutputScalePrecision;
                             foundOutputScale = true;
                         }
                     }
@@ -1438,11 +1441,13 @@ namespace SAD806x
                 if (function.S6xFunction.InputScaleExpression != null && function.S6xFunction.InputScaleExpression != string.Empty)
                 {
                     function.InputScaleExpression = function.S6xFunction.InputScaleExpression;
+                    function.InputScalePrecision = function.S6xFunction.InputScalePrecision;
                     foundInputScale = true;
                 }
                 if (function.S6xFunction.OutputScaleExpression != null && function.S6xFunction.OutputScaleExpression != string.Empty)
                 {
                     function.OutputScaleExpression = function.S6xFunction.OutputScaleExpression;
+                    function.OutputScalePrecision = function.S6xFunction.OutputScalePrecision;
                     foundOutputScale = true;
                 }
             }
@@ -1487,6 +1492,7 @@ namespace SAD806x
             }
             function.ScalerItemsNum = maxValue / scaleValue + 1;
             function.OutputScaleExpression = "X/" + scaleValue.ToString();
+            function.OutputScalePrecision = 0;
         }
 
         private void readTable(ref Table table, int currentRbaseEndAddress)
@@ -1649,6 +1655,7 @@ namespace SAD806x
                         if (ciCI.RoutineInputOutput.S6xInputTable.ForcedCellsScaleExpression != null && ciCI.RoutineInputOutput.S6xInputTable.ForcedCellsScaleExpression != string.Empty)
                         {
                             table.CellsScaleExpression = ciCI.RoutineInputOutput.S6xInputTable.ForcedCellsScaleExpression;
+                            table.CellsScalePrecision = ciCI.RoutineInputOutput.S6xInputTable.ForcedCellsScalePrecision;
                             break;
                         }
                     }

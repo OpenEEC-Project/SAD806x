@@ -3,6 +3,12 @@ using System.Text;
 
 namespace SAD806x
 {
+    public enum OutputCellAlignment
+    {
+        Left = 0,
+        Right = 1
+    }
+    
     public static class OutputTools
     {
         public static int BorderedWidth = 120;
@@ -82,5 +88,73 @@ namespace SAD806x
             return BorderLeftRight + new string(' ', BorderedWidth - 2) + BorderLeftRight;
         }
 
+        public static string GetSpacesCenteredString(string sValue, int iWidth)
+        {
+            if (iWidth <= 0) return string.Empty;
+            if (sValue == null || sValue == string.Empty) return new string(' ', iWidth);
+            if (iWidth <= sValue.Length + 1) return sValue;
+            int iLeft = (int)(iWidth / 2 + sValue.Length / 2);
+            return string.Format("{0," + iLeft.ToString() + "}{1," + (iWidth - iLeft).ToString() + "}", sValue, string.Empty);
+        }
+        
+        public static string GetCellsOutput(string[] cellsValues, int[] cellsMinSizes, OutputCellAlignment[] cellsAlignments)
+        {
+            string cellsFormat = string.Empty;
+
+            if (cellsValues == null) return string.Empty;
+            int cellsNumber = cellsValues.Length;
+
+            if (cellsMinSizes == null)
+            {
+                cellsMinSizes = new int[cellsNumber];
+                for (int iCell = 0; iCell < cellsNumber; iCell++)
+                {
+                    cellsMinSizes[iCell] = cellsValues[iCell].Length + 1;
+                }
+            }
+            if (cellsMinSizes.Length != cellsNumber) return string.Empty;
+
+            if (cellsAlignments == null)
+            {
+                cellsAlignments = new OutputCellAlignment[cellsNumber];
+                for (int iCell = 0; iCell < cellsNumber; iCell++) cellsAlignments[iCell] = OutputCellAlignment.Left;
+            }
+            if (cellsAlignments.Length != cellsNumber) return string.Empty;
+
+            // Padding Mngt
+            int iPadding = 0;
+            for (int iCell = 0; iCell < cellsNumber; iCell++)
+            {
+                // Security
+                if (cellsMinSizes[iCell] < 1) cellsMinSizes[iCell] = 1;
+
+                if (iPadding > 0)
+                {
+                    cellsMinSizes[iCell] -= iPadding;
+                    iPadding = 0;
+                    if (cellsMinSizes[iCell] < 1)
+                    {
+                        iPadding = 1 - cellsMinSizes[iCell];
+                        cellsMinSizes[iCell] = 1;
+                    }
+                }
+                if (cellsValues[iCell].Length > cellsMinSizes[iCell]) iPadding += cellsValues[iCell].Length - cellsMinSizes[iCell];
+            }
+            
+            for (int iCell = 0; iCell < cellsNumber; iCell++)
+            {
+                string sFormat = "{" + iCell.ToString() + ",";
+                switch (cellsAlignments[iCell])
+                {
+                    case OutputCellAlignment.Left:
+                        sFormat += "-";
+                        break;
+                }
+                sFormat += cellsMinSizes[iCell].ToString() + "}";
+                cellsFormat += sFormat;
+            }
+
+            return string.Format(cellsFormat, cellsValues);
+        }
     }
 }

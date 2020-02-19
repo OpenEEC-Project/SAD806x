@@ -580,6 +580,8 @@ namespace SAD806x
                 if (cArg.Word)
                 // Word Argument - Elements Addresses are Word Arguments Mode0 to Mode4
                 {
+                    bool outputAsPointer = (cArg.S6xRoutineInputArgument == null) ? true : cArg.S6xRoutineInputArgument.Pointer;
+
                     switch (cArg.Mode)
                     {
                         case CallArgsMode.Mode0:
@@ -628,14 +630,14 @@ namespace SAD806x
                             cArg.InputValueInt = Convert.ToInt32(ope.CallArgsArr[usedArgs + 1] + ope.CallArgsArr[usedArgs], 16);
                             cArg.DecryptedValueInt = cArg.InputValueInt;
 
-                            alCallArgsTranslated.Add(Tools.PointerTranslation(cArg.DecryptedValue));
+                            alCallArgsTranslated.Add(outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue);
                             break;
                         case CallArgsMode.Mode2:
                             // To be managed - Temporary managed as Standard
                             cArg.InputValueInt = Convert.ToInt32(ope.CallArgsArr[usedArgs + 1] + ope.CallArgsArr[usedArgs], 16);
                             cArg.DecryptedValueInt = cArg.InputValueInt;
 
-                            alCallArgsTranslated.Add(Tools.PointerTranslation(cArg.DecryptedValue));
+                            alCallArgsTranslated.Add(outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue);
                             break;
                         case CallArgsMode.Mode3:
                             cArg.InputValueInt = Convert.ToInt32(ope.CallArgsArr[usedArgs + 1] + ope.CallArgsArr[usedArgs], 16);
@@ -647,7 +649,8 @@ namespace SAD806x
                             if (rBaseNum < 8)
                             // Not Compatible Expression, this is a register
                             {
-                                alCallArgsTranslated.Add(Tools.RegisterInstruction(cArg.DecryptedValue));
+                                alCallArgsTranslated.Add(getRegisterTranslation(outputAsPointer ? Tools.RegisterInstruction(cArg.DecryptedValue) : cArg.DecryptedValue, false, ref Calibration.slEecRegisters, ref S6x));
+                                //alCallArgsTranslated.Add(outputAsPointer ? Tools.RegisterInstruction(cArg.DecryptedValue) : cArg.DecryptedValue);
                             }
                             else
                             // Compatible Expression, this is a Calibration Element
@@ -676,7 +679,7 @@ namespace SAD806x
                                 }
                                 else
                                 {
-                                    alCallArgsTranslated.Add(Tools.PointerTranslation(cArg.DecryptedValue));
+                                    alCallArgsTranslated.Add(outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue);
                                 }
                             }
                             break;
@@ -712,7 +715,7 @@ namespace SAD806x
                             }
                             else
                             {
-                                alCallArgsTranslated.Add(Tools.PointerTranslation(cArg.DecryptedValue));
+                                alCallArgsTranslated.Add(outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue);
                             }
                             break;
                         case CallArgsMode.Mode4Struct:
@@ -773,12 +776,12 @@ namespace SAD806x
                                 }
                                 else
                                 {
-                                    alCallArgsTranslated.Add(Tools.PointerTranslation(cArg.DecryptedValue));
+                                    alCallArgsTranslated.Add(outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue);
                                 }
                             }
                             else
                             {
-                                alCallArgsTranslated.Add(Tools.PointerTranslation(cArg.DecryptedValue));
+                                alCallArgsTranslated.Add(outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue);
                             }
                             readDataBank = null;
                             break;
@@ -786,7 +789,7 @@ namespace SAD806x
                             cArg.InputValueInt = Convert.ToInt32(ope.CallArgsArr[usedArgs + 1] + ope.CallArgsArr[usedArgs], 16);
                             cArg.DecryptedValueInt = cArg.InputValueInt;
 
-                            alCallArgsTranslated.Add(getRegisterTranslation(Tools.RegisterInstruction(cArg.DecryptedValue), false, ref Calibration.slEecRegisters, ref S6x));
+                            alCallArgsTranslated.Add(getRegisterTranslation(outputAsPointer ? Tools.RegisterInstruction(cArg.DecryptedValue) : cArg.DecryptedValue, false, ref Calibration.slEecRegisters, ref S6x));
                             break;
                     }
                 }
@@ -1007,6 +1010,10 @@ namespace SAD806x
                     // 65,ad,07,34          ad2w  R34,7ad            R34 += 7ad;          
                     // 64,84,34             ad2w  R34,R84            R34 += R84;          
                     // b2,34,30             ldb   R30,[R34]          R30 = [R34];         // R34 is a structure address 
+                    //
+                    // 45,fb,00,30,48       ad3w  R48,R30,fb         R48 = R30 + fb;      
+                    // 64,82,48             ad2w  R48,R82            R48 += R82;          
+                    // b2,48,34             ldb   R34,[R48]          R34 = [R48];         // R48 is a structure address 
                     //
                     // a0,R84,R34           ldw   R34,R84            R34 = R84;
                     // 65,ad,07,34          ad2w  R34,7ad            R34 += 7ad;
@@ -1419,6 +1426,7 @@ namespace SAD806x
         private string getTranslation(string sTemplate, ref Operation ope, ref Operation opPrevResult, ref SADS6x S6x)
         {
             string sTranslation = sTemplate;
+            S6xRegister s6xReg = null;
 
             if (sTranslation == string.Empty) return sTranslation;
 
@@ -1426,7 +1434,7 @@ namespace SAD806x
             //      Template is overriden when  BitFlags are provided on related S6x Register
             if (Type == OPCodeType.BitByteGotoOP && ope.OriginalOpArr.Length >= 2)
             {
-                S6xRegister s6xReg = (S6xRegister)S6x.slProcessRegisters[Tools.RegisterUniqueAddress(ope.OriginalOpArr[1])];
+                s6xReg = (S6xRegister)S6x.slProcessRegisters[Tools.RegisterUniqueAddress(ope.OriginalOpArr[1])];
                 if (s6xReg != null)
                 {
                     if (s6xReg.isBitFlags && s6xReg.BitFlags != null)
@@ -1434,38 +1442,135 @@ namespace SAD806x
                         foreach (S6xBitFlag bitFlag in s6xReg.BitFlags)
                         {
                             if (bitFlag == null) break;
+                            if (bitFlag.Skip) continue;
                             if (bitFlag.Position > 7) continue;
                             if (OPCodeInt == 0x30 + bitFlag.Position || OPCodeInt == 0x38 + bitFlag.Position)
                             // jnb / jb
                             {
                                 string regTranslation = string.Empty;
                                 string sValue = string.Empty;
+                                string bfTranslation = string.Empty;
 
                                 if (bitFlag.ShortLabel == null) break;
                                 if (bitFlag.ShortLabel.ToLower() == "b" + bitFlag.Position.ToString()) break;
                                 // jnb
-                                if (OPCodeInt == 0x30 + bitFlag.Position && bitFlag.NotSetValue != null) sValue = bitFlag.NotSetValue;
+                                if (OPCodeInt == 0x30 + bitFlag.Position && bitFlag.NotSetValue != null && bitFlag.NotSetValue != string.Empty) sValue = bitFlag.NotSetValue;
                                 // jb
-                                else if (bitFlag.SetValue != null) sValue = bitFlag.SetValue;
+                                else if (bitFlag.SetValue != null && bitFlag.SetValue != string.Empty) sValue = bitFlag.SetValue;
 
-                                if (s6xReg.MultipleMeanings && s6xReg.ByteLabel != null) regTranslation = Tools.PointerTranslation(s6xReg.Labels(true));
-                                else if (s6xReg.Label == null) regTranslation = Tools.PointerTranslation(s6xReg.Address);
-                                else regTranslation = Tools.PointerTranslation(s6xReg.Label);
-                                
-                                // Based on existing templated, if updated this code should be updated too
-                                if (sValue == string.Empty)
+                                if (bitFlag.HideParent)
                                 {
-                                    sTranslation = sTranslation.Replace("%1%", "").Replace("B" + bitFlag.Position.ToString() + "_", regTranslation + SADDef.BitByteGotoOPAltSeparator + bitFlag.ShortLabel);
+                                    bfTranslation = SADDef.BitByteGotoOPAltHRegPrefix + bitFlag.ShortLabel + SADDef.BitByteGotoOPAltHRegSuffix;
                                 }
                                 else
                                 {
-                                    sTranslation = sTranslation.Replace("!", "").Replace("B" + bitFlag.Position.ToString() + "_", regTranslation + SADDef.BitByteGotoOPAltSeparator + bitFlag.ShortLabel + SADDef.BitByteGotoOPAltComparison).Replace("%1%", sValue);
+                                    if (s6xReg.MultipleMeanings && s6xReg.ByteLabel != null) regTranslation = Tools.PointerTranslation(s6xReg.Labels(true));
+                                    else if (s6xReg.Label == null) regTranslation = Tools.PointerTranslation(s6xReg.Address);
+                                    else regTranslation = Tools.PointerTranslation(s6xReg.Label);
+
+                                    bfTranslation = regTranslation + SADDef.BitByteGotoOPAltSeparator + bitFlag.ShortLabel;
+                                }
+                                // Based on existing template, if updated this code should be updated too
+                                if (sValue == string.Empty)
+                                {
+                                    sTranslation = sTranslation.Replace("%1%", "").Replace("B" + bitFlag.Position.ToString() + "_", bfTranslation);
+                                }
+                                else
+                                {
+                                    sTranslation = sTranslation.Replace("!", "").Replace("B" + bitFlag.Position.ToString() + "_", bfTranslation + SADDef.BitByteGotoOPAltComparison).Replace("%1%", sValue);
                                 }
                                 break;
                             }
                         }
                     }
                     s6xReg = null;
+                }
+            }
+
+            // Specific BitFlags Case for registers on dedicated flag operations (orrb 0x91, an2b 0x71 only)
+            bool fOperation = false;
+            if (ope.OriginalOpArr.Length == 3 && (OPCodeInt == 0x71 || OPCodeInt == 0x91))
+            {
+                if (OPCodeInt == 0x91)
+                {
+                    switch (ope.OriginalOpArr[1].ToLower())
+                    {
+                        case "01":
+                        case "02":
+                        case "04":
+                        case "08":
+                        case "10":
+                        case "20":
+                        case "40":
+                        case "80":
+                            fOperation = true;
+                            break;
+                    }
+                }
+                else if (OPCodeInt == 0x71)
+                {
+                    switch (ope.OriginalOpArr[1].ToLower())
+                    {
+                        case "7f":
+                        case "bf":
+                        case "df":
+                        case "ef":
+                        case "f7":
+                        case "fb":
+                        case "fd":
+                        case "fe":
+                            fOperation = true;
+                            break;
+                    }
+
+                }
+                if (fOperation)
+                {
+                    s6xReg = (S6xRegister)S6x.slProcessRegisters[Tools.RegisterUniqueAddress(ope.OriginalOpArr[2])];
+                    if (s6xReg != null)
+                    {
+                        if (s6xReg.isBitFlags && s6xReg.BitFlags != null)
+                        {
+                            foreach (S6xBitFlag bitFlag in s6xReg.BitFlags)
+                            {
+                                if (bitFlag == null) break;
+                                if (bitFlag.Skip) continue;
+                                if (bitFlag.Position > 7) continue;
+                                
+                                BitArray bitArray = new BitArray(new int[] { Convert.ToInt32(ope.OriginalOpArr[1], 16) });
+
+                                if ((OPCodeInt == 0x91 && bitArray.Get(bitFlag.Position)) || (OPCodeInt == 0x71 && !bitArray.Get(bitFlag.Position)))
+                                {
+                                    string regTranslation = string.Empty;
+                                    string sValue = string.Empty;
+                                    string bfTranslation = string.Empty;
+
+                                    if (bitFlag.ShortLabel == null) break;
+                                    if (bitFlag.ShortLabel.ToLower() == "b" + bitFlag.Position.ToString()) break;
+
+                                    if (OPCodeInt == 0x91) sValue = (bitFlag.SetValue == null || bitFlag.SetValue == string.Empty) ? SADDef.BitByteSetOPAltDefVal : bitFlag.SetValue;
+                                    else if (OPCodeInt == 0x71) sValue = (bitFlag.NotSetValue == null || bitFlag.NotSetValue == string.Empty) ? SADDef.BitByteUnSetOPAltDefVal : bitFlag.NotSetValue;
+
+                                    if (bitFlag.HideParent)
+                                    {
+                                        bfTranslation = SADDef.BitByteGotoOPAltHRegPrefix + bitFlag.ShortLabel + SADDef.BitByteGotoOPAltHRegSuffix;
+                                    }
+                                    else
+                                    {
+                                        if (s6xReg.MultipleMeanings && s6xReg.ByteLabel != null) regTranslation = Tools.PointerTranslation(s6xReg.Labels(true));
+                                        else if (s6xReg.Label == null) regTranslation = Tools.PointerTranslation(s6xReg.Address);
+                                        else regTranslation = Tools.PointerTranslation(s6xReg.Label);
+
+                                        bfTranslation = regTranslation + SADDef.BitByteGotoOPAltSeparator + bitFlag.ShortLabel;
+                                    }
+
+                                    sTranslation = SADDef.BitByteSetOPAltTemplate.Replace("%1%", bfTranslation).Replace("%2%", sValue);
+                                    break;
+                                }
+                            }
+                        }
+                        s6xReg = null;
+                    }
                 }
             }
 

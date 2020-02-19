@@ -1537,6 +1537,7 @@ namespace SAD806x
                 {
                     XdfFunction xdfObject = new XdfFunction(s6xObject, xdfBaseOffset);
                     xdfObject.uniqueid = "0x" + string.Format("{0:x4}", newXdfUniqueId);
+                    s6xObject.XdfUniqueId = xdfObject.uniqueid;
                     newXdfUniqueId++;
                     alXdfObjects.Add(xdfObject);
                 }
@@ -1550,6 +1551,7 @@ namespace SAD806x
                         {
                             XdfFunction xdfObject = new XdfFunction(s6xDupObject, xdfBaseOffset);
                             xdfObject.uniqueid = "0x" + string.Format("{0:x4}", newXdfUniqueId);
+                            s6xDupObject.XdfUniqueId = xdfObject.uniqueid;
                             newXdfUniqueId++;
                             alXdfObjects.Add(xdfObject);
                         }
@@ -1620,7 +1622,7 @@ namespace SAD806x
                     }
 
                     // Real Duplicates
-                    foreach (S6xTable s6xDup in slDupTables)
+                    foreach (S6xTable s6xDup in slDupTables.Values)
                     {
                         if (uniqueAddress != s6xDup.UniqueAddress) continue;
 
@@ -1726,7 +1728,7 @@ namespace SAD806x
                     }
 
                     // Real Duplicates
-                    foreach (S6xScalar s6xDup in slDupScalars)
+                    foreach (S6xScalar s6xDup in slDupScalars.Values)
                     {
                         if (uniqueAddress != s6xDup.UniqueAddress) continue;
 
@@ -1829,7 +1831,7 @@ namespace SAD806x
                     }
 
                     // Real Duplicates
-                    foreach (S6xScalar s6xDup in slDupScalars)
+                    foreach (S6xScalar s6xDup in slDupScalars.Values)
                     {
                         if (uniqueAddress != s6xDup.UniqueAddress) continue;
 
@@ -1912,8 +1914,10 @@ namespace SAD806x
                         else if (slDupFunctions.ContainsKey(s6xObject.RowsScalerAddress)) s6xObject.RowsScalerXdfUniqueId = ((S6xFunction)slDupFunctions[s6xObject.RowsScalerAddress]).XdfUniqueId;
                         else s6xObject.RowsScalerXdfUniqueId = string.Empty;
                     }
+
                     XdfTable xdfObject = new XdfTable(s6xObject, xdfBaseOffset);
                     xdfObject.uniqueid = "0x" + string.Format("{0:x4}", newXdfUniqueId);
+                    s6xObject.XdfUniqueId = xdfObject.uniqueid;
                     newXdfUniqueId++;
                     alXdfObjects.Add(xdfObject);
                 }
@@ -1940,6 +1944,7 @@ namespace SAD806x
                             }
                             XdfTable xdfObject = new XdfTable(s6xDupObject, xdfBaseOffset);
                             xdfObject.uniqueid = "0x" + string.Format("{0:x4}", newXdfUniqueId);
+                            s6xDupObject.XdfUniqueId = xdfObject.uniqueid;
                             newXdfUniqueId++;
                             alXdfObjects.Add(xdfObject);
                         }
@@ -1962,6 +1967,7 @@ namespace SAD806x
                 {
                     XdfScalar xdfObject = new XdfScalar(s6xObject, xdfBaseOffset);
                     xdfObject.uniqueid = "0x" + string.Format("{0:x4}", newXdfUniqueId);
+                    s6xObject.XdfUniqueId = xdfObject.uniqueid;
                     newXdfUniqueId++;
                     alXdfObjects.Add(xdfObject);
                 }
@@ -1975,6 +1981,7 @@ namespace SAD806x
                         {
                             XdfScalar xdfObject = new XdfScalar(s6xDupObject, xdfBaseOffset);
                             xdfObject.uniqueid = "0x" + string.Format("{0:x4}", newXdfUniqueId);
+                            s6xDupObject.XdfUniqueId = xdfObject.uniqueid;
                             newXdfUniqueId++;
                             alXdfObjects.Add(xdfObject);
                         }
@@ -2158,6 +2165,8 @@ namespace SAD806x
         public string Comments { get; set; }
 
         public string CellsScaleExpression { get; set; }
+        [XmlAttribute]
+        public int CellsScalePrecision { get; set; }
         
         public string ColsScalerAddress { get; set; }
         public string RowsScalerAddress { get; set; }
@@ -2187,6 +2196,7 @@ namespace SAD806x
 
         public S6xTable()
         {
+            CellsScalePrecision = SADDef.DefaultScalePrecision;
         }
 
         public S6xTable(CalibrationElement tableCalElem)
@@ -2209,6 +2219,7 @@ namespace SAD806x
             ColsScalerAddress = tableCalElem.TableElem.ColsScalerUniqueAddress;  // From Forced Values at lower level
             RowsScalerAddress = tableCalElem.TableElem.RowsScalerUniqueAddress;  // From Forced Values at lower level
             CellsScaleExpression = tableCalElem.TableElem.CellsScaleExpression;  // From Forced Values at lower level
+            CellsScalePrecision = tableCalElem.TableElem.CellsScalePrecision;
             ColsUnits = string.Empty;
             RowsUnits = string.Empty;
             CellsUnits = string.Empty;
@@ -2280,6 +2291,7 @@ namespace SAD806x
             ColsScalerAddress = table.ColsScalerUniqueAddress;  // From Forced Values at lower level
             RowsScalerAddress = table.RowsScalerUniqueAddress;  // From Forced Values at lower level
             CellsScaleExpression = table.CellsScaleExpression;  // From Forced Values at lower level
+            CellsScalePrecision = table.CellsScalePrecision;
             ColsUnits = string.Empty;
             RowsUnits = string.Empty;
             CellsUnits = string.Empty;
@@ -2354,7 +2366,9 @@ namespace SAD806x
             RowsNumber = 0;
 
             WordOutput = false;
-            
+
+            CellsScalePrecision = SADDef.DefaultScalePrecision;
+
             foreach (XdfAxis xdfAxis in xdfTable.xdfAxis)
             {
                 switch (xdfAxis.id.ToLower())
@@ -2391,6 +2405,15 @@ namespace SAD806x
                         }
 
                         if (xdfAxis.xdfMath != null) CellsScaleExpression = xdfAxis.xdfMath.equation;
+                        CellsScalePrecision = SADDef.DefaultScalePrecision;
+                        if (xdfAxis.decimalpl != null)
+                        {
+                            try { CellsScalePrecision = Convert.ToInt32(xdfAxis.decimalpl); }
+                            catch { }
+                            if (CellsScalePrecision < SADDef.DefaultScaleMinPrecision) CellsScalePrecision = SADDef.DefaultScaleMinPrecision;
+                            if (CellsScalePrecision > SADDef.DefaultScaleMaxPrecision) CellsScalePrecision = SADDef.DefaultScaleMaxPrecision;
+                        }
+
                         CellsUnits = xdfAxis.units;
                         break;
                     case "x":
@@ -2457,6 +2480,7 @@ namespace SAD806x
             clone.RowsNumber = RowsNumber;
 
             clone.CellsScaleExpression = CellsScaleExpression;
+            clone.CellsScalePrecision = CellsScalePrecision;
 
             clone.ColsScalerAddress = ColsScalerAddress;
             clone.RowsScalerAddress = RowsScalerAddress;
@@ -2485,6 +2509,7 @@ namespace SAD806x
                 if (CellsUnits != null && CellsUnits != string.Empty) return true;
                 if (OutputComments) return true;
                 if (CellsScaleExpression != null) if (CellsScaleExpression.ToUpper() != "X") return true;
+                if (CellsScalePrecision != SADDef.DefaultScalePrecision) return true;
 
                 if (ShortLabel == null) return true;
                 if (Label == null) return true;
@@ -2554,6 +2579,11 @@ namespace SAD806x
         public string InputScaleExpression { get; set; }
         public string OutputScaleExpression { get; set; }
 
+        [XmlAttribute]
+        public int InputScalePrecision { get; set; }
+        [XmlAttribute]
+        public int OutputScalePrecision { get; set; }
+
         public string InputUnits { get; set; }
         public string OutputUnits { get; set; }
 
@@ -2575,7 +2605,8 @@ namespace SAD806x
 
         public S6xFunction()
         {
-
+            InputScalePrecision = SADDef.DefaultScalePrecision;
+            OutputScalePrecision = SADDef.DefaultScalePrecision;
         }
 
         public S6xFunction(CalibrationElement functionCalElem)
@@ -2598,6 +2629,8 @@ namespace SAD806x
             Comments = functionCalElem.FunctionElem.FullLabel;
             InputScaleExpression = functionCalElem.FunctionElem.InputScaleExpression;       // From Forced Values at lower level
             OutputScaleExpression = functionCalElem.FunctionElem.OutputScaleExpression;     // From Forced Values at lower level
+            InputScalePrecision = functionCalElem.FunctionElem.InputScalePrecision;
+            OutputScalePrecision = functionCalElem.FunctionElem.OutputScalePrecision;
             InputUnits = string.Empty;
             OutputUnits = string.Empty;
 
@@ -2660,6 +2693,8 @@ namespace SAD806x
             Comments = string.Empty;
             InputScaleExpression = function.InputScaleExpression;         // From Forced Values at lower level
             OutputScaleExpression = function.OutputScaleExpression;       // From Forced Values at lower level
+            InputScalePrecision = function.InputScalePrecision;
+            OutputScalePrecision = function.OutputScalePrecision;
             InputUnits = string.Empty;
             OutputUnits = string.Empty;
 
@@ -2717,6 +2752,8 @@ namespace SAD806x
             Comments = xdfFunction.descriptionXmlValid;
             ShortLabel = Tools.XDFLabelComToShortLabel(Label, Comments, "TpFc" + UniqueAddressHex.Replace(" ", "_"));
             Label = Tools.XDFLabelReview(Label, ShortLabel);
+            InputScalePrecision = SADDef.DefaultScalePrecision;
+            OutputScalePrecision = SADDef.DefaultScalePrecision;
             foreach (XdfAxis xdfAxis in xdfFunction.xdfAxis)
             {
                 if (xdfAxis.id.ToLower() == "x")
@@ -2742,6 +2779,14 @@ namespace SAD806x
                             break;
                     }
                     InputScaleExpression = xdfAxis.xdfMath.equation;
+                    InputScalePrecision = SADDef.DefaultScalePrecision;
+                    if (xdfAxis.decimalpl != null)
+                    {
+                        try { InputScalePrecision = Convert.ToInt32(xdfAxis.decimalpl); }
+                        catch {}
+                        if (InputScalePrecision < SADDef.DefaultScaleMinPrecision) InputScalePrecision = SADDef.DefaultScaleMinPrecision;
+                        if (InputScalePrecision > SADDef.DefaultScaleMaxPrecision) InputScalePrecision = SADDef.DefaultScaleMaxPrecision;
+                    }
                     InputUnits = xdfAxis.units;
                 }
                 else
@@ -2760,6 +2805,13 @@ namespace SAD806x
                             break;
                     }
                     OutputScaleExpression = xdfAxis.xdfMath.equation;
+                    if (xdfAxis.decimalpl != null)
+                    {
+                        try { OutputScalePrecision = Convert.ToInt32(xdfAxis.decimalpl); }
+                        catch { }
+                        if (OutputScalePrecision < SADDef.DefaultScaleMinPrecision) OutputScalePrecision = SADDef.DefaultScaleMinPrecision;
+                        if (OutputScalePrecision > SADDef.DefaultScaleMaxPrecision) OutputScalePrecision = SADDef.DefaultScaleMaxPrecision;
+                    }
                     OutputUnits = xdfAxis.units;
                 }
             }
@@ -2788,6 +2840,8 @@ namespace SAD806x
 
             clone.InputScaleExpression = InputScaleExpression;
             clone.OutputScaleExpression = OutputScaleExpression;
+            clone.InputScalePrecision = InputScalePrecision;
+            clone.OutputScalePrecision = OutputScalePrecision;
 
             clone.InputUnits = InputUnits;
             clone.OutputUnits = OutputUnits;
@@ -2809,6 +2863,8 @@ namespace SAD806x
                 if (OutputComments) return true;
                 if (InputScaleExpression != null) if (InputScaleExpression.ToUpper() != "X") return true;
                 if (OutputScaleExpression != null) if (OutputScaleExpression.ToUpper() != "X") return true;
+                if (InputScalePrecision != SADDef.DefaultScalePrecision) return true;
+                if (OutputScalePrecision != SADDef.DefaultScalePrecision) return true;
 
                 if (ShortLabel == null) return true;
                 if (Label == null) return true;
@@ -2849,6 +2905,9 @@ namespace SAD806x
         public string SetValue { get; set; }
         [XmlAttribute]
         public string NotSetValue { get; set; }
+
+        [XmlAttribute]
+        public bool HideParent { get; set; }
 
         public string Label { get; set; }
 
@@ -2894,6 +2953,8 @@ namespace SAD806x
         public string Comments { get; set; }
 
         public string ScaleExpression { get; set; }
+        [XmlAttribute]
+        public int ScalePrecision { get; set; }
 
         public string Units { get; set; }
 
@@ -2922,6 +2983,7 @@ namespace SAD806x
 
         public S6xScalar()
         {
+            ScalePrecision = SADDef.DefaultScalePrecision;
         }
 
         public S6xScalar(CalibrationElement scalarCalElem)
@@ -2939,6 +3001,7 @@ namespace SAD806x
             if (ShortLabel == string.Empty) ShortLabel = scalarCalElem.ScalarElem.Address;
             Comments = scalarCalElem.ScalarElem.Address;
             ScaleExpression = scalarCalElem.ScalarElem.ScaleExpression;  // From Forced Values at lower level
+            ScalePrecision = scalarCalElem.ScalarElem.ScalePrecision;
             Units = string.Empty;
 
             if (scalarCalElem.ScalarElem.isBitFlags)
@@ -3014,6 +3077,7 @@ namespace SAD806x
             if (Label == string.Empty) Label = ShortLabel;
             Comments = string.Empty;
             ScaleExpression = scalar.ScaleExpression;  // From Forced Values at lower level
+            ScalePrecision = scalar.ScalePrecision;
             Units = string.Empty;
 
             if (scalar.isBitFlags)
@@ -3102,6 +3166,15 @@ namespace SAD806x
             ShortLabel = Tools.XDFLabelComToShortLabel(Label, Comments, "TpSc" + UniqueAddressHex.Replace(" ", "_"));
             Label = Tools.XDFLabelReview(Label, ShortLabel);
             ScaleExpression = xdfScalar.xdfMath.equation;
+            ScalePrecision = SADDef.DefaultScalePrecision;
+            if (xdfScalar.decimalpl != null)
+            {
+                try { ScalePrecision = Convert.ToInt32(xdfScalar.decimalpl); }
+                catch { }
+                if (ScalePrecision < SADDef.DefaultScaleMinPrecision) ScalePrecision = SADDef.DefaultScaleMinPrecision;
+                if (ScalePrecision > SADDef.DefaultScaleMaxPrecision) ScalePrecision = SADDef.DefaultScaleMaxPrecision;
+            }
+
             Units = xdfScalar.units;
         }
 
@@ -3118,6 +3191,7 @@ namespace SAD806x
             Signed = false;
 
             ScaleExpression = "X";
+            ScalePrecision = SADDef.DefaultScalePrecision;
             Units = string.Empty;
 
             AddBitFlag(xdfFlag);
@@ -3195,6 +3269,7 @@ namespace SAD806x
             bitFlag.ShortLabel = s6xBitFlag.ShortLabel;
             bitFlag.SetValue = s6xBitFlag.SetValue;
             bitFlag.NotSetValue = s6xBitFlag.NotSetValue;
+            bitFlag.HideParent = s6xBitFlag.HideParent;
 
             BitFlags = new S6xBitFlag[slBitFlags.Count];
             slBitFlags.Values.CopyTo(BitFlags, 0);
@@ -3216,6 +3291,7 @@ namespace SAD806x
             clone.Signed = Signed;
             clone.isCalibrationElement = isCalibrationElement;
             clone.ScaleExpression = ScaleExpression;
+            clone.ScalePrecision = ScalePrecision;
             clone.Units = Units;
 
             clone.ShortLabel = ShortLabel;
@@ -3234,6 +3310,7 @@ namespace SAD806x
                 if (Units != null && Units != string.Empty) return true;
                 if (OutputComments) return true;
                 if (ScaleExpression != null) if (ScaleExpression.ToUpper() != "X") return true;
+                if (ScalePrecision != SADDef.DefaultScalePrecision) return true;
 
                 if (ShortLabel == null) return true;
                 if (Label == null) return true;
@@ -3965,6 +4042,8 @@ namespace SAD806x
         public string Comments { get; set; }
 
         public string CellsScaleExpression { get; set; }
+        [XmlAttribute]
+        public int CellsScalePrecision { get; set; }
 
         public string ColsUnits { get; set; }
         public string RowsUnits { get; set; }
@@ -3987,6 +4066,7 @@ namespace SAD806x
             clone.Label = Label;
             clone.Comments = Comments;
             clone.CellsScaleExpression = CellsScaleExpression;
+            clone.CellsScalePrecision = CellsScalePrecision;
             clone.ColsUnits = ColsUnits;
             clone.RowsUnits = RowsUnits;
             clone.CellsUnits = CellsUnits;
@@ -4031,6 +4111,10 @@ namespace SAD806x
 
         public string InputScaleExpression { get; set; }
         public string OutputScaleExpression { get; set; }
+        [XmlAttribute]
+        public int InputScalePrecision { get; set; }
+        [XmlAttribute]
+        public int OutputScalePrecision { get; set; }
 
         public string InputUnits { get; set; }
         public string OutputUnits { get; set; }
@@ -4054,6 +4138,8 @@ namespace SAD806x
             clone.Comments = Comments;
             clone.InputScaleExpression = InputScaleExpression;
             clone.OutputScaleExpression = OutputScaleExpression;
+            clone.InputScalePrecision = InputScalePrecision;
+            clone.OutputScalePrecision = OutputScalePrecision;
             clone.InputUnits = InputUnits;
             clone.OutputUnits = OutputUnits;
 
@@ -4088,6 +4174,8 @@ namespace SAD806x
         public string Comments { get; set; }
 
         public string ScaleExpression { get; set; }
+        [XmlAttribute]
+        public int ScalePrecision { get; set; }
 
         public string Units { get; set; }
 
@@ -4116,6 +4204,7 @@ namespace SAD806x
             clone.Label = Label;
             clone.Comments = Comments;
             clone.ScaleExpression = ScaleExpression;
+            clone.ScalePrecision = ScalePrecision;
             clone.Units = Units;
 
             if (BitFlags != null) clone.BitFlags = (S6xBitFlag[])BitFlags.Clone();
@@ -4262,6 +4351,8 @@ namespace SAD806x
         public string ForcedCellsUnits { get; set; }
 
         public string ForcedCellsScaleExpression { get; set; }
+        [XmlAttribute]
+        public int ForcedCellsScalePrecision { get; set; }
         
         public int VariableRegisterAddressByEquivalent(string eqCode)
         {
@@ -4297,6 +4388,7 @@ namespace SAD806x
             clone.ForcedRowsUnits = ForcedRowsUnits;
             clone.ForcedCellsUnits = ForcedCellsUnits;
             clone.ForcedCellsScaleExpression = ForcedCellsScaleExpression;
+            clone.ForcedCellsScalePrecision = ForcedCellsScalePrecision;
 
             return clone;
         }
@@ -4328,6 +4420,10 @@ namespace SAD806x
 
         public string ForcedInputScaleExpression { get; set; }
         public string ForcedOutputScaleExpression { get; set; }
+        [XmlAttribute]
+        public int ForcedInputScalePrecision { get; set; }
+        [XmlAttribute]
+        public int ForcedOutputScalePrecision { get; set; }
 
         public string ForcedInputUnits { get; set; }
         public string ForcedOutputUnits { get; set; }
@@ -4360,6 +4456,8 @@ namespace SAD806x
             
             clone.ForcedInputScaleExpression = ForcedInputScaleExpression;
             clone.ForcedOutputScaleExpression = ForcedOutputScaleExpression;
+            clone.ForcedInputScalePrecision = ForcedInputScalePrecision;
+            clone.ForcedOutputScalePrecision = ForcedOutputScalePrecision;
 
             clone.ForcedInputUnits = ForcedInputUnits;
             clone.ForcedOutputUnits = ForcedOutputUnits;
@@ -4384,6 +4482,8 @@ namespace SAD806x
         public bool Signed { get; set; }
 
         public string ForcedScaleExpression { get; set; }
+        [XmlAttribute]
+        public int ForcedScalePrecision { get; set; }
 
         public string ForcedUnits { get; set; }
 
@@ -4417,6 +4517,7 @@ namespace SAD806x
             clone.Signed = Signed;
 
             clone.ForcedScaleExpression = ForcedScaleExpression;
+            clone.ForcedScalePrecision = ForcedScalePrecision;
 
             clone.ForcedUnits = ForcedUnits;
 

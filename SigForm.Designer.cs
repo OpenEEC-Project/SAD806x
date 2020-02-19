@@ -29,25 +29,25 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.Windows.Forms.TreeNode treeNode1 = new System.Windows.Forms.TreeNode("Input Arguments");
-            System.Windows.Forms.TreeNode treeNode2 = new System.Windows.Forms.TreeNode("Input Structures");
-            System.Windows.Forms.TreeNode treeNode3 = new System.Windows.Forms.TreeNode("Input Tables");
-            System.Windows.Forms.TreeNode treeNode4 = new System.Windows.Forms.TreeNode("Input Functions");
-            System.Windows.Forms.TreeNode treeNode5 = new System.Windows.Forms.TreeNode("Input Scalars");
-            System.Windows.Forms.TreeNode treeNode6 = new System.Windows.Forms.TreeNode("Internal Structures");
-            System.Windows.Forms.TreeNode treeNode7 = new System.Windows.Forms.TreeNode("Internal Tables");
-            System.Windows.Forms.TreeNode treeNode8 = new System.Windows.Forms.TreeNode("Internal Functions");
-            System.Windows.Forms.TreeNode treeNode9 = new System.Windows.Forms.TreeNode("Internal Scalars");
-            System.Windows.Forms.TreeNode treeNode10 = new System.Windows.Forms.TreeNode("Signature Elements Detection", new System.Windows.Forms.TreeNode[] {
-            treeNode1,
-            treeNode2,
-            treeNode3,
-            treeNode4,
-            treeNode5,
-            treeNode6,
-            treeNode7,
-            treeNode8,
-            treeNode9});
+            System.Windows.Forms.TreeNode treeNode11 = new System.Windows.Forms.TreeNode("Input Arguments");
+            System.Windows.Forms.TreeNode treeNode12 = new System.Windows.Forms.TreeNode("Input Structures");
+            System.Windows.Forms.TreeNode treeNode13 = new System.Windows.Forms.TreeNode("Input Tables");
+            System.Windows.Forms.TreeNode treeNode14 = new System.Windows.Forms.TreeNode("Input Functions");
+            System.Windows.Forms.TreeNode treeNode15 = new System.Windows.Forms.TreeNode("Input Scalars");
+            System.Windows.Forms.TreeNode treeNode16 = new System.Windows.Forms.TreeNode("Internal Structures");
+            System.Windows.Forms.TreeNode treeNode17 = new System.Windows.Forms.TreeNode("Internal Tables");
+            System.Windows.Forms.TreeNode treeNode18 = new System.Windows.Forms.TreeNode("Internal Functions");
+            System.Windows.Forms.TreeNode treeNode19 = new System.Windows.Forms.TreeNode("Internal Scalars");
+            System.Windows.Forms.TreeNode treeNode20 = new System.Windows.Forms.TreeNode("Signature Elements Detection", new System.Windows.Forms.TreeNode[] {
+            treeNode11,
+            treeNode12,
+            treeNode13,
+            treeNode14,
+            treeNode15,
+            treeNode16,
+            treeNode17,
+            treeNode18,
+            treeNode19});
             this.advHeaderPanel = new System.Windows.Forms.Panel();
             this.advSLabelTextBox = new System.Windows.Forms.TextBox();
             this.advLabelTextBox = new System.Windows.Forms.TextBox();
@@ -81,6 +81,7 @@
             this.label34 = new System.Windows.Forms.Label();
             this.inputStructureAddrTextBox = new System.Windows.Forms.TextBox();
             this.inputTableTabPage = new System.Windows.Forms.TabPage();
+            this.inputTableScalePrecNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.label25 = new System.Windows.Forms.Label();
             this.inputTableOutputTextBox = new System.Windows.Forms.TextBox();
             this.label23 = new System.Windows.Forms.Label();
@@ -106,6 +107,8 @@
             this.inputTableAddrTextBox = new System.Windows.Forms.TextBox();
             this.inputTableSignedCheckBox = new System.Windows.Forms.CheckBox();
             this.inputFunctionTabPage = new System.Windows.Forms.TabPage();
+            this.inputFunctionScalePrecOutputNumericUpDown = new System.Windows.Forms.NumericUpDown();
+            this.inputFunctionScalePrecInputNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.label5 = new System.Windows.Forms.Label();
             this.inputFunctionOutputTextBox = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
@@ -126,6 +129,7 @@
             this.inputFunctionAddrTextBox = new System.Windows.Forms.TextBox();
             this.inputFunctionSignedInputCheckBox = new System.Windows.Forms.CheckBox();
             this.inputScalarTabPage = new System.Windows.Forms.TabPage();
+            this.inputScalarScalePrecNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.inputScalarBitFlagsButton = new System.Windows.Forms.Button();
             this.inputScalarBitFlagsCheckBox = new System.Windows.Forms.CheckBox();
             this.inputScalarUnitsTextBox = new System.Windows.Forms.TextBox();
@@ -154,6 +158,7 @@
             this.label29 = new System.Windows.Forms.Label();
             this.internalStructureLabelTextBox = new System.Windows.Forms.TextBox();
             this.internalTableTabPage = new System.Windows.Forms.TabPage();
+            this.internalTableScalePrecNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.label62 = new System.Windows.Forms.Label();
             this.internalTableBankTextBox = new System.Windows.Forms.TextBox();
             this.label42 = new System.Windows.Forms.Label();
@@ -231,6 +236,9 @@
             this.repoToolStripTextBox = new System.Windows.Forms.ToolStripTextBox();
             this.repoToolStripSeparator = new System.Windows.Forms.ToolStripSeparator();
             this.repoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.internalFunctionScalePrecInputNumericUpDown = new System.Windows.Forms.NumericUpDown();
+            this.internalFunctionScalePrecOutputNumericUpDown = new System.Windows.Forms.NumericUpDown();
+            this.internalScalarScalePrecNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.advHeaderPanel.SuspendLayout();
             this.advMainPanel.SuspendLayout();
             this.advMainSplitContainer.Panel1.SuspendLayout();
@@ -244,15 +252,23 @@
             this.inputStructureTabPage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.inputStructureTipPictureBox)).BeginInit();
             this.inputTableTabPage.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.inputTableScalePrecNumericUpDown)).BeginInit();
             this.inputFunctionTabPage.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.inputFunctionScalePrecOutputNumericUpDown)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.inputFunctionScalePrecInputNumericUpDown)).BeginInit();
             this.inputScalarTabPage.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.inputScalarScalePrecNumericUpDown)).BeginInit();
             this.internalStructureTabPage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.internalStructureTipPictureBox)).BeginInit();
             this.internalTableTabPage.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.internalTableScalePrecNumericUpDown)).BeginInit();
             this.internalFunctionTabPage.SuspendLayout();
             this.internalScalarTabPage.SuspendLayout();
             this.advSigPanel.SuspendLayout();
             this.repoContextMenuStrip.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.internalFunctionScalePrecInputNumericUpDown)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.internalFunctionScalePrecOutputNumericUpDown)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.internalScalarScalePrecNumericUpDown)).BeginInit();
             this.SuspendLayout();
             // 
             // advHeaderPanel
@@ -320,28 +336,28 @@
             this.advElemsTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.advElemsTreeView.Location = new System.Drawing.Point(0, 0);
             this.advElemsTreeView.Name = "advElemsTreeView";
-            treeNode1.Name = "INPARGUMENTS";
-            treeNode1.Text = "Input Arguments";
-            treeNode2.Name = "INPSTRUCTURES";
-            treeNode2.Text = "Input Structures";
-            treeNode3.Name = "INPTABLES";
-            treeNode3.Text = "Input Tables";
-            treeNode4.Name = "INPFUNCTIONS";
-            treeNode4.Text = "Input Functions";
-            treeNode5.Name = "INPSCALARS";
-            treeNode5.Text = "Input Scalars";
-            treeNode6.Name = "INTSTRUCTURES";
-            treeNode6.Text = "Internal Structures";
-            treeNode7.Name = "INTTABLES";
-            treeNode7.Text = "Internal Tables";
-            treeNode8.Name = "INTFUNCTIONS";
-            treeNode8.Text = "Internal Functions";
-            treeNode9.Name = "INTSCALARS";
-            treeNode9.Text = "Internal Scalars";
-            treeNode10.Name = "SIGNATURE";
-            treeNode10.Text = "Signature Elements Detection";
+            treeNode11.Name = "INPARGUMENTS";
+            treeNode11.Text = "Input Arguments";
+            treeNode12.Name = "INPSTRUCTURES";
+            treeNode12.Text = "Input Structures";
+            treeNode13.Name = "INPTABLES";
+            treeNode13.Text = "Input Tables";
+            treeNode14.Name = "INPFUNCTIONS";
+            treeNode14.Text = "Input Functions";
+            treeNode15.Name = "INPSCALARS";
+            treeNode15.Text = "Input Scalars";
+            treeNode16.Name = "INTSTRUCTURES";
+            treeNode16.Text = "Internal Structures";
+            treeNode17.Name = "INTTABLES";
+            treeNode17.Text = "Internal Tables";
+            treeNode18.Name = "INTFUNCTIONS";
+            treeNode18.Text = "Internal Functions";
+            treeNode19.Name = "INTSCALARS";
+            treeNode19.Text = "Internal Scalars";
+            treeNode20.Name = "SIGNATURE";
+            treeNode20.Text = "Signature Elements Detection";
             this.advElemsTreeView.Nodes.AddRange(new System.Windows.Forms.TreeNode[] {
-            treeNode10});
+            treeNode20});
             this.advElemsTreeView.Size = new System.Drawing.Size(327, 358);
             this.advElemsTreeView.TabIndex = 1;
             // 
@@ -604,6 +620,7 @@
             // 
             // inputTableTabPage
             // 
+            this.inputTableTabPage.Controls.Add(this.inputTableScalePrecNumericUpDown);
             this.inputTableTabPage.Controls.Add(this.label25);
             this.inputTableTabPage.Controls.Add(this.inputTableOutputTextBox);
             this.inputTableTabPage.Controls.Add(this.label23);
@@ -634,6 +651,23 @@
             this.inputTableTabPage.TabIndex = 3;
             this.inputTableTabPage.Text = "Input Table";
             this.inputTableTabPage.UseVisualStyleBackColor = true;
+            // 
+            // inputTableScalePrecNumericUpDown
+            // 
+            this.inputTableScalePrecNumericUpDown.Location = new System.Drawing.Point(490, 183);
+            this.inputTableScalePrecNumericUpDown.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.inputTableScalePrecNumericUpDown.Name = "inputTableScalePrecNumericUpDown";
+            this.inputTableScalePrecNumericUpDown.Size = new System.Drawing.Size(31, 20);
+            this.inputTableScalePrecNumericUpDown.TabIndex = 12;
+            this.inputTableScalePrecNumericUpDown.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
             // 
             // label25
             // 
@@ -723,7 +757,7 @@
             this.inputTableCellsUnitsTextBox.Location = new System.Drawing.Point(366, 235);
             this.inputTableCellsUnitsTextBox.Name = "inputTableCellsUnitsTextBox";
             this.inputTableCellsUnitsTextBox.Size = new System.Drawing.Size(155, 20);
-            this.inputTableCellsUnitsTextBox.TabIndex = 14;
+            this.inputTableCellsUnitsTextBox.TabIndex = 15;
             // 
             // label12
             // 
@@ -752,7 +786,7 @@
             // 
             // inputTableScaleTextBox
             // 
-            this.inputTableScaleTextBox.Location = new System.Drawing.Point(452, 183);
+            this.inputTableScaleTextBox.Location = new System.Drawing.Point(415, 183);
             this.inputTableScaleTextBox.Name = "inputTableScaleTextBox";
             this.inputTableScaleTextBox.Size = new System.Drawing.Size(69, 20);
             this.inputTableScaleTextBox.TabIndex = 11;
@@ -778,7 +812,7 @@
             this.inputTableRowsUnitsTextBox.Location = new System.Drawing.Point(196, 235);
             this.inputTableRowsUnitsTextBox.Name = "inputTableRowsUnitsTextBox";
             this.inputTableRowsUnitsTextBox.Size = new System.Drawing.Size(153, 20);
-            this.inputTableRowsUnitsTextBox.TabIndex = 13;
+            this.inputTableRowsUnitsTextBox.TabIndex = 14;
             // 
             // label15
             // 
@@ -794,7 +828,7 @@
             this.inputTableColsUnitsTextBox.Location = new System.Drawing.Point(3, 235);
             this.inputTableColsUnitsTextBox.Name = "inputTableColsUnitsTextBox";
             this.inputTableColsUnitsTextBox.Size = new System.Drawing.Size(153, 20);
-            this.inputTableColsUnitsTextBox.TabIndex = 12;
+            this.inputTableColsUnitsTextBox.TabIndex = 13;
             // 
             // label16
             // 
@@ -833,6 +867,8 @@
             // 
             // inputFunctionTabPage
             // 
+            this.inputFunctionTabPage.Controls.Add(this.inputFunctionScalePrecOutputNumericUpDown);
+            this.inputFunctionTabPage.Controls.Add(this.inputFunctionScalePrecInputNumericUpDown);
             this.inputFunctionTabPage.Controls.Add(this.label5);
             this.inputFunctionTabPage.Controls.Add(this.inputFunctionOutputTextBox);
             this.inputFunctionTabPage.Controls.Add(this.label3);
@@ -858,6 +894,40 @@
             this.inputFunctionTabPage.TabIndex = 2;
             this.inputFunctionTabPage.Text = "Input Function";
             this.inputFunctionTabPage.UseVisualStyleBackColor = true;
+            // 
+            // inputFunctionScalePrecOutputNumericUpDown
+            // 
+            this.inputFunctionScalePrecOutputNumericUpDown.Location = new System.Drawing.Point(490, 180);
+            this.inputFunctionScalePrecOutputNumericUpDown.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.inputFunctionScalePrecOutputNumericUpDown.Name = "inputFunctionScalePrecOutputNumericUpDown";
+            this.inputFunctionScalePrecOutputNumericUpDown.Size = new System.Drawing.Size(31, 20);
+            this.inputFunctionScalePrecOutputNumericUpDown.TabIndex = 12;
+            this.inputFunctionScalePrecOutputNumericUpDown.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
+            // 
+            // inputFunctionScalePrecInputNumericUpDown
+            // 
+            this.inputFunctionScalePrecInputNumericUpDown.Location = new System.Drawing.Point(160, 180);
+            this.inputFunctionScalePrecInputNumericUpDown.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.inputFunctionScalePrecInputNumericUpDown.Name = "inputFunctionScalePrecInputNumericUpDown";
+            this.inputFunctionScalePrecInputNumericUpDown.Size = new System.Drawing.Size(31, 20);
+            this.inputFunctionScalePrecInputNumericUpDown.TabIndex = 10;
+            this.inputFunctionScalePrecInputNumericUpDown.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
             // 
             // label5
             // 
@@ -912,10 +982,10 @@
             // 
             // inputFunctionScaleOutputTextBox
             // 
-            this.inputFunctionScaleOutputTextBox.Location = new System.Drawing.Point(452, 180);
+            this.inputFunctionScaleOutputTextBox.Location = new System.Drawing.Point(415, 180);
             this.inputFunctionScaleOutputTextBox.Name = "inputFunctionScaleOutputTextBox";
             this.inputFunctionScaleOutputTextBox.Size = new System.Drawing.Size(69, 20);
-            this.inputFunctionScaleOutputTextBox.TabIndex = 10;
+            this.inputFunctionScaleOutputTextBox.TabIndex = 11;
             // 
             // label10
             // 
@@ -928,7 +998,7 @@
             // 
             // inputFunctionScaleInputTextBox
             // 
-            this.inputFunctionScaleInputTextBox.Location = new System.Drawing.Point(122, 180);
+            this.inputFunctionScaleInputTextBox.Location = new System.Drawing.Point(85, 180);
             this.inputFunctionScaleInputTextBox.Name = "inputFunctionScaleInputTextBox";
             this.inputFunctionScaleInputTextBox.Size = new System.Drawing.Size(69, 20);
             this.inputFunctionScaleInputTextBox.TabIndex = 9;
@@ -954,7 +1024,7 @@
             this.inputFunctionUnitsOutputTextBox.Location = new System.Drawing.Point(339, 219);
             this.inputFunctionUnitsOutputTextBox.Name = "inputFunctionUnitsOutputTextBox";
             this.inputFunctionUnitsOutputTextBox.Size = new System.Drawing.Size(182, 20);
-            this.inputFunctionUnitsOutputTextBox.TabIndex = 12;
+            this.inputFunctionUnitsOutputTextBox.TabIndex = 14;
             // 
             // label7
             // 
@@ -980,7 +1050,7 @@
             this.inputFunctionUnitsInputTextBox.Location = new System.Drawing.Point(3, 219);
             this.inputFunctionUnitsInputTextBox.Name = "inputFunctionUnitsInputTextBox";
             this.inputFunctionUnitsInputTextBox.Size = new System.Drawing.Size(188, 20);
-            this.inputFunctionUnitsInputTextBox.TabIndex = 11;
+            this.inputFunctionUnitsInputTextBox.TabIndex = 13;
             // 
             // label4
             // 
@@ -1020,6 +1090,7 @@
             // inputScalarTabPage
             // 
             this.inputScalarTabPage.AutoScroll = true;
+            this.inputScalarTabPage.Controls.Add(this.inputScalarScalePrecNumericUpDown);
             this.inputScalarTabPage.Controls.Add(this.inputScalarBitFlagsButton);
             this.inputScalarTabPage.Controls.Add(this.inputScalarBitFlagsCheckBox);
             this.inputScalarTabPage.Controls.Add(this.inputScalarUnitsTextBox);
@@ -1037,6 +1108,23 @@
             this.inputScalarTabPage.TabIndex = 0;
             this.inputScalarTabPage.Text = "Input Scalar";
             this.inputScalarTabPage.UseVisualStyleBackColor = true;
+            // 
+            // inputScalarScalePrecNumericUpDown
+            // 
+            this.inputScalarScalePrecNumericUpDown.Location = new System.Drawing.Point(387, 104);
+            this.inputScalarScalePrecNumericUpDown.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.inputScalarScalePrecNumericUpDown.Name = "inputScalarScalePrecNumericUpDown";
+            this.inputScalarScalePrecNumericUpDown.Size = new System.Drawing.Size(31, 20);
+            this.inputScalarScalePrecNumericUpDown.TabIndex = 7;
+            this.inputScalarScalePrecNumericUpDown.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
             // 
             // inputScalarBitFlagsButton
             // 
@@ -1292,6 +1380,7 @@
             // 
             // internalTableTabPage
             // 
+            this.internalTableTabPage.Controls.Add(this.internalTableScalePrecNumericUpDown);
             this.internalTableTabPage.Controls.Add(this.label62);
             this.internalTableTabPage.Controls.Add(this.internalTableBankTextBox);
             this.internalTableTabPage.Controls.Add(this.label42);
@@ -1323,6 +1412,23 @@
             this.internalTableTabPage.TabIndex = 10;
             this.internalTableTabPage.Text = "Internal Table";
             this.internalTableTabPage.UseVisualStyleBackColor = true;
+            // 
+            // internalTableScalePrecNumericUpDown
+            // 
+            this.internalTableScalePrecNumericUpDown.Location = new System.Drawing.Point(490, 113);
+            this.internalTableScalePrecNumericUpDown.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.internalTableScalePrecNumericUpDown.Name = "internalTableScalePrecNumericUpDown";
+            this.internalTableScalePrecNumericUpDown.Size = new System.Drawing.Size(31, 20);
+            this.internalTableScalePrecNumericUpDown.TabIndex = 10;
+            this.internalTableScalePrecNumericUpDown.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
             // 
             // label62
             // 
@@ -1359,7 +1465,7 @@
             // internalTableWordCheckBox
             // 
             this.internalTableWordCheckBox.AutoSize = true;
-            this.internalTableWordCheckBox.Location = new System.Drawing.Point(366, 117);
+            this.internalTableWordCheckBox.Location = new System.Drawing.Point(250, 115);
             this.internalTableWordCheckBox.Name = "internalTableWordCheckBox";
             this.internalTableWordCheckBox.Size = new System.Drawing.Size(52, 17);
             this.internalTableWordCheckBox.TabIndex = 8;
@@ -1373,7 +1479,7 @@
             this.internalTableOutputCommentsCheckBox.Location = new System.Drawing.Point(411, 178);
             this.internalTableOutputCommentsCheckBox.Name = "internalTableOutputCommentsCheckBox";
             this.internalTableOutputCommentsCheckBox.Size = new System.Drawing.Size(110, 17);
-            this.internalTableOutputCommentsCheckBox.TabIndex = 14;
+            this.internalTableOutputCommentsCheckBox.TabIndex = 15;
             this.internalTableOutputCommentsCheckBox.Text = "Output Comments";
             this.internalTableOutputCommentsCheckBox.UseVisualStyleBackColor = true;
             // 
@@ -1398,7 +1504,7 @@
             this.internalTableCellsUnitsTextBox.Location = new System.Drawing.Point(366, 156);
             this.internalTableCellsUnitsTextBox.Name = "internalTableCellsUnitsTextBox";
             this.internalTableCellsUnitsTextBox.Size = new System.Drawing.Size(155, 20);
-            this.internalTableCellsUnitsTextBox.TabIndex = 12;
+            this.internalTableCellsUnitsTextBox.TabIndex = 13;
             // 
             // label30
             // 
@@ -1436,7 +1542,7 @@
             // 
             // internalTableScaleTextBox
             // 
-            this.internalTableScaleTextBox.Location = new System.Drawing.Point(452, 115);
+            this.internalTableScaleTextBox.Location = new System.Drawing.Point(415, 113);
             this.internalTableScaleTextBox.Name = "internalTableScaleTextBox";
             this.internalTableScaleTextBox.Size = new System.Drawing.Size(69, 20);
             this.internalTableScaleTextBox.TabIndex = 9;
@@ -1464,7 +1570,7 @@
             this.internalTableRowsUnitsTextBox.Location = new System.Drawing.Point(196, 156);
             this.internalTableRowsUnitsTextBox.Name = "internalTableRowsUnitsTextBox";
             this.internalTableRowsUnitsTextBox.Size = new System.Drawing.Size(153, 20);
-            this.internalTableRowsUnitsTextBox.TabIndex = 11;
+            this.internalTableRowsUnitsTextBox.TabIndex = 12;
             // 
             // label36
             // 
@@ -1480,7 +1586,7 @@
             this.internalTableColsUnitsTextBox.Location = new System.Drawing.Point(3, 156);
             this.internalTableColsUnitsTextBox.Name = "internalTableColsUnitsTextBox";
             this.internalTableColsUnitsTextBox.Size = new System.Drawing.Size(153, 20);
-            this.internalTableColsUnitsTextBox.TabIndex = 10;
+            this.internalTableColsUnitsTextBox.TabIndex = 11;
             // 
             // label39
             // 
@@ -1498,7 +1604,7 @@
             this.internalTableCommentsTextBox.Name = "internalTableCommentsTextBox";
             this.internalTableCommentsTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.internalTableCommentsTextBox.Size = new System.Drawing.Size(518, 42);
-            this.internalTableCommentsTextBox.TabIndex = 13;
+            this.internalTableCommentsTextBox.TabIndex = 14;
             // 
             // label40
             // 
@@ -1528,7 +1634,7 @@
             // internalTableSignedCheckBox
             // 
             this.internalTableSignedCheckBox.AutoSize = true;
-            this.internalTableSignedCheckBox.Location = new System.Drawing.Point(366, 98);
+            this.internalTableSignedCheckBox.Location = new System.Drawing.Point(250, 96);
             this.internalTableSignedCheckBox.Name = "internalTableSignedCheckBox";
             this.internalTableSignedCheckBox.Size = new System.Drawing.Size(59, 17);
             this.internalTableSignedCheckBox.TabIndex = 7;
@@ -1537,6 +1643,8 @@
             // 
             // internalFunctionTabPage
             // 
+            this.internalFunctionTabPage.Controls.Add(this.internalFunctionScalePrecOutputNumericUpDown);
+            this.internalFunctionTabPage.Controls.Add(this.internalFunctionScalePrecInputNumericUpDown);
             this.internalFunctionTabPage.Controls.Add(this.label63);
             this.internalFunctionTabPage.Controls.Add(this.internalFunctionBankTextBox);
             this.internalFunctionTabPage.Controls.Add(this.internalFunctionOutputCommentsCheckBox);
@@ -1591,7 +1699,7 @@
             this.internalFunctionOutputCommentsCheckBox.Location = new System.Drawing.Point(411, 183);
             this.internalFunctionOutputCommentsCheckBox.Name = "internalFunctionOutputCommentsCheckBox";
             this.internalFunctionOutputCommentsCheckBox.Size = new System.Drawing.Size(110, 17);
-            this.internalFunctionOutputCommentsCheckBox.TabIndex = 14;
+            this.internalFunctionOutputCommentsCheckBox.TabIndex = 16;
             this.internalFunctionOutputCommentsCheckBox.Text = "Output Comments";
             this.internalFunctionOutputCommentsCheckBox.UseVisualStyleBackColor = true;
             // 
@@ -1617,7 +1725,7 @@
             this.internalFunctionByteCheckBox.Location = new System.Drawing.Point(240, 100);
             this.internalFunctionByteCheckBox.Name = "internalFunctionByteCheckBox";
             this.internalFunctionByteCheckBox.Size = new System.Drawing.Size(47, 17);
-            this.internalFunctionByteCheckBox.TabIndex = 8;
+            this.internalFunctionByteCheckBox.TabIndex = 9;
             this.internalFunctionByteCheckBox.Text = "Byte";
             this.internalFunctionByteCheckBox.UseVisualStyleBackColor = true;
             // 
@@ -1632,10 +1740,10 @@
             // 
             // internalFunctionScaleOutputTextBox
             // 
-            this.internalFunctionScaleOutputTextBox.Location = new System.Drawing.Point(452, 116);
+            this.internalFunctionScaleOutputTextBox.Location = new System.Drawing.Point(415, 116);
             this.internalFunctionScaleOutputTextBox.Name = "internalFunctionScaleOutputTextBox";
             this.internalFunctionScaleOutputTextBox.Size = new System.Drawing.Size(69, 20);
-            this.internalFunctionScaleOutputTextBox.TabIndex = 10;
+            this.internalFunctionScaleOutputTextBox.TabIndex = 11;
             this.internalFunctionScaleOutputTextBox.Text = "X";
             // 
             // label46
@@ -1649,7 +1757,7 @@
             // 
             // internalFunctionScaleInputTextBox
             // 
-            this.internalFunctionScaleInputTextBox.Location = new System.Drawing.Point(122, 116);
+            this.internalFunctionScaleInputTextBox.Location = new System.Drawing.Point(85, 116);
             this.internalFunctionScaleInputTextBox.Name = "internalFunctionScaleInputTextBox";
             this.internalFunctionScaleInputTextBox.Size = new System.Drawing.Size(69, 20);
             this.internalFunctionScaleInputTextBox.TabIndex = 7;
@@ -1677,7 +1785,7 @@
             this.internalFunctionUnitsOutputTextBox.Location = new System.Drawing.Point(339, 155);
             this.internalFunctionUnitsOutputTextBox.Name = "internalFunctionUnitsOutputTextBox";
             this.internalFunctionUnitsOutputTextBox.Size = new System.Drawing.Size(182, 20);
-            this.internalFunctionUnitsOutputTextBox.TabIndex = 12;
+            this.internalFunctionUnitsOutputTextBox.TabIndex = 14;
             // 
             // label48
             // 
@@ -1694,7 +1802,7 @@
             this.internalFunctionSignedOutputCheckBox.Location = new System.Drawing.Point(339, 99);
             this.internalFunctionSignedOutputCheckBox.Name = "internalFunctionSignedOutputCheckBox";
             this.internalFunctionSignedOutputCheckBox.Size = new System.Drawing.Size(94, 17);
-            this.internalFunctionSignedOutputCheckBox.TabIndex = 9;
+            this.internalFunctionSignedOutputCheckBox.TabIndex = 10;
             this.internalFunctionSignedOutputCheckBox.Text = "Signed Output";
             this.internalFunctionSignedOutputCheckBox.UseVisualStyleBackColor = true;
             // 
@@ -1703,7 +1811,7 @@
             this.internalFunctionUnitsInputTextBox.Location = new System.Drawing.Point(3, 155);
             this.internalFunctionUnitsInputTextBox.Name = "internalFunctionUnitsInputTextBox";
             this.internalFunctionUnitsInputTextBox.Size = new System.Drawing.Size(188, 20);
-            this.internalFunctionUnitsInputTextBox.TabIndex = 11;
+            this.internalFunctionUnitsInputTextBox.TabIndex = 13;
             // 
             // label49
             // 
@@ -1721,7 +1829,7 @@
             this.internalFunctionCommentsTextBox.Name = "internalFunctionCommentsTextBox";
             this.internalFunctionCommentsTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.internalFunctionCommentsTextBox.Size = new System.Drawing.Size(518, 42);
-            this.internalFunctionCommentsTextBox.TabIndex = 13;
+            this.internalFunctionCommentsTextBox.TabIndex = 15;
             // 
             // label50
             // 
@@ -1776,6 +1884,7 @@
             // 
             // internalScalarTabPage
             // 
+            this.internalScalarTabPage.Controls.Add(this.internalScalarScalePrecNumericUpDown);
             this.internalScalarTabPage.Controls.Add(this.internalScalarBitFlagsButton);
             this.internalScalarTabPage.Controls.Add(this.internalScalarBitFlagsCheckBox);
             this.internalScalarTabPage.Controls.Add(this.label64);
@@ -1846,7 +1955,7 @@
             this.internalScalarOutputCommentsCheckBox.Location = new System.Drawing.Point(405, 144);
             this.internalScalarOutputCommentsCheckBox.Name = "internalScalarOutputCommentsCheckBox";
             this.internalScalarOutputCommentsCheckBox.Size = new System.Drawing.Size(110, 17);
-            this.internalScalarOutputCommentsCheckBox.TabIndex = 10;
+            this.internalScalarOutputCommentsCheckBox.TabIndex = 11;
             this.internalScalarOutputCommentsCheckBox.Text = "Output Comments";
             this.internalScalarOutputCommentsCheckBox.UseVisualStyleBackColor = true;
             // 
@@ -1887,7 +1996,7 @@
             // 
             // internalScalarScaleTextBox
             // 
-            this.internalScalarScaleTextBox.Location = new System.Drawing.Point(444, 115);
+            this.internalScalarScaleTextBox.Location = new System.Drawing.Point(407, 115);
             this.internalScalarScaleTextBox.Name = "internalScalarScaleTextBox";
             this.internalScalarScaleTextBox.Size = new System.Drawing.Size(71, 20);
             this.internalScalarScaleTextBox.TabIndex = 8;
@@ -1916,7 +2025,7 @@
             this.internalScalarCommentsTextBox.Name = "internalScalarCommentsTextBox";
             this.internalScalarCommentsTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.internalScalarCommentsTextBox.Size = new System.Drawing.Size(512, 42);
-            this.internalScalarCommentsTextBox.TabIndex = 9;
+            this.internalScalarCommentsTextBox.TabIndex = 10;
             // 
             // label56
             // 
@@ -2004,7 +2113,7 @@
             this.repoContextMenuStrip.Name = "repoContextMenuStrip";
             this.repoContextMenuStrip.ShowCheckMargin = true;
             this.repoContextMenuStrip.ShowImageMargin = false;
-            this.repoContextMenuStrip.Size = new System.Drawing.Size(173, 79);
+            this.repoContextMenuStrip.Size = new System.Drawing.Size(173, 57);
             // 
             // repoToolStripTextBox
             // 
@@ -2023,6 +2132,57 @@
             this.repoToolStripMenuItem.Size = new System.Drawing.Size(172, 22);
             this.repoToolStripMenuItem.Text = "Related Repository";
             this.repoToolStripMenuItem.ToolTipText = "Results";
+            // 
+            // internalFunctionScalePrecInputNumericUpDown
+            // 
+            this.internalFunctionScalePrecInputNumericUpDown.Location = new System.Drawing.Point(160, 116);
+            this.internalFunctionScalePrecInputNumericUpDown.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.internalFunctionScalePrecInputNumericUpDown.Name = "internalFunctionScalePrecInputNumericUpDown";
+            this.internalFunctionScalePrecInputNumericUpDown.Size = new System.Drawing.Size(31, 20);
+            this.internalFunctionScalePrecInputNumericUpDown.TabIndex = 8;
+            this.internalFunctionScalePrecInputNumericUpDown.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
+            // 
+            // internalFunctionScalePrecOutputNumericUpDown
+            // 
+            this.internalFunctionScalePrecOutputNumericUpDown.Location = new System.Drawing.Point(490, 116);
+            this.internalFunctionScalePrecOutputNumericUpDown.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.internalFunctionScalePrecOutputNumericUpDown.Name = "internalFunctionScalePrecOutputNumericUpDown";
+            this.internalFunctionScalePrecOutputNumericUpDown.Size = new System.Drawing.Size(31, 20);
+            this.internalFunctionScalePrecOutputNumericUpDown.TabIndex = 12;
+            this.internalFunctionScalePrecOutputNumericUpDown.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
+            // 
+            // internalScalarScalePrecNumericUpDown
+            // 
+            this.internalScalarScalePrecNumericUpDown.Location = new System.Drawing.Point(484, 115);
+            this.internalScalarScalePrecNumericUpDown.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.internalScalarScalePrecNumericUpDown.Name = "internalScalarScalePrecNumericUpDown";
+            this.internalScalarScalePrecNumericUpDown.Size = new System.Drawing.Size(31, 20);
+            this.internalScalarScalePrecNumericUpDown.TabIndex = 9;
+            this.internalScalarScalePrecNumericUpDown.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
             // 
             // SigForm
             // 
@@ -2053,15 +2213,20 @@
             ((System.ComponentModel.ISupportInitialize)(this.inputStructureTipPictureBox)).EndInit();
             this.inputTableTabPage.ResumeLayout(false);
             this.inputTableTabPage.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.inputTableScalePrecNumericUpDown)).EndInit();
             this.inputFunctionTabPage.ResumeLayout(false);
             this.inputFunctionTabPage.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.inputFunctionScalePrecOutputNumericUpDown)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.inputFunctionScalePrecInputNumericUpDown)).EndInit();
             this.inputScalarTabPage.ResumeLayout(false);
             this.inputScalarTabPage.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.inputScalarScalePrecNumericUpDown)).EndInit();
             this.internalStructureTabPage.ResumeLayout(false);
             this.internalStructureTabPage.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.internalStructureTipPictureBox)).EndInit();
             this.internalTableTabPage.ResumeLayout(false);
             this.internalTableTabPage.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.internalTableScalePrecNumericUpDown)).EndInit();
             this.internalFunctionTabPage.ResumeLayout(false);
             this.internalFunctionTabPage.PerformLayout();
             this.internalScalarTabPage.ResumeLayout(false);
@@ -2070,6 +2235,9 @@
             this.advSigPanel.PerformLayout();
             this.repoContextMenuStrip.ResumeLayout(false);
             this.repoContextMenuStrip.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.internalFunctionScalePrecInputNumericUpDown)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.internalFunctionScalePrecOutputNumericUpDown)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.internalScalarScalePrecNumericUpDown)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -2259,5 +2427,13 @@
         private System.Windows.Forms.ToolStripTextBox repoToolStripTextBox;
         private System.Windows.Forms.ToolStripSeparator repoToolStripSeparator;
         private System.Windows.Forms.ToolStripMenuItem repoToolStripMenuItem;
+        private System.Windows.Forms.NumericUpDown inputTableScalePrecNumericUpDown;
+        private System.Windows.Forms.NumericUpDown inputFunctionScalePrecInputNumericUpDown;
+        private System.Windows.Forms.NumericUpDown inputFunctionScalePrecOutputNumericUpDown;
+        private System.Windows.Forms.NumericUpDown inputScalarScalePrecNumericUpDown;
+        private System.Windows.Forms.NumericUpDown internalTableScalePrecNumericUpDown;
+        private System.Windows.Forms.NumericUpDown internalFunctionScalePrecInputNumericUpDown;
+        private System.Windows.Forms.NumericUpDown internalFunctionScalePrecOutputNumericUpDown;
+        private System.Windows.Forms.NumericUpDown internalScalarScalePrecNumericUpDown;
     }
 }

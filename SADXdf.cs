@@ -359,6 +359,10 @@ namespace SAD806x
             units = s6xScalar.Units;
 
             xdfMath.equation = s6xScalar.ScaleExpression.Trim();
+            if (s6xScalar.ScalePrecision >= SADDef.DefaultScaleMinPrecision && s6xScalar.ScalePrecision <= SADDef.DefaultScaleMaxPrecision)
+            {
+                decimalpl = s6xScalar.ScalePrecision.ToString();
+            }
         }
 
         public void Import(ReservedAddress resAdr, int xdfBaseOffset)
@@ -500,6 +504,10 @@ namespace SAD806x
             xdfAxis[0].units = s6xFunction.InputUnits;
             xdfAxis[0].indexcount = s6xFunction.RowsNumber.ToString();
             xdfAxis[0].xdfMath.equation = s6xFunction.InputScaleExpression.Trim();
+            if (s6xFunction.InputScalePrecision >= SADDef.DefaultScaleMinPrecision && s6xFunction.InputScalePrecision <= SADDef.DefaultScaleMaxPrecision)
+            {
+                xdfAxis[0].decimalpl = s6xFunction.InputScalePrecision.ToString();
+            }
 
             if (s6xFunction.ByteInput) xdfAxis[1].xdfData.mmedaddress = Tools.xdfAddressFromBinAddress(s6xFunction.AddressBinInt + 1, xdfBaseOffset);  // Based on Input Type
             else xdfAxis[1].xdfData.mmedaddress = Tools.xdfAddressFromBinAddress(s6xFunction.AddressBinInt + 2, xdfBaseOffset);
@@ -514,6 +522,10 @@ namespace SAD806x
             xdfAxis[1].units = s6xFunction.OutputUnits;
             xdfAxis[1].indexcount = s6xFunction.RowsNumber.ToString();
             xdfAxis[1].xdfMath.equation = s6xFunction.OutputScaleExpression.Trim();
+            if (s6xFunction.OutputScalePrecision >= SADDef.DefaultScaleMinPrecision && s6xFunction.OutputScalePrecision <= SADDef.DefaultScaleMaxPrecision)
+            {
+                xdfAxis[1].decimalpl = s6xFunction.OutputScalePrecision.ToString();
+            }
         }
 
         public string getMmedAddress()
@@ -699,6 +711,10 @@ namespace SAD806x
 
             xdfAxis[2].units = s6xTable.CellsUnits;
             xdfAxis[2].xdfMath.equation = s6xTable.CellsScaleExpression.Trim();
+            if (s6xTable.CellsScalePrecision >= SADDef.DefaultScaleMinPrecision && s6xTable.CellsScalePrecision <= SADDef.DefaultScaleMaxPrecision)
+            {
+                xdfAxis[2].decimalpl = s6xTable.CellsScalePrecision.ToString();
+            }
         }
 
         public void Import(ReservedAddress resAdr, int xdfBaseOffset)
@@ -947,25 +963,78 @@ namespace SAD806x
             alXdfFunctions = new ArrayList();
             alXdfScalars = new ArrayList();
 
-            foreach (S6xTable s6xObject in sadBin.S6x.slTables.Values)
-            {
-                if (!s6xObject.Skip && s6xObject.Store && s6xObject.AddressBinInt >= xdfBaseOffset)
-                {
-                    XdfTable xdfObject = new XdfTable(s6xObject, xdfBaseOffset);
-                    xdfObject.uniqueid = "0x" + string.Format("{0:x4}", lastXdfUniqueId);
-                    lastXdfUniqueId++;
-                    alXdfTables.Add(xdfObject);
-                    xdfObject = null;
-                }
-            }
+            // Functions first for Scalers
             foreach (S6xFunction s6xObject in sadBin.S6x.slFunctions.Values)
             {
                 if (!s6xObject.Skip && s6xObject.Store && s6xObject.AddressBinInt >= xdfBaseOffset)
                 {
                     XdfFunction xdfObject = new XdfFunction(s6xObject, xdfBaseOffset);
                     xdfObject.uniqueid = "0x" + string.Format("{0:x4}", lastXdfUniqueId);
+                    s6xObject.XdfUniqueId = xdfObject.uniqueid;
                     lastXdfUniqueId++;
                     alXdfFunctions.Add(xdfObject);
+                    xdfObject = null;
+                }
+            }
+            foreach (S6xFunction s6xObject in sadBin.S6x.slDupFunctions.Values)
+            {
+                if (!s6xObject.Skip && s6xObject.Store && s6xObject.AddressBinInt >= xdfBaseOffset)
+                {
+                    XdfFunction xdfObject = new XdfFunction(s6xObject, xdfBaseOffset);
+                    xdfObject.uniqueid = "0x" + string.Format("{0:x4}", lastXdfUniqueId);
+                    s6xObject.XdfUniqueId = xdfObject.uniqueid;
+                    lastXdfUniqueId++;
+                    alXdfFunctions.Add(xdfObject);
+                    xdfObject = null;
+                }
+            }
+            foreach (S6xTable s6xObject in sadBin.S6x.slTables.Values)
+            {
+                if (!s6xObject.Skip && s6xObject.Store && s6xObject.AddressBinInt >= xdfBaseOffset)
+                {
+                    // Trying to find Scalers Unique Xdf Ids
+                    if (s6xObject.ColsScalerAddress != null && s6xObject.ColsScalerAddress != string.Empty)
+                    {
+                        if (sadBin.S6x.slFunctions.ContainsKey(s6xObject.ColsScalerAddress)) s6xObject.ColsScalerXdfUniqueId = ((S6xFunction)sadBin.S6x.slFunctions[s6xObject.ColsScalerAddress]).XdfUniqueId;
+                        else if (sadBin.S6x.slDupFunctions.ContainsKey(s6xObject.ColsScalerAddress)) s6xObject.ColsScalerXdfUniqueId = ((S6xFunction)sadBin.S6x.slDupFunctions[s6xObject.ColsScalerAddress]).XdfUniqueId;
+                        else s6xObject.ColsScalerXdfUniqueId = string.Empty;
+                    }
+                    if (s6xObject.RowsScalerAddress != null && s6xObject.RowsScalerAddress != string.Empty)
+                    {
+                        if (sadBin.S6x.slFunctions.ContainsKey(s6xObject.RowsScalerAddress)) s6xObject.RowsScalerXdfUniqueId = ((S6xFunction)sadBin.S6x.slFunctions[s6xObject.RowsScalerAddress]).XdfUniqueId;
+                        else if (sadBin.S6x.slDupFunctions.ContainsKey(s6xObject.RowsScalerAddress)) s6xObject.RowsScalerXdfUniqueId = ((S6xFunction)sadBin.S6x.slDupFunctions[s6xObject.RowsScalerAddress]).XdfUniqueId;
+                        else s6xObject.RowsScalerXdfUniqueId = string.Empty;
+                    }
+                    XdfTable xdfObject = new XdfTable(s6xObject, xdfBaseOffset);
+                    xdfObject.uniqueid = "0x" + string.Format("{0:x4}", lastXdfUniqueId);
+                    s6xObject.XdfUniqueId = xdfObject.uniqueid;
+                    lastXdfUniqueId++;
+                    alXdfTables.Add(xdfObject);
+                    xdfObject = null;
+                }
+            }
+            foreach (S6xTable s6xObject in sadBin.S6x.slDupTables.Values)
+            {
+                if (!s6xObject.Skip && s6xObject.Store && s6xObject.AddressBinInt >= xdfBaseOffset)
+                {
+                    // Trying to find Scalers Unique Xdf Ids
+                    if (s6xObject.ColsScalerAddress != null && s6xObject.ColsScalerAddress != string.Empty)
+                    {
+                        if (sadBin.S6x.slFunctions.ContainsKey(s6xObject.ColsScalerAddress)) s6xObject.ColsScalerXdfUniqueId = ((S6xFunction)sadBin.S6x.slFunctions[s6xObject.ColsScalerAddress]).XdfUniqueId;
+                        else if (sadBin.S6x.slDupFunctions.ContainsKey(s6xObject.ColsScalerAddress)) s6xObject.ColsScalerXdfUniqueId = ((S6xFunction)sadBin.S6x.slDupFunctions[s6xObject.ColsScalerAddress]).XdfUniqueId;
+                        else s6xObject.ColsScalerXdfUniqueId = string.Empty;
+                    }
+                    if (s6xObject.RowsScalerAddress != null && s6xObject.RowsScalerAddress != string.Empty)
+                    {
+                        if (sadBin.S6x.slFunctions.ContainsKey(s6xObject.RowsScalerAddress)) s6xObject.RowsScalerXdfUniqueId = ((S6xFunction)sadBin.S6x.slFunctions[s6xObject.RowsScalerAddress]).XdfUniqueId;
+                        else if (sadBin.S6x.slDupFunctions.ContainsKey(s6xObject.RowsScalerAddress)) s6xObject.RowsScalerXdfUniqueId = ((S6xFunction)sadBin.S6x.slDupFunctions[s6xObject.RowsScalerAddress]).XdfUniqueId;
+                        else s6xObject.RowsScalerXdfUniqueId = string.Empty;
+                    }
+                    XdfTable xdfObject = new XdfTable(s6xObject, xdfBaseOffset);
+                    xdfObject.uniqueid = "0x" + string.Format("{0:x4}", lastXdfUniqueId);
+                    s6xObject.XdfUniqueId = xdfObject.uniqueid;
+                    lastXdfUniqueId++;
+                    alXdfTables.Add(xdfObject);
                     xdfObject = null;
                 }
             }
@@ -975,6 +1044,19 @@ namespace SAD806x
                 {
                     XdfScalar xdfObject = new XdfScalar(s6xObject, xdfBaseOffset);
                     xdfObject.uniqueid = "0x" + string.Format("{0:x4}", lastXdfUniqueId);
+                    s6xObject.XdfUniqueId = xdfObject.uniqueid;
+                    lastXdfUniqueId++;
+                    alXdfScalars.Add(xdfObject);
+                    xdfObject = null;
+                }
+            }
+            foreach (S6xScalar s6xObject in sadBin.S6x.slDupScalars.Values)
+            {
+                if (!s6xObject.Skip && s6xObject.Store && s6xObject.AddressBinInt >= xdfBaseOffset)
+                {
+                    XdfScalar xdfObject = new XdfScalar(s6xObject, xdfBaseOffset);
+                    xdfObject.uniqueid = "0x" + string.Format("{0:x4}", lastXdfUniqueId);
+                    s6xObject.XdfUniqueId = xdfObject.uniqueid;
                     lastXdfUniqueId++;
                     alXdfScalars.Add(xdfObject);
                     xdfObject = null;

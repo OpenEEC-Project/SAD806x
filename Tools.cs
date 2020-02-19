@@ -736,6 +736,20 @@ namespace SAD806x
             return result;
         }
 
+        public static string ScaleValue(int iValue, string scaleExpression, int scalePrecision, bool throwException)
+        {
+            string sFormat = "{0:0}";
+            bool bInteger = false;
+
+            if (!bInteger) bInteger = scaleExpression == null;
+            if (!bInteger) bInteger = scaleExpression == string.Empty || scaleExpression.ToLower().Trim() == "x";
+            if (!bInteger) bInteger = scalePrecision < 1 || scalePrecision > 8;
+
+            if (!bInteger) sFormat = "{0:0." + new string('0', scalePrecision) + "}";
+            
+            return string.Format(sFormat, ScaleValue(iValue, scaleExpression, throwException));
+        }
+
         public static bool ScaleExpressionCheck(string scaleExpression)
         {
             Expression exp = null;
@@ -821,6 +835,25 @@ namespace SAD806x
             sMessage += "- Signature has to properly match the operations near element use.\n";
 
             return sMessage;
+        }
+
+        public static string CommentsFirstLineShortLabelLabel(string sComments, string sShortLabel, string sLabel)
+        {
+            if (sShortLabel == null) sShortLabel = string.Empty;
+            else sShortLabel = sShortLabel.Trim();
+
+            if (sLabel == null) sLabel = string.Empty;
+            else sLabel = sLabel.Trim();
+
+            if (sComments == null) sComments = string.Empty;
+
+            if (sShortLabel == string.Empty && sLabel == string.Empty) return sComments;
+
+            if (sComments.StartsWith(sShortLabel + " - " + sLabel)) return sComments;
+
+            if (sShortLabel != string.Empty || sLabel != string.Empty) sComments = sShortLabel + " - " + sLabel + "\r\n" + sComments;
+
+            return sComments;
         }
 
         public static string XDFLabelSLabelComXdfComment(string sLabel, string sShortLabel, string sComment)

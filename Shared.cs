@@ -646,6 +646,8 @@ namespace SAD806x
         public int InputValueInt = -1;
         public int DecryptedValueInt = -1;
 
+        public S6xRoutineInputArgument S6xRoutineInputArgument = null;
+        
         public string Code { get { return Tools.ArgumentCode(Position); } }
         public string InputValue { get { return Convert.ToString(InputValueInt, 16); } }
         public string DecryptedValue { get { return Convert.ToString(DecryptedValueInt, 16); } }
@@ -660,6 +662,8 @@ namespace SAD806x
             caRes.Position = Position;
             caRes.InputValueInt = InputValueInt;
             caRes.DecryptedValueInt = DecryptedValueInt;
+
+            caRes.S6xRoutineInputArgument = S6xRoutineInputArgument;
 
             return caRes;
         }
@@ -1393,6 +1397,7 @@ namespace SAD806x
         public string ColsScalerUniqueAddress = string.Empty;
         public string RowsScalerUniqueAddress = string.Empty;
         public string CellsScaleExpression = "X";
+        public int CellsScalePrecision = SADDef.DefaultScalePrecision;
 
         private string label = string.Empty;
         private string shortLabel = string.Empty;
@@ -1421,6 +1426,15 @@ namespace SAD806x
                 if (S6xTable == null) return CellsScaleExpression;
                 if (S6xTable.CellsScaleExpression == null || S6xTable.CellsScaleExpression == string.Empty) return CellsScaleExpression;
                 return S6xTable.CellsScaleExpression;
+            }
+        }
+
+        public int getCellsScalePrecision
+        {
+            get
+            {
+                if (S6xTable == null) return CellsScalePrecision;
+                return S6xTable.CellsScalePrecision;
             }
         }
 
@@ -1567,6 +1581,8 @@ namespace SAD806x
         public int ScalerItemsNum = 0;
         public string InputScaleExpression = "X";
         public string OutputScaleExpression = "X";
+        public int InputScalePrecision = SADDef.DefaultScalePrecision;
+        public int OutputScalePrecision = SADDef.DefaultScalePrecision;
 
         private string label = string.Empty;
         private string shortLabel = string.Empty;
@@ -1614,6 +1630,24 @@ namespace SAD806x
                 if (S6xFunction == null) return OutputScaleExpression;
                 if (S6xFunction.OutputScaleExpression == null || S6xFunction.OutputScaleExpression == string.Empty) return OutputScaleExpression;
                 return S6xFunction.OutputScaleExpression;
+            }
+        }
+
+        public int getInputScalePrecision
+        {
+            get
+            {
+                if (S6xFunction == null) return InputScalePrecision;
+                return S6xFunction.InputScalePrecision;
+            }
+        }
+
+        public int getOutputScalePrecision
+        {
+            get
+            {
+                if (S6xFunction == null) return OutputScalePrecision;
+                return S6xFunction.OutputScalePrecision;
             }
         }
 
@@ -1802,6 +1836,7 @@ namespace SAD806x
 
         public ArrayList RoutinesCallsInfos = new ArrayList();
         public string ScaleExpression = "X";
+        public int ScalePrecision = SADDef.DefaultScalePrecision;
 
         private string label = string.Empty;
         private string shortLabel = string.Empty;
@@ -1831,6 +1866,15 @@ namespace SAD806x
                 if (S6xScalar == null) return ScaleExpression;
                 if (S6xScalar.ScaleExpression == null || S6xScalar.ScaleExpression == string.Empty) return ScaleExpression;
                 return S6xScalar.ScaleExpression;
+            }
+        }
+
+        public int getScalePrecision
+        {
+            get
+            {
+                if (S6xScalar == null) return ScalePrecision;
+                return S6xScalar.ScalePrecision;
             }
         }
 
@@ -1943,13 +1987,13 @@ namespace SAD806x
 
         public string ValueScaled()
         {
-            if (isScaled) return ValueScaled(getScaleExpression);
-            else return ValueScaled("X");
+            if (isScaled) return ValueScaled(getScaleExpression, getScalePrecision);
+            else return ValueScaled("X", 0);
         }
 
-        public string ValueScaled(string scaleExpression)
+        public string ValueScaled(string scaleExpression, int scalePrecision)
         {
-            return string.Format("{0:0.00}", Tools.ScaleValue(ValueInt, scaleExpression, false));
+            return Tools.ScaleValue(ValueInt, scaleExpression, scalePrecision, false);
         }
 
         public string[][] ValueBitFlags
@@ -2062,6 +2106,8 @@ namespace SAD806x
 
         public string[] arrBytes = null;
         public string FixedValue = string.Empty;
+        public string ScaleExpression = string.Empty;
+        public int ScalePrecision = SADDef.DefaultScalePrecision;
 
         public string InitialValue { get { if (arrBytes == null) return string.Empty; else return string.Join(SADDef.GlobalSeparator.ToString(), arrBytes); } }
 
@@ -2083,6 +2129,8 @@ namespace SAD806x
 
         public string Value()
         {
+            int iValue = 0;
+
             switch (Type)
             {
                 case StructureItemType.Skip:
@@ -2097,16 +2145,40 @@ namespace SAD806x
             switch (Type)
             {
                 case StructureItemType.Byte:
-                    if (Size == 1) return Tools.getByteInt(arrBytes[0], false).ToString();
+                    if (Size == 1)
+                    {
+                        iValue = Tools.getByteInt(arrBytes[0], false);
+
+                        if (ScaleExpression == string.Empty) return iValue.ToString();
+                        else return string.Format("{0:F2}", Tools.ScaleValue(iValue, ScaleExpression, SADDef.DefaultScalePrecision, false));
+                    }
                     break;
                 case StructureItemType.Word:
-                    if (Size == 2) return Tools.getWordInt(arrBytes, false, true).ToString();
+                    if (Size == 2)
+                    {
+                        iValue = Tools.getWordInt(arrBytes, false, true);
+
+                        if (ScaleExpression == string.Empty) return iValue.ToString();
+                        else return string.Format("{0:F2}", Tools.ScaleValue(iValue, ScaleExpression, SADDef.DefaultScalePrecision, false));
+                    }
                     break;
                 case StructureItemType.SignedByte:
-                    if (Size == 1) return Tools.getByteInt(arrBytes[0], true).ToString();
+                    if (Size == 1)
+                    {
+                        iValue = Tools.getByteInt(arrBytes[0], true);
+
+                        if (ScaleExpression == string.Empty) return iValue.ToString();
+                        else return string.Format("{0:F2}", Tools.ScaleValue(iValue, ScaleExpression, SADDef.DefaultScalePrecision, false));
+                    }
                     break;
                 case StructureItemType.SignedWord:
-                    if (Size == 2) return Tools.getWordInt(arrBytes, true, true).ToString();
+                    if (Size == 2)
+                    {
+                        iValue =  Tools.getWordInt(arrBytes, true, true);
+
+                        if (ScaleExpression == string.Empty) return iValue.ToString();
+                        else return string.Format("{0:F2}", Tools.ScaleValue(iValue, ScaleExpression, SADDef.DefaultScalePrecision, false));
+                    }
                     break;
                 case StructureItemType.ByteHex:
                     if (Size == 1) return Convert.ToString(Tools.getByteInt(arrBytes[0], false), 16);
@@ -3079,15 +3151,23 @@ namespace SAD806x
                                 break;
                             case StructureItemType.Byte:
                                 sResult += "Byte";
+                                // Included formula
+                                if (structDefElem[4].ToString().Length > 0) sResult += "(" + structDefElem[4].ToString() + ")";
                                 break;
                             case StructureItemType.Word:
                                 sResult += "Word";
+                                // Included formula
+                                if (structDefElem[4].ToString().Length > 0) sResult += "(" + structDefElem[4].ToString() + ")";
                                 break;
                             case StructureItemType.SignedByte:
                                 sResult += "SByte";
+                                // Included formula
+                                if (structDefElem[4].ToString().Length > 0) sResult += "(" + structDefElem[4].ToString() + ")";
                                 break;
                             case StructureItemType.SignedWord:
                                 sResult += "SWord";
+                                // Included formula
+                                if (structDefElem[4].ToString().Length > 0) sResult += "(" + structDefElem[4].ToString() + ")";
                                 break;
                             case StructureItemType.ByteHex:
                                 sResult += "ByteHex";
@@ -3286,6 +3366,13 @@ namespace SAD806x
                         }
                         if (arrInst[1].ToString().Length <= 0 && arrInst[1].ToString().Length >= 3) return null;
                         arrInst[3] = arrInst[1];
+                        // Included formula, only for byte, word and signed versions
+                        if (arrInst[2].ToString().Contains("(") && arrInst[2].ToString().EndsWith(")"))
+                        {
+                            arrInst[4] = arrInst[2].ToString().Split('(')[1];
+                            arrInst[4] = arrInst[4].ToString().Substring(0, arrInst[4].ToString().Length - 1);
+                            arrInst[2] = arrInst[2].ToString().Split('(')[0];
+                        }
                         if (arrInst[2].ToString().StartsWith("\"") && arrInst[2].ToString().EndsWith("\""))
                         {
                             arrInst[4] = arrInst[2].ToString().Substring(1, arrInst[2].ToString().Length - 2);
@@ -3312,42 +3399,53 @@ namespace SAD806x
                                     break;
                                 case "bytehex":
                                     arrInst[2] = StructureItemType.ByteHex;
+                                    if (arrInst[4].ToString() != string.Empty) return null;
                                     break;
                                 case "wordhex":
                                     arrInst[2] = StructureItemType.WordHex;
                                     arrInst[3] = (int)arrInst[1] * 2;
+                                    if (arrInst[4].ToString() != string.Empty) return null;
                                     break;
                                 case "hex":
                                     arrInst[2] = StructureItemType.Hex;
+                                    if (arrInst[4].ToString() != string.Empty) return null;
                                     break;
                                 case "hexlsb":
                                     arrInst[2] = StructureItemType.HexLsb;
+                                    if (arrInst[4].ToString() != string.Empty) return null;
                                     break;
                                 case "ascii":
                                     arrInst[2] = StructureItemType.Ascii;
+                                    if (arrInst[4].ToString() != string.Empty) return null;
                                     break;
                                 case "skip":
                                     arrInst[2] = StructureItemType.Skip;
+                                    if (arrInst[4].ToString() != string.Empty) return null;
                                     break;
                                 case "vect8":
                                     arrInst[2] = StructureItemType.Vector8;
                                     arrInst[3] = (int)arrInst[1] * 2;
+                                    if (arrInst[4].ToString() != string.Empty) return null;
                                     break;
                                 case "vect1":
                                     arrInst[2] = StructureItemType.Vector1;
                                     arrInst[3] = (int)arrInst[1] * 2;
+                                    if (arrInst[4].ToString() != string.Empty) return null;
                                     break;
                                 case "vect9":
                                     arrInst[2] = StructureItemType.Vector9;
                                     arrInst[3] = (int)arrInst[1] * 2;
+                                    if (arrInst[4].ToString() != string.Empty) return null;
                                     break;
                                 case "vect0":
                                     arrInst[2] = StructureItemType.Vector0;
                                     arrInst[3] = (int)arrInst[1] * 2;
+                                    if (arrInst[4].ToString() != string.Empty) return null;
                                     break;
                                 case "empty":
                                     arrInst[2] = StructureItemType.Empty;
                                     arrInst[3] = 0;
+                                    if (arrInst[4].ToString() != string.Empty) return null;
                                     break;
                                 default:
                                     return null;
@@ -3690,16 +3788,25 @@ namespace SAD806x
                             int iItemsNum = -1;
                             int iBytesNum = -1;
                             string sString = string.Empty;
+                            string sScaleExp = string.Empty;
                             switch ((StructureItemType)structDefElem[2])
                             {
                                 case StructureItemType.Byte:
                                 case StructureItemType.SignedByte:
+                                    iItemsNum = (int)structDefElem[1];
+                                    iBytesNum = 1;
+                                    sScaleExp = structDefElem[4].ToString();
+                                    break;
                                 case StructureItemType.ByteHex:
                                     iItemsNum = (int)structDefElem[1];
                                     iBytesNum = 1;
                                     break;
                                 case StructureItemType.Word:
                                 case StructureItemType.SignedWord:
+                                    iItemsNum = (int)structDefElem[1];
+                                    iBytesNum = 2;
+                                    sScaleExp = structDefElem[4].ToString();
+                                    break;
                                 case StructureItemType.WordHex:
                                 case StructureItemType.Vector8:
                                 case StructureItemType.Vector1:
@@ -3730,6 +3837,7 @@ namespace SAD806x
                             {
                                 StructureItem structItem = new StructureItem(BankNum, AddressInt + iPos, AddressBinInt + iPos, (StructureItemType)structDefElem[2]);
                                 if (sString != string.Empty) structItem.FixedValue = sString;
+                                if (sScaleExp != string.Empty) structItem.ScaleExpression = sScaleExp;
                                 if (iBytesNum > 0)
                                 {
                                     structItem.arrBytes = new string[iBytesNum];

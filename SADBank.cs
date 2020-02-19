@@ -1812,6 +1812,7 @@ namespace SAD806x
                             s6xElement.OutputComments = s6xInternal.OutputComments;
 
                             s6xElement.CellsScaleExpression = s6xInternal.CellsScaleExpression;
+                            s6xElement.CellsScalePrecision = s6xInternal.CellsScalePrecision;
                             s6xElement.CellsUnits = s6xInternal.CellsUnits;
                             s6xElement.ColsUnits = s6xInternal.ColsUnits;
                             s6xElement.RowsUnits = s6xInternal.RowsUnits;
@@ -1874,6 +1875,8 @@ namespace SAD806x
 
                             s6xElement.InputScaleExpression = s6xInternal.InputScaleExpression;
                             s6xElement.OutputScaleExpression = s6xInternal.OutputScaleExpression;
+                            s6xElement.InputScalePrecision = s6xInternal.InputScalePrecision;
+                            s6xElement.OutputScalePrecision = s6xInternal.OutputScalePrecision;
                             s6xElement.InputUnits = s6xInternal.InputUnits;
                             s6xElement.OutputUnits = s6xInternal.OutputUnits;
 
@@ -1930,6 +1933,7 @@ namespace SAD806x
                             s6xElement.OutputComments = s6xInternal.OutputComments;
 
                             s6xElement.ScaleExpression = s6xInternal.ScaleExpression;
+                            s6xElement.ScalePrecision = s6xInternal.ScalePrecision;
                             s6xElement.Units = s6xInternal.Units;
 
                             if (mSig.S6xSignature.Information != string.Empty) mSig.S6xSignature.Information += "\r\n";
@@ -2010,6 +2014,10 @@ namespace SAD806x
                     compRoutine = new S6xRoutine(cCall, null);
                     s6xRoutine.InputArguments = compRoutine.InputArguments;
                     compRoutine = null;
+                    for (int iPos = 0; iPos < cCall.Arguments.Length; iPos++)
+                    {
+                        cCall.Arguments[iPos].S6xRoutineInputArgument = s6xRoutine.InputArguments[iPos];
+                    }
                 }
                 // S6x Routine with more information than Call
                 else if (s6xRoutine.InputArguments != null)
@@ -2022,6 +2030,7 @@ namespace SAD806x
                     for (int iArg = 0; iArg < s6xRoutine.InputArguments.Length; iArg++)
                     {
                         if (callArgs[iArg] == null) callArgs[iArg] = new CallArgument();
+                        callArgs[iArg].S6xRoutineInputArgument = s6xRoutine.InputArguments[iArg];
                         callArgs[iArg].Word = s6xRoutine.InputArguments[iArg].Word;
                         callArgs[iArg].Mode = (CallArgsMode)s6xRoutine.InputArguments[iArg].Encryption;
                     }
@@ -2038,6 +2047,17 @@ namespace SAD806x
                             Calibration.slRoutines.Add(rRoutine.UniqueAddress, rRoutine);
                             rRoutine = null;
                         }
+                    }
+                }
+            }
+            else if (s6xRoutine.InputArguments != null && cCall.Arguments != null && s6xRoutine.ByteArgumentsNum == cCall.ArgsNum)
+            {
+                if (s6xRoutine.InputArguments.Length == cCall.Arguments.Length)
+                {
+                    for (int iPos = 0; iPos < cCall.Arguments.Length; iPos++)
+                    {
+                        cCall.Arguments[iPos].S6xRoutineInputArgument = s6xRoutine.InputArguments[iPos];
+                        cCall.Arguments[iPos].Mode = (CallArgsMode)cCall.Arguments[iPos].S6xRoutineInputArgument.Encryption;
                     }
                 }
             }
@@ -4664,10 +4684,15 @@ namespace SAD806x
             // 64,84,34             ad2w  R34,R84            R34 += R84;          
             // b2,34,30             ldb   R30,[R34]          R30 = [R34];         // R34 is a structure address 
             //
+            // 45,fb,00,30,48       ad3w  R48,R30,fb         R48 = R30 + fb;      
+            // 64,82,48             ad2w  R48,R82            R48 += R82;          
+            // b2,48,34             ldb   R34,[R48]          R34 = [R48];         // R48 is a structure address 
+            //
             // a0,R84,R34           ldw   R34,R84            R34 = R84;
             // 65,ad,07,34          ad2w  R34,7ad            R34 += 7ad;
             //                                               R34 += ...;
             // 9a,34,30             cmpb  R30,[R34]                               // R34 is a structure address 
+            
             foreach (string uniqueAddress in alPossibleCalElemRBaseStructUniqueAddresses)
             {
                 Operation rbOpe = (Operation)slOPs[uniqueAddress];
@@ -4705,6 +4730,7 @@ namespace SAD806x
                             }
                             break;
                         case "65":
+                            if (ope.OriginalOpArr[ope.OriginalOpArr.Length - 1] != regCpy) continue;
                             try
                             {
                                 int iTemp = Convert.ToInt32(ope.CalculatedParams[0], 16);
@@ -4750,7 +4776,8 @@ namespace SAD806x
                             break;
                     }
 
-                    if (regUsedAsPointer && rbAdderOpe != null) break;
+                    //if (regUsedAsPointer && rbAdderOpe != null) break;
+                    if (regUsedAsPointer) break;
                 }
                 followingOperations = null;
 
@@ -4769,6 +4796,8 @@ namespace SAD806x
                         switch (ope.OriginalOPCode.ToLower())
                         {
                             case "65":
+                            case "45":
+                                if (ope.OriginalOpArr[ope.OriginalOpArr.Length - 1] != regCpy) continue;
                                 try
                                 {
                                     int iTemp = Convert.ToInt32(ope.CalculatedParams[0], 16);
@@ -4796,19 +4825,51 @@ namespace SAD806x
                 calElem.AddressBinInt = iAddress + Calibration.BankAddressBinInt;
                 calElem.RBaseCalc = rbOpe.InstructedParams[0] + SADDef.AdditionSeparator + rbAdderOpe.CalculatedParams[0];
                 calElem.RelatedOpsUniqueAddresses.Add(rbAdderOpe.UniqueAddress);
-                calElem.StructureElem = new Structure();
-                calElem.StructureElem.BankNum = calElem.BankNum;
-                calElem.StructureElem.AddressInt = calElem.AddressInt;
-                calElem.StructureElem.AddressBinInt = calElem.AddressBinInt;
-                calElem.StructureElem.Defaulted = true;
-                calElem.StructureElem.Number = 1;
-                calElem.StructureElem.RBase = calElem.RBase;
-                calElem.StructureElem.RBaseCalc = calElem.RBaseCalc;
-                string structDef = string.Empty;
-                if (regUsedAsByte) structDef = "Byte";
-                else structDef = "Word";
-                if (regUsedSigned) structDef = "S" + structDef;
-                calElem.StructureElem.StructDefString = structDef;
+
+                if (S6x.slProcessScalars.ContainsKey(calElem.UniqueAddress))
+                {
+                    calElem.ScalarElem = new Scalar((S6xScalar)S6x.slProcessScalars[calElem.UniqueAddress]);
+                    calElem.ScalarElem.AddressBinInt = calElem.AddressBinInt;
+                    calElem.ScalarElem.RBase = calElem.RBase;
+                    calElem.ScalarElem.RBaseCalc = calElem.RBaseCalc;
+                }
+                else if (S6x.slProcessFunctions.ContainsKey(calElem.UniqueAddress))
+                {
+                    calElem.FunctionElem = new Function((S6xFunction)S6x.slProcessFunctions[calElem.UniqueAddress]);
+                    calElem.FunctionElem.AddressBinInt = calElem.AddressBinInt;
+                    calElem.FunctionElem.RBase = calElem.RBase;
+                    calElem.FunctionElem.RBaseCalc = calElem.RBaseCalc;
+                }
+                else if (S6x.slProcessTables.ContainsKey(calElem.UniqueAddress))
+                {
+                    calElem.TableElem = new Table((S6xTable)S6x.slProcessTables[calElem.UniqueAddress]);
+                    calElem.TableElem.AddressBinInt = calElem.AddressBinInt;
+                    calElem.TableElem.RBase = calElem.RBase;
+                    calElem.TableElem.RBaseCalc = calElem.RBaseCalc;
+                }
+                else if (S6x.slProcessStructures.ContainsKey(calElem.UniqueAddress))
+                {
+                    calElem.StructureElem = new Structure((S6xStructure)S6x.slProcessStructures[calElem.UniqueAddress]);
+                    calElem.StructureElem.AddressBinInt = calElem.AddressBinInt;
+                    calElem.StructureElem.RBase = calElem.RBase;
+                    calElem.StructureElem.RBaseCalc = calElem.RBaseCalc;
+                }
+                else
+                {
+                    calElem.StructureElem = new Structure();
+                    calElem.StructureElem.BankNum = calElem.BankNum;
+                    calElem.StructureElem.AddressInt = calElem.AddressInt;
+                    calElem.StructureElem.AddressBinInt = calElem.AddressBinInt;
+                    calElem.StructureElem.Defaulted = true;
+                    calElem.StructureElem.Number = 1;
+                    calElem.StructureElem.RBase = calElem.RBase;
+                    calElem.StructureElem.RBaseCalc = calElem.RBaseCalc;
+                    string structDef = string.Empty;
+                    if (regUsedAsByte) structDef = "Byte";
+                    else structDef = "Word";
+                    if (regUsedSigned) structDef = "S" + structDef;
+                    calElem.StructureElem.StructDefString = structDef;
+                }
 
                 if (!Calibration.slCalibrationElements.ContainsKey(calElem.UniqueAddress)) Calibration.slCalibrationElements.Add(calElem.UniqueAddress, calElem);
                 if (!alCalibElemOPsUniqueAddresses.Contains(rbAdderOpe.UniqueAddress)) alCalibElemOPsUniqueAddresses.Add(rbAdderOpe.UniqueAddress);
@@ -5442,7 +5503,11 @@ namespace SAD806x
                 calibrationElem.ScalarElem.Word = !calibrationElem.ScalarElem.Byte;
                 calibrationElem.ScalarElem.Signed = foundSignature.Scalar.Signed;
                 calibrationElem.ScalarElem.UnSigned = !calibrationElem.ScalarElem.Signed;
-                if (foundSignature.Scalar.ScaleExpression != null && foundSignature.Scalar.ScaleExpression != string.Empty) calibrationElem.ScalarElem.ScaleExpression = foundSignature.Scalar.ScaleExpression;
+                if (foundSignature.Scalar.ScaleExpression != null && foundSignature.Scalar.ScaleExpression != string.Empty)
+                {
+                    calibrationElem.ScalarElem.ScaleExpression = foundSignature.Scalar.ScaleExpression;
+                    calibrationElem.ScalarElem.ScalePrecision = foundSignature.Scalar.ScalePrecision;
+                }
             }
             else if (foundSignature.Function != null)
             {
@@ -5459,14 +5524,15 @@ namespace SAD806x
 
                 calibrationElem.FunctionElem.ByteInput = foundSignature.Function.ByteInput;
                 calibrationElem.FunctionElem.ByteOutput = foundSignature.Function.ByteOutput;
-                calibrationElem.FunctionElem.InputScaleExpression = foundSignature.Function.InputScaleExpression;
                 if (foundSignature.Function.InputScaleExpression != null && foundSignature.Function.InputScaleExpression != string.Empty)
                 {
                     calibrationElem.FunctionElem.InputScaleExpression = foundSignature.Function.InputScaleExpression;
+                    calibrationElem.FunctionElem.InputScalePrecision = foundSignature.Function.InputScalePrecision;
                 }
                 if (foundSignature.Function.OutputScaleExpression != null && foundSignature.Function.OutputScaleExpression != string.Empty)
                 {
                     calibrationElem.FunctionElem.OutputScaleExpression = foundSignature.Function.OutputScaleExpression;
+                    calibrationElem.FunctionElem.OutputScalePrecision = foundSignature.Function.OutputScalePrecision;
                 }
             }
             else if (foundSignature.Table != null)
@@ -5494,6 +5560,7 @@ namespace SAD806x
                 if (foundSignature.Table.CellsScaleExpression != null && foundSignature.Table.CellsScaleExpression != string.Empty)
                 {
                     calibrationElem.TableElem.CellsScaleExpression = foundSignature.Table.CellsScaleExpression;
+                    calibrationElem.TableElem.CellsScalePrecision = foundSignature.Table.CellsScalePrecision;
                 }
 
             }
@@ -7952,7 +8019,6 @@ namespace SAD806x
                         // It is a structure like a list of scalar
                         //      Checksum Start Address is detected as structure in Checksum calculation routine, it is not required and can generate output issues
                         {
-
                             Structure structure = new Structure();
                             structure.BankNum = ope.ReadDataBankNum;
                             structure.AddressInt = address;
@@ -8853,20 +8919,32 @@ namespace SAD806x
                         Structure prevStruct = (Structure)Calibration.slExtStructures.GetByIndex(sIndex - 1);
                         if (prevStruct.BankNum == sStruct.BankNum && prevStruct.AddressEndInt > sStruct.AddressInt)
                         {
+                            // Same Definition
                             if (prevStruct.StructDefString == sStruct.StructDefString)
                             {
                                 sStruct.ParentStructure = (prevStruct.ParentStructure == null) ? prevStruct : prevStruct.ParentStructure;
                                 continue;
                             }
-                            else
+
+                            // Previous structure is a user defined one or stored
+                            if (prevStruct.S6xStructure != null)
                             {
-                                while (prevStruct.AddressEndInt >= sStruct.AddressInt && prevStruct.Number > 0)
+                                if (prevStruct.Number > 0)
                                 {
-                                    prevStruct.Number--;
-                                    string[] arrPrevStructBytes = getBytesArray(prevStruct.AddressInt, prevStruct.MaxSizeSingle * prevStruct.Number);
-                                    prevStruct.Read(ref arrPrevStructBytes, prevStruct.Number);
-                                    arrPrevStructBytes = null;
+                                    if (prevStruct.S6xStructure.Store || prevStruct.S6xStructure.isUserDefined)
+                                    {
+                                        sStruct.ParentStructure = (prevStruct.ParentStructure == null) ? prevStruct : prevStruct.ParentStructure;
+                                        continue;
+                                    }
                                 }
+                            }
+
+                            while (prevStruct.AddressEndInt >= sStruct.AddressInt && prevStruct.Number > 0)
+                            {
+                                prevStruct.Number--;
+                                string[] arrPrevStructBytes = getBytesArray(prevStruct.AddressInt, prevStruct.MaxSizeSingle * prevStruct.Number);
+                                prevStruct.Read(ref arrPrevStructBytes, prevStruct.Number);
+                                arrPrevStructBytes = null;
                             }
                         }
                     }
@@ -9164,6 +9242,17 @@ namespace SAD806x
                 sStruct.ParentStructure = (Structure)Calibration.slExtStructures[sStruct.ParentUniqueAddress];
                 if (sStruct.ParentStructure == null)
                 {
+                    bool bConflict = false;
+                    if (!bConflict) if (Calibration.slExtTables.ContainsKey(sStruct.ParentUniqueAddress)) bConflict = true;
+                    if (!bConflict) if (Calibration.slExtFunctions.ContainsKey(sStruct.ParentUniqueAddress)) bConflict = true;
+                    if (!bConflict) if (Calibration.slExtScalars.ContainsKey(sStruct.ParentUniqueAddress)) bConflict = true;
+
+                    if (bConflict)
+                    {
+                        sStruct.ParentAddressInt = -1;
+                        continue;
+                    }
+
                     Structure newStructure = new Structure();
                     newStructure.BankNum = sStruct.BankNum;
                     newStructure.AddressInt = sStruct.ParentAddressInt;
@@ -9172,6 +9261,7 @@ namespace SAD806x
                     newStructure.Defaulted = sStruct.Defaulted;
                     newStructure.Number = sStruct.Number;
                     newStructure.StructDefString = sStruct.StructDefString;
+
                     Calibration.slExtStructures.Add(newStructure.UniqueAddress, newStructure);
                     sStruct.ParentStructure = (Structure)Calibration.slExtStructures[sStruct.ParentUniqueAddress];
                     newStructure = null;
@@ -9484,7 +9574,7 @@ namespace SAD806x
 
             mainRegCpy = saSA.MainRegister;
             mainRegCpyTB = saSA.MainRegisterTB;
-            
+
             // Conflict Management on Ope for Initial Value
             SADBank structBank = null;
             switch (saSA.StructBankNum)
@@ -10457,6 +10547,7 @@ namespace SAD806x
             // Known Elements identified
             //  Can be S6x Register
             //  Can be Reserved Address
+            //  Can be Calibration External Elements
             //  Can be Ope/Call                 => To be Managed Later On
             //  Can be Additional Vector Source Address on Calibration Bank
             //  Can be CC / EC Register ranges - 8061 only
@@ -10513,6 +10604,27 @@ namespace SAD806x
                         }
                     }
 
+                    if (elemShortLabel == string.Empty)
+                    {
+                        // Calibration External Elements
+                        if (Calibration.slExtStructures.ContainsKey(elemUniqueAddress))
+                        {
+                            elemShortLabel = ((Structure)Calibration.slExtStructures[elemUniqueAddress]).ShortLabel;
+                        }
+                        else if (Calibration.slExtTables.ContainsKey(elemUniqueAddress))
+                        {
+                            elemShortLabel = ((Table)Calibration.slExtTables[elemUniqueAddress]).ShortLabel;
+                        }
+                        else if (Calibration.slExtFunctions.ContainsKey(elemUniqueAddress))
+                        {
+                            elemShortLabel = ((Function)Calibration.slExtFunctions[elemUniqueAddress]).ShortLabel;
+                        }
+                        else if (Calibration.slExtScalars.ContainsKey(elemUniqueAddress))
+                        {
+                            elemShortLabel = ((Scalar)Calibration.slExtScalars[elemUniqueAddress]).ShortLabel;
+                        }
+                    }
+                    
                     // Known Ope/Call
                     // Not managed at this moment, will be in next methods
 

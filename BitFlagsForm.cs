@@ -280,6 +280,7 @@ namespace SAD806x
                     bitFlagSkipCheckBox.Checked = s6xBitFlag.Skip;
                     bitFlagSetValueTextBox.Text = s6xBitFlag.SetValue;
                     bitFlagNSetValueTextBox.Text = s6xBitFlag.NotSetValue;
+                    bitFlagHParentCheckBox.Checked = s6xBitFlag.HideParent;
 
                     // Windows 10 1809 (10.0.17763) Issue
                     bitFlagCommentsTextBox.Clear();
@@ -417,11 +418,19 @@ namespace SAD806x
                         bitFlag = new S6xBitFlag();
                         bitFlag.Position = bitFlagPositionComboBox.SelectedIndex;
                         if (slBitFlags.ContainsKey(bitFlag.UniqueKey)) bitFlag = (S6xBitFlag)slBitFlags[bitFlag.UniqueKey];
-                        else slBitFlags.Add(bitFlag.UniqueKey, slBitFlags);
+                        else slBitFlags.Add(bitFlag.UniqueKey, bitFlag);
                     }
                     else
                     {
                         bitFlag = (S6xBitFlag)slBitFlags[currentTreeNode.Name];
+                        bitFlag.Position = bitFlagPositionComboBox.SelectedIndex;
+
+                        if (currentTreeNode.Name != bitFlag.UniqueKey)
+                        {
+                            slBitFlags.Remove(currentTreeNode.Name);
+                            if (slBitFlags.ContainsKey(bitFlag.UniqueKey)) slBitFlags[bitFlag.UniqueKey] = bitFlag;
+                            else slBitFlags.Add(bitFlag.UniqueKey, bitFlag);
+                        }
                     }
                     bitFlag.Label = bitFlagLabelTextBox.Text;
                     bitFlag.ShortLabel = bitFlagSLabelTextBox.Text;
@@ -430,6 +439,8 @@ namespace SAD806x
                     bitFlag.NotSetValue = bitFlagNSetValueTextBox.Text;
                     bitFlag.Comments = bitFlagCommentsTextBox.Text;
                     bitFlag.Position = bitFlagPositionComboBox.SelectedIndex;
+                    bitFlag.HideParent = bitFlagHParentCheckBox.Checked;
+
 
                     uniqueKey = bitFlag.UniqueKey;
                     label = bitFlag.Label;
