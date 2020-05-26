@@ -29,10 +29,10 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.Windows.Forms.TreeNode treeNode9 = new System.Windows.Forms.TreeNode("Scalar");
-            System.Windows.Forms.TreeNode treeNode10 = new System.Windows.Forms.TreeNode("Function");
-            System.Windows.Forms.TreeNode treeNode11 = new System.Windows.Forms.TreeNode("Table");
-            System.Windows.Forms.TreeNode treeNode12 = new System.Windows.Forms.TreeNode("Structure");
+            System.Windows.Forms.TreeNode treeNode1 = new System.Windows.Forms.TreeNode("Scalar");
+            System.Windows.Forms.TreeNode treeNode2 = new System.Windows.Forms.TreeNode("Function");
+            System.Windows.Forms.TreeNode treeNode3 = new System.Windows.Forms.TreeNode("Table");
+            System.Windows.Forms.TreeNode treeNode4 = new System.Windows.Forms.TreeNode("Structure");
             this.advHeaderPanel = new System.Windows.Forms.Panel();
             this.advSLabelTextBox = new System.Windows.Forms.TextBox();
             this.advLabelTextBox = new System.Windows.Forms.TextBox();
@@ -82,6 +82,7 @@
             this.label50 = new System.Windows.Forms.Label();
             this.functionSignedInputCheckBox = new System.Windows.Forms.CheckBox();
             this.scalarTabPage = new System.Windows.Forms.TabPage();
+            this.scalarInlineCommentsCheckBox = new System.Windows.Forms.CheckBox();
             this.scalarScalePrecNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.scalarBitFlagsButton = new System.Windows.Forms.Button();
             this.scalarBitFlagsCheckBox = new System.Windows.Forms.CheckBox();
@@ -201,19 +202,19 @@
             this.advElemsTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.advElemsTreeView.Location = new System.Drawing.Point(0, 0);
             this.advElemsTreeView.Name = "advElemsTreeView";
-            treeNode9.Name = "SCALAR";
-            treeNode9.Text = "Scalar";
-            treeNode10.Name = "FUNCTION";
-            treeNode10.Text = "Function";
-            treeNode11.Name = "TABLE";
-            treeNode11.Text = "Table";
-            treeNode12.Name = "STRUCTURE";
-            treeNode12.Text = "Structure";
+            treeNode1.Name = "SCALAR";
+            treeNode1.Text = "Scalar";
+            treeNode2.Name = "FUNCTION";
+            treeNode2.Text = "Function";
+            treeNode3.Name = "TABLE";
+            treeNode3.Text = "Table";
+            treeNode4.Name = "STRUCTURE";
+            treeNode4.Text = "Structure";
             this.advElemsTreeView.Nodes.AddRange(new System.Windows.Forms.TreeNode[] {
-            treeNode9,
-            treeNode10,
-            treeNode11,
-            treeNode12});
+            treeNode1,
+            treeNode2,
+            treeNode3,
+            treeNode4});
             this.advElemsTreeView.Size = new System.Drawing.Size(132, 331);
             this.advElemsTreeView.TabIndex = 3;
             // 
@@ -653,6 +654,7 @@
             // 
             // scalarTabPage
             // 
+            this.scalarTabPage.Controls.Add(this.scalarInlineCommentsCheckBox);
             this.scalarTabPage.Controls.Add(this.scalarScalePrecNumericUpDown);
             this.scalarTabPage.Controls.Add(this.scalarBitFlagsButton);
             this.scalarTabPage.Controls.Add(this.scalarBitFlagsCheckBox);
@@ -668,6 +670,16 @@
             this.scalarTabPage.TabIndex = 12;
             this.scalarTabPage.Text = "Scalar";
             this.scalarTabPage.UseVisualStyleBackColor = true;
+            // 
+            // scalarInlineCommentsCheckBox
+            // 
+            this.scalarInlineCommentsCheckBox.AutoSize = true;
+            this.scalarInlineCommentsCheckBox.Location = new System.Drawing.Point(3, 108);
+            this.scalarInlineCommentsCheckBox.Name = "scalarInlineCommentsCheckBox";
+            this.scalarInlineCommentsCheckBox.Size = new System.Drawing.Size(103, 17);
+            this.scalarInlineCommentsCheckBox.TabIndex = 95;
+            this.scalarInlineCommentsCheckBox.Text = "Inline Comments";
+            this.scalarInlineCommentsCheckBox.UseVisualStyleBackColor = true;
             // 
             // scalarScalePrecNumericUpDown
             // 
@@ -1078,5 +1090,6 @@
         private System.Windows.Forms.NumericUpDown functionScalePrecInputNumericUpDown;
         private System.Windows.Forms.NumericUpDown functionScalePrecOutputNumericUpDown;
         private System.Windows.Forms.NumericUpDown scalarScalePrecNumericUpDown;
+        private System.Windows.Forms.CheckBox scalarInlineCommentsCheckBox;
     }
 }

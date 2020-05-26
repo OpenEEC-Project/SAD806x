@@ -58,10 +58,14 @@ namespace SAD806x
         private void searchTreeView_AfterSelect(object sender, TreeViewEventArgs e)
         {
             if (e.Node.Parent == null) return;
-            if (!elemsTreeView.Nodes.ContainsKey(e.Node.Parent.Name)) return;
-            if (!elemsTreeView.Nodes[e.Node.Parent.Name].Nodes.ContainsKey(e.Node.Name)) return;
-            try { elemsTreeView.SelectedNode = elemsTreeView.Nodes[e.Node.Parent.Name].Nodes[e.Node.Name]; }
+            S6xNavInfo niMFHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[e.Node.Parent.Name]);
+            if (!niMFHeaderCateg.isValid) return;
+            TreeNode tnMFNode = niMFHeaderCateg.FindElement(e.Node.Name);
+            if (tnMFNode == null) return;
+            try { elemsTreeView.SelectedNode = tnMFNode; }
             catch { }
+            tnMFNode = null;
+            niMFHeaderCateg = null;
         }
 
         private void searchButton_Click(object sender, EventArgs e)
@@ -120,21 +124,14 @@ namespace SAD806x
                             parentNode = searchTreeView.Nodes["MISSING_IN_SOURCE"].Nodes[elemsTreeView.Nodes[result[0].ToString()].Name];
                             if (parentNode == null) continue;
 
-                            switch (result[3].GetType().Name)
+                            if (result[3] != null)
                             {
-                                case "S6xStructure":
-                                    cmpStruct = (S6xStructure)result[3];
-                                    break;
-                                case "S6xTable":
-                                    cmpTable = (S6xTable)result[3];
-                                    break;
-                                case "S6xFunction":
-                                    cmpFunction = (S6xFunction)result[3];
-                                    break;
-                                case "S6xScalar":
-                                    cmpScalar = (S6xScalar)result[3];
-                                    break;
+                                if (result[3].GetType() == typeof(S6xStructure)) cmpStruct = (S6xStructure)result[3];
+                                else if (result[3].GetType() == typeof(S6xTable)) cmpTable = (S6xTable)result[3];
+                                else if (result[3].GetType() == typeof(S6xFunction)) cmpFunction = (S6xFunction)result[3];
+                                else if (result[3].GetType() == typeof(S6xScalar)) cmpScalar = (S6xScalar)result[3];
                             }
+
                             tnCmpNode = new TreeNode();
                             if (cmpStruct != null)
                             {
@@ -212,21 +209,10 @@ namespace SAD806x
 
                             if (result[3] != null)
                             {
-                                switch (result[3].GetType().Name)
-                                {
-                                    case "S6xStructure":
-                                        cmpStruct = (S6xStructure)result[3];
-                                        break;
-                                    case "S6xTable":
-                                        cmpTable = (S6xTable)result[3];
-                                        break;
-                                    case "S6xFunction":
-                                        cmpFunction = (S6xFunction)result[3];
-                                        break;
-                                    case "S6xScalar":
-                                        cmpScalar = (S6xScalar)result[3];
-                                        break;
-                                }
+                                if (result[3].GetType() == typeof(S6xStructure)) cmpStruct = (S6xStructure)result[3];
+                                else if (result[3].GetType() == typeof(S6xTable)) cmpTable = (S6xTable)result[3];
+                                else if (result[3].GetType() == typeof(S6xFunction)) cmpFunction = (S6xFunction)result[3];
+                                else if (result[3].GetType() == typeof(S6xScalar)) cmpScalar = (S6xScalar)result[3];
                             }
 
                             tnCmpNode = new TreeNode();
@@ -279,13 +265,17 @@ namespace SAD806x
                         TreeNode parentNode = searchTreeView.Nodes[elemsTreeView.Nodes[result[0].ToString()].Name];
                         if (parentNode == null) continue;
 
-                        if (!elemsTreeView.Nodes[result[0].ToString()].Nodes.ContainsKey(result[1].ToString())) continue;
+                        S6xNavInfo niMFHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[result[0].ToString()]);
+                        if (!niMFHeaderCateg.isValid) continue;
+                        TreeNode tnMFNode = niMFHeaderCateg.FindElement(result[1].ToString());
+                        if (tnMFNode == null) continue;
+
                         if (parentNode.Nodes.ContainsKey(result[1].ToString())) continue;
 
                         TreeNode tnNode = new TreeNode();
-                        tnNode.Name = elemsTreeView.Nodes[result[0].ToString()].Nodes[result[1].ToString()].Name;
-                        tnNode.Text = elemsTreeView.Nodes[result[0].ToString()].Nodes[result[1].ToString()].Text;
-                        tnNode.ToolTipText = elemsTreeView.Nodes[result[0].ToString()].Nodes[result[1].ToString()].ToolTipText;
+                        tnNode.Name = tnMFNode.Name;
+                        tnNode.Text = tnMFNode.Text;
+                        tnNode.ToolTipText = tnMFNode.ToolTipText;
                         parentNode.Nodes.Add(tnNode);
                     }
                     break;
@@ -416,10 +406,10 @@ namespace SAD806x
                     isResult = (srcReadBank.getBytes(calElem.AddressInt, calElem.Size) != cmpReadBank.getBytes(calElem.AddressInt, calElem.Size));
                     if (isResult)
                     {
-                        if (calElem.isScalar) results.Add(new object[] { "SCALARS", calElem.UniqueAddress });
-                        else if (calElem.isFunction) results.Add(new object[] { "FUNCTIONS", calElem.UniqueAddress });
-                        else if (calElem.isTable) results.Add(new object[] { "TABLES", calElem.UniqueAddress });
-                        else if (calElem.isStructure) results.Add(new object[] { "STRUCTURES", calElem.UniqueAddress });
+                        if (calElem.isScalar) results.Add(new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), calElem.UniqueAddress });
+                        else if (calElem.isFunction) results.Add(new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), calElem.UniqueAddress });
+                        else if (calElem.isTable) results.Add(new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), calElem.UniqueAddress });
+                        else if (calElem.isStructure) results.Add(new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), calElem.UniqueAddress });
                     }
                 }
                 foreach (Scalar extObject in sadBin.Calibration.slExtScalars.Values)
@@ -449,7 +439,7 @@ namespace SAD806x
                             continue;
                     }
                     isResult = (srcReadBank.getBytes(extObject.AddressInt, extObject.Size) != cmpReadBank.getBytes(extObject.AddressInt, extObject.Size));
-                    if (isResult) results.Add(new object[] { "SCALARS", extObject.UniqueAddress });
+                    if (isResult) results.Add(new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), extObject.UniqueAddress });
                 }
                 foreach (Function extObject in sadBin.Calibration.slExtFunctions.Values)
                 {
@@ -478,7 +468,7 @@ namespace SAD806x
                             continue;
                     }
                     isResult = (srcReadBank.getBytes(extObject.AddressInt, extObject.Size) != cmpReadBank.getBytes(extObject.AddressInt, extObject.Size));
-                    if (isResult) results.Add(new object[] { "FUNCTIONS", extObject.UniqueAddress });
+                    if (isResult) results.Add(new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), extObject.UniqueAddress });
                 }
                 foreach (Table extObject in sadBin.Calibration.slExtTables.Values)
                 {
@@ -507,7 +497,7 @@ namespace SAD806x
                             continue;
                     }
                     isResult = (srcReadBank.getBytes(extObject.AddressInt, extObject.Size) != cmpReadBank.getBytes(extObject.AddressInt, extObject.Size));
-                    if (isResult) results.Add(new object[] { "TABLES", extObject.UniqueAddress });
+                    if (isResult) results.Add(new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), extObject.UniqueAddress });
                 }
                 foreach (Structure extObject in sadBin.Calibration.slExtStructures.Values)
                 {
@@ -536,7 +526,7 @@ namespace SAD806x
                             continue;
                     }
                     isResult = (srcReadBank.getBytes(extObject.AddressInt, extObject.Size) != cmpReadBank.getBytes(extObject.AddressInt, extObject.Size));
-                    if (isResult) results.Add(new object[] { "STRUCTURES", extObject.UniqueAddress });
+                    if (isResult) results.Add(new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), extObject.UniqueAddress });
                 }
                 foreach (Call extObject in sadBin.Calibration.slCalls.Values)
                 {
@@ -568,7 +558,7 @@ namespace SAD806x
                             continue;
                     }
                     isResult = (srcReadBank.getBytes(extObject.AddressInt, extObject.AddressEndInt - extObject.AddressInt) != cmpReadBank.getBytes(extObject.AddressInt, extObject.AddressEndInt - extObject.AddressInt));
-                    if (isResult) results.Add(new object[] { "ROUTINES", extObject.UniqueAddress });
+                    if (isResult) results.Add(new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.ROUTINES), extObject.UniqueAddress });
                 }
             }
             else
@@ -644,7 +634,7 @@ namespace SAD806x
                         }
 
                         isResult = (srcBytes != cmpBytes);
-                        if (isResult) results.Add(new object[] { "SCALARS", srcObject.UniqueAddress });
+                        if (isResult) results.Add(new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), srcObject.UniqueAddress });
 
                         break;
                     }
@@ -720,7 +710,7 @@ namespace SAD806x
                         }
 
                         isResult = (srcBytes != cmpBytes);
-                        if (isResult) results.Add(new object[] { "FUNCTIONS", srcObject.UniqueAddress });
+                        if (isResult) results.Add(new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), srcObject.UniqueAddress });
 
                         break;
                     }
@@ -796,7 +786,7 @@ namespace SAD806x
                         }
 
                         isResult = (srcBytes != cmpBytes);
-                        if (isResult) results.Add(new object[] { "TABLES", srcObject.UniqueAddress });
+                        if (isResult) results.Add(new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), srcObject.UniqueAddress });
 
                         break;
                     }
@@ -872,7 +862,7 @@ namespace SAD806x
                         }
 
                         isResult = (srcBytes != cmpBytes);
-                        if (isResult) results.Add(new object[] { "STRUCTURES", srcObject.UniqueAddress });
+                        if (isResult) results.Add(new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), srcObject.UniqueAddress });
 
                         break;
                     }
@@ -933,7 +923,7 @@ namespace SAD806x
                 if (s6xObject.Skip) continue;
                 if (!s6xObject.Store) continue;
 
-                object[] uResult = new object[] { "STRUCTURES", string.Empty, s6xObject.UniqueAddress, null, string.Empty };
+                object[] uResult = new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), string.Empty, s6xObject.UniqueAddress, null, string.Empty };
                 uResult[3] = cmpSadS6x.slStructures[s6xObject.UniqueAddress];
 
                 if (uResult[3] != null)
@@ -950,16 +940,16 @@ namespace SAD806x
                 {
                     // Other Type or Missing
                     if (uResult[3] == null) uResult[3] = cmpSadS6x.slStructures[s6xObject.UniqueAddress];
-                    if (uResult[3] != null) uResult[1] = "STRUCTURES";
+                    if (uResult[3] != null) uResult[1] = S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES);
 
                     if (uResult[3] == null) uResult[3] = cmpSadS6x.slTables[s6xObject.UniqueAddress];
-                    if (uResult[3] != null) uResult[1] = "TABLES";
+                    if (uResult[3] != null) uResult[1] = S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES);
 
                     if (uResult[3] == null) uResult[3] = cmpSadS6x.slFunctions[s6xObject.UniqueAddress];
-                    if (uResult[3] != null) uResult[1] = "FUNCTIONS";
+                    if (uResult[3] != null) uResult[1] = S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS);
 
                     if (uResult[3] == null) uResult[3] = cmpSadS6x.slScalars[s6xObject.UniqueAddress];
-                    if (uResult[3] != null) uResult[1] = "SCALARS";
+                    if (uResult[3] != null) uResult[1] = S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS);
 
                     if (uResult[3] == null) uResult[1] = "MISSING";
                 }
@@ -972,7 +962,7 @@ namespace SAD806x
                 if (s6xObject.Skip) continue;
                 if (!s6xObject.Store) continue;
 
-                object[] uResult = new object[] { "TABLES", string.Empty, s6xObject.UniqueAddress, null, string.Empty };
+                object[] uResult = new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), string.Empty, s6xObject.UniqueAddress, null, string.Empty };
                 uResult[3] = cmpSadS6x.slTables[s6xObject.UniqueAddress];
 
                 if (uResult[3] != null)
@@ -991,16 +981,16 @@ namespace SAD806x
                 {
                     // Other Type or Missing
                     if (uResult[3] == null) uResult[3] = cmpSadS6x.slStructures[s6xObject.UniqueAddress];
-                    if (uResult[3] != null) uResult[1] = "STRUCTURES";
+                    if (uResult[3] != null) uResult[1] = S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES);
 
                     if (uResult[3] == null) uResult[3] = cmpSadS6x.slTables[s6xObject.UniqueAddress];
-                    if (uResult[3] != null) uResult[1] = "TABLES";
+                    if (uResult[3] != null) uResult[1] = S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES);
 
                     if (uResult[3] == null) uResult[3] = cmpSadS6x.slFunctions[s6xObject.UniqueAddress];
-                    if (uResult[3] != null) uResult[1] = "FUNCTIONS";
+                    if (uResult[3] != null) uResult[1] = S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS);
 
                     if (uResult[3] == null) uResult[3] = cmpSadS6x.slScalars[s6xObject.UniqueAddress];
-                    if (uResult[3] != null) uResult[1] = "SCALARS";
+                    if (uResult[3] != null) uResult[1] = S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS);
 
                     if (uResult[3] == null) uResult[1] = "MISSING";
                 }
@@ -1013,7 +1003,7 @@ namespace SAD806x
                 if (s6xObject.Skip) continue;
                 if (!s6xObject.Store) continue;
 
-                object[] uResult = new object[] { "FUNCTIONS", string.Empty, s6xObject.UniqueAddress, null, string.Empty };
+                object[] uResult = new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), string.Empty, s6xObject.UniqueAddress, null, string.Empty };
                 uResult[3] = cmpSadS6x.slFunctions[s6xObject.UniqueAddress];
 
                 if (uResult[3] != null)
@@ -1033,16 +1023,16 @@ namespace SAD806x
                 {
                     // Other Type or Missing
                     if (uResult[3] == null) uResult[3] = cmpSadS6x.slStructures[s6xObject.UniqueAddress];
-                    if (uResult[3] != null) uResult[1] = "STRUCTURES";
+                    if (uResult[3] != null) uResult[1] = S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES);
 
                     if (uResult[3] == null) uResult[3] = cmpSadS6x.slTables[s6xObject.UniqueAddress];
-                    if (uResult[3] != null) uResult[1] = "TABLES";
+                    if (uResult[3] != null) uResult[1] = S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES);
 
                     if (uResult[3] == null) uResult[3] = cmpSadS6x.slFunctions[s6xObject.UniqueAddress];
-                    if (uResult[3] != null) uResult[1] = "FUNCTIONS";
+                    if (uResult[3] != null) uResult[1] = S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS);
 
                     if (uResult[3] == null) uResult[3] = cmpSadS6x.slScalars[s6xObject.UniqueAddress];
-                    if (uResult[3] != null) uResult[1] = "SCALARS";
+                    if (uResult[3] != null) uResult[1] = S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS);
 
                     if (uResult[3] == null) uResult[1] = "MISSING";
                 }
@@ -1055,7 +1045,7 @@ namespace SAD806x
                 if (s6xObject.Skip) continue;
                 if (!s6xObject.Store) continue;
 
-                object[] uResult = new object[] { "SCALARS", string.Empty, s6xObject.UniqueAddress, null, string.Empty };
+                object[] uResult = new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), string.Empty, s6xObject.UniqueAddress, null, string.Empty };
                 uResult[3] = cmpSadS6x.slScalars[s6xObject.UniqueAddress];
 
                 if (uResult[3] != null)
@@ -1073,16 +1063,16 @@ namespace SAD806x
                 {
                     // Other Type or Missing
                     if (uResult[3] == null) uResult[3] = cmpSadS6x.slStructures[s6xObject.UniqueAddress];
-                    if (uResult[3] != null) uResult[1] = "STRUCTURES";
+                    if (uResult[3] != null) uResult[1] = S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES);
 
                     if (uResult[3] == null) uResult[3] = cmpSadS6x.slTables[s6xObject.UniqueAddress];
-                    if (uResult[3] != null) uResult[1] = "TABLES";
+                    if (uResult[3] != null) uResult[1] = S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES);
 
                     if (uResult[3] == null) uResult[3] = cmpSadS6x.slFunctions[s6xObject.UniqueAddress];
-                    if (uResult[3] != null) uResult[1] = "FUNCTIONS";
+                    if (uResult[3] != null) uResult[1] = S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS);
 
                     if (uResult[3] == null) uResult[3] = cmpSadS6x.slScalars[s6xObject.UniqueAddress];
-                    if (uResult[3] != null) uResult[1] = "SCALARS";
+                    if (uResult[3] != null) uResult[1] = S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS);
 
                     if (uResult[3] == null) uResult[1] = "MISSING";
                 }
@@ -1096,7 +1086,7 @@ namespace SAD806x
                 if (cmpObject.Skip) continue;
                 if (!cmpObject.Store) continue;
 
-                object[] uResult = new object[] { "STRUCTURES", "MISSING", null, cmpObject, string.Empty };
+                object[] uResult = new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), "MISSING", null, cmpObject, string.Empty };
                 if (uResult[2] == null) uResult[2] = sadS6x.slStructures[cmpObject.UniqueAddress];
                 if (uResult[2] == null) uResult[2] = sadS6x.slTables[cmpObject.UniqueAddress];
                 if (uResult[2] == null) uResult[2] = sadS6x.slFunctions[cmpObject.UniqueAddress];
@@ -1108,7 +1098,7 @@ namespace SAD806x
                 if (cmpObject.Skip) continue;
                 if (!cmpObject.Store) continue;
 
-                object[] uResult = new object[] { "TABLES", "MISSING", null, cmpObject, string.Empty };
+                object[] uResult = new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), "MISSING", null, cmpObject, string.Empty };
                 if (uResult[2] == null) uResult[2] = sadS6x.slStructures[cmpObject.UniqueAddress];
                 if (uResult[2] == null) uResult[2] = sadS6x.slTables[cmpObject.UniqueAddress];
                 if (uResult[2] == null) uResult[2] = sadS6x.slFunctions[cmpObject.UniqueAddress];
@@ -1120,7 +1110,7 @@ namespace SAD806x
                 if (cmpObject.Skip) continue;
                 if (!cmpObject.Store) continue;
 
-                object[] uResult = new object[] { "FUNCTIONS", "MISSING", null, cmpObject, string.Empty };
+                object[] uResult = new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), "MISSING", null, cmpObject, string.Empty };
                 if (uResult[2] == null) uResult[2] = sadS6x.slStructures[cmpObject.UniqueAddress];
                 if (uResult[2] == null) uResult[2] = sadS6x.slTables[cmpObject.UniqueAddress];
                 if (uResult[2] == null) uResult[2] = sadS6x.slFunctions[cmpObject.UniqueAddress];
@@ -1132,7 +1122,7 @@ namespace SAD806x
                 if (cmpObject.Skip) continue;
                 if (!cmpObject.Store) continue;
 
-                object[] uResult = new object[] { "SCALARS", "MISSING", null, cmpObject, string.Empty };
+                object[] uResult = new object[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), "MISSING", null, cmpObject, string.Empty };
                 if (uResult[2] == null) uResult[2] = sadS6x.slStructures[cmpObject.UniqueAddress];
                 if (uResult[2] == null) uResult[2] = sadS6x.slTables[cmpObject.UniqueAddress];
                 if (uResult[2] == null) uResult[2] = sadS6x.slFunctions[cmpObject.UniqueAddress];
@@ -1171,40 +1161,27 @@ namespace SAD806x
                 {
                     foreach (TreeNode tnMainParent in elemsTreeView.Nodes)
                     {
-                        switch (tnMainParent.Name)
+                        S6xNavInfo niMainHeaderCateg = new S6xNavInfo(tnMainParent);
+                        if (!niMainHeaderCateg.isValid) continue;
+                        switch (niMainHeaderCateg.HeaderCategory)
                         {
-                            case "PROPERTIES":
-                            case "RESERVED":
-                            case "REGISTERS":
-                            case "OPERATIONS":
-                            case "OTHER":
-                            case "SIGNATURES":
-                            case "ELEMSSIGNATURES":
-                            case "ROUTINES":
+                            case S6xNavHeaderCategory.PROPERTIES:
+                            case S6xNavHeaderCategory.RESERVED:
+                            case S6xNavHeaderCategory.REGISTERS:
+                            case S6xNavHeaderCategory.OPERATIONS:
+                            case S6xNavHeaderCategory.OTHER:
+                            case S6xNavHeaderCategory.SIGNATURES:
+                            case S6xNavHeaderCategory.ELEMSSIGNATURES:
+                            case S6xNavHeaderCategory.ROUTINES:
                                 break;
-                            default:
-                                string categLabel = string.Empty;
-                                switch (tnMainParent.Name)
-                                {
-                                    case "TABLES":
-                                        categLabel = "Tables";
-                                        break;
-                                    case "FUNCTIONS":
-                                        categLabel = "Functions";
-                                        break;
-                                    case "SCALARS":
-                                        categLabel = "Scalars";
-                                        break;
-                                    case "STRUCTURES":
-                                        categLabel = "Structures";
-                                        break;
-                                    default:
-                                        return;
-                                }
+                            case S6xNavHeaderCategory.TABLES:
+                            case S6xNavHeaderCategory.FUNCTIONS:
+                            case S6xNavHeaderCategory.SCALARS:
+                            case S6xNavHeaderCategory.STRUCTURES:
                                 TreeNode tnParent = new TreeNode();
                                 tnParent.Name = tnMainParent.Name;
-                                tnParent.Text = categLabel;
-                                tnParent.ToolTipText = tnMainParent.ToolTipText;
+                                tnParent.Text = S6xNav.getHeaderCategLabel(niMainHeaderCateg.HeaderCategory);
+                                tnParent.ToolTipText = S6xNav.getHeaderCategToolTip(niMainHeaderCateg.HeaderCategory);
                                 tnParent.ContextMenuStrip = resultCategContextMenuStrip;
                                 tnHeader.Nodes.Add(tnParent);
                                 tnHeader.ContextMenuStrip = resultCategContextMenuStrip;
@@ -1219,43 +1196,27 @@ namespace SAD806x
             {
                 foreach (TreeNode tnMainParent in elemsTreeView.Nodes)
                 {
-                    switch (tnMainParent.Name)
+                    S6xNavInfo niMainHeaderCateg = new S6xNavInfo(tnMainParent);
+                    if (!niMainHeaderCateg.isValid) continue;
+                    switch (niMainHeaderCateg.HeaderCategory)
                     {
-                        case "PROPERTIES":
-                        case "RESERVED":
-                        case "REGISTERS":
-                        case "OPERATIONS":
-                        case "OTHER":
-                        case "SIGNATURES":
-                        case "ELEMSSIGNATURES":
+                        case S6xNavHeaderCategory.PROPERTIES:
+                        case S6xNavHeaderCategory.RESERVED:
+                        case S6xNavHeaderCategory.REGISTERS:
+                        case S6xNavHeaderCategory.OPERATIONS:
+                        case S6xNavHeaderCategory.OTHER:
+                        case S6xNavHeaderCategory.SIGNATURES:
+                        case S6xNavHeaderCategory.ELEMSSIGNATURES:
                             break;
-                        default:
-                            string categLabel = string.Empty;
-                            switch (tnMainParent.Name)
-                            {
-                                case "TABLES":
-                                    categLabel = "Tables";
-                                    break;
-                                case "FUNCTIONS":
-                                    categLabel = "Functions";
-                                    break;
-                                case "SCALARS":
-                                    categLabel = "Scalars";
-                                    break;
-                                case "STRUCTURES":
-                                    categLabel = "Structures";
-                                    break;
-                                case "ROUTINES":
-                                    if (Mode == "S6x") continue;
-                                    categLabel = "Routines";
-                                    break;
-                                default:
-                                    return;
-                            }
+                        case S6xNavHeaderCategory.TABLES:
+                        case S6xNavHeaderCategory.FUNCTIONS:
+                        case S6xNavHeaderCategory.SCALARS:
+                        case S6xNavHeaderCategory.STRUCTURES:
+                        case S6xNavHeaderCategory.ROUTINES:
                             TreeNode tnParent = new TreeNode();
                             tnParent.Name = tnMainParent.Name;
-                            tnParent.Text = categLabel;
-                            tnParent.ToolTipText = tnMainParent.ToolTipText;
+                            tnParent.Text = S6xNav.getHeaderCategLabel(niMainHeaderCateg.HeaderCategory);
+                            tnParent.ToolTipText = S6xNav.getHeaderCategToolTip(niMainHeaderCateg.HeaderCategory);
                             tnParent.ContextMenuStrip = resultCategContextMenuStrip;
                             searchTreeView.Nodes.Add(tnParent);
                             break;
@@ -1288,7 +1249,7 @@ namespace SAD806x
                     int iCnt = 0;
                     foreach (TreeNode tnParent in tnHeader.Nodes)
                     {
-                        string categLabel = getCategLabel(tnParent.Name);
+                        string categLabel = S6xNav.getHeaderCategLabel(tnParent.Name);
                         if (categLabel == string.Empty) return;
                         tnParent.Text = categLabel + " (" + tnParent.Nodes.Count.ToString() + ")";
                         iCnt += tnParent.Nodes.Count;
@@ -1302,7 +1263,7 @@ namespace SAD806x
             {
                 foreach (TreeNode tnParent in searchTreeView.Nodes)
                 {
-                    string categLabel = getCategLabel(tnParent.Name);
+                    string categLabel = S6xNav.getHeaderCategLabel(tnParent.Name);
                     if (categLabel == string.Empty) return;
                     tnParent.Text = categLabel + " (" + tnParent.Nodes.Count.ToString() + ")";
                 }
@@ -1333,21 +1294,21 @@ namespace SAD806x
             bool bCreate = false;
             string categName = string.Empty;
 
-            switch (parentNode.Name)
+            switch (S6xNav.getHeaderCateg(parentNode.Name))
             {
-                case "STRUCTURES":
-                case "TABLES":
-                case "FUNCTIONS":
-                case "SCALARS":
+                case S6xNavHeaderCategory.STRUCTURES:
+                case S6xNavHeaderCategory.TABLES:
+                case S6xNavHeaderCategory.FUNCTIONS:
+                case S6xNavHeaderCategory.SCALARS:
                     // Its is for Missing in Source
                     bCreate = (parentNode.Parent.Name == "MISSING_IN_SOURCE");
                     break;
                 default:
                     // Its is Source Node
-                    switch (parentNode.Parent.Name)
+                    switch (S6xNav.getHeaderCateg(parentNode.Parent.Name))
                     {
-                        case "STRUCTURES":
-                            if (cmpNode.Tag.GetType().Name != "S6xStructure")
+                        case S6xNavHeaderCategory.STRUCTURES:
+                            if (cmpNode.Tag.GetType() != typeof(S6xStructure))
                             {
                                 bCreate = true;
                                 sadS6x.slStructures.Remove(parentNode.Name);
@@ -1357,8 +1318,8 @@ namespace SAD806x
                                 }
                             }
                             break;
-                        case "TABLES":
-                            if (cmpNode.Tag.GetType().Name != "S6xTable")
+                        case S6xNavHeaderCategory.TABLES:
+                            if (cmpNode.Tag.GetType() != typeof(S6xTable))
                             {
                                 bCreate = true;
                                 sadS6x.slTables.Remove(parentNode.Name);
@@ -1368,8 +1329,8 @@ namespace SAD806x
                                 }
                             }
                             break;
-                        case "FUNCTIONS":
-                            if (cmpNode.Tag.GetType().Name != "S6xFunction")
+                        case S6xNavHeaderCategory.FUNCTIONS:
+                            if (cmpNode.Tag.GetType() != typeof(S6xFunction))
                             {
                                 bCreate = true;
                                 sadS6x.slFunctions.Remove(parentNode.Name);
@@ -1379,8 +1340,8 @@ namespace SAD806x
                                 }
                             }
                             break;
-                        case "SCALARS":
-                            if (cmpNode.Tag.GetType().Name != "S6xScalar")
+                        case S6xNavHeaderCategory.SCALARS:
+                            if (cmpNode.Tag.GetType() != typeof(S6xScalar))
                             {
                                 bCreate = true;
                                 sadS6x.slScalars.Remove(parentNode.Name);
@@ -1394,31 +1355,33 @@ namespace SAD806x
                     break;
             }
 
-            switch (cmpNode.Tag.GetType().Name)
+            if (cmpNode.Tag.GetType() == typeof(S6xStructure))
             {
-                case "S6xStructure":
-                    categName = "STRUCTURES";
-                    if (bCreate) sadS6x.slStructures.Add(cmpNode.Name, cmpNode.Tag);
-                    else sadS6x.slStructures[cmpNode.Name] = cmpNode.Tag;
-                    break;
-                case "S6xTable":
-                    categName = "TABLES";
-                    if (bCreate) sadS6x.slTables.Add(cmpNode.Name, cmpNode.Tag);
-                    else sadS6x.slTables[cmpNode.Name] = cmpNode.Tag;
-                    break;
-                case "S6xFunction":
-                    categName = "FUNCTIONS";
-                    if (bCreate) sadS6x.slFunctions.Add(cmpNode.Name, cmpNode.Tag);
-                    else sadS6x.slFunctions[cmpNode.Name] = cmpNode.Tag;
-                    break;
-                case "S6xScalar":
-                    categName = "SCALARS";
-                    if (bCreate) sadS6x.slScalars.Add(cmpNode.Name, cmpNode.Tag);
-                    else sadS6x.slScalars[cmpNode.Name] = cmpNode.Tag;
-                    break;
+                categName = S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES);
+                if (bCreate) sadS6x.slStructures.Add(cmpNode.Name, cmpNode.Tag);
+                else sadS6x.slStructures[cmpNode.Name] = cmpNode.Tag;
+            }
+            else if (cmpNode.Tag.GetType() == typeof(S6xTable))
+            {
+                categName = S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES);
+                if (bCreate) sadS6x.slTables.Add(cmpNode.Name, cmpNode.Tag);
+                else sadS6x.slTables[cmpNode.Name] = cmpNode.Tag;
+            }
+            else if (cmpNode.Tag.GetType() == typeof(S6xFunction))
+            {
+                categName = S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS);
+                if (bCreate) sadS6x.slFunctions.Add(cmpNode.Name, cmpNode.Tag);
+                else sadS6x.slFunctions[cmpNode.Name] = cmpNode.Tag;
+            }
+            else if (cmpNode.Tag.GetType() == typeof(S6xScalar))
+            {
+                categName = S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS);
+                if (bCreate) sadS6x.slScalars.Add(cmpNode.Name, cmpNode.Tag);
+                else sadS6x.slScalars[cmpNode.Name] = cmpNode.Tag;
             }
 
-            TreeNode s6xNode = elemsTreeView.Nodes[categName].Nodes[cmpNode.Name];
+            S6xNavInfo niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[categName]);
+            TreeNode s6xNode = niHeaderCateg.FindElement(cmpNode.Name);
             if (s6xNode == null)
             {
                 s6xNode = new TreeNode();
@@ -1427,8 +1390,8 @@ namespace SAD806x
                 s6xNode.ToolTipText = cmpNode.ToolTipText;
                 s6xNode.ForeColor = Color.Purple;
                 s6xNode.ContextMenuStrip = elemsContextMenuStrip;
-                elemsTreeView.Nodes[categName].Nodes.Add(s6xNode);
-                elemsTreeView.Nodes[categName].Text = getCategLabel(categName) + " (" + elemsTreeView.Nodes[categName].Nodes.Count.ToString() + ")";
+                niHeaderCateg.AddNode(s6xNode, null, null, null, false);
+                niHeaderCateg.HeaderCategoryNode.Text = S6xNav.getHeaderCategLabel(niHeaderCateg.HeaderCategory) + " (" + niHeaderCateg.ElementsCount.ToString() + ")";
             }
             else
             {
@@ -1437,12 +1400,12 @@ namespace SAD806x
                 s6xNode.ForeColor = Color.Purple;
             }
 
-            switch (parentNode.Name)
+            switch (S6xNav.getHeaderCateg(parentNode.Name))
             {
-                case "STRUCTURES":
-                case "TABLES":
-                case "FUNCTIONS":
-                case "SCALARS":
+                case S6xNavHeaderCategory.STRUCTURES:
+                case S6xNavHeaderCategory.TABLES:
+                case S6xNavHeaderCategory.FUNCTIONS:
+                case S6xNavHeaderCategory.SCALARS:
                     // Its is for Missing in Source
                     parentNode.Nodes.Remove(cmpNode);
                     break;
@@ -1457,26 +1420,6 @@ namespace SAD806x
             searchTreeView.SelectedNode = null;
 
             sadS6x.isSaved = false;
-        }
-
-        private string getCategLabel(string categName)
-        {
-            switch (categName)
-            {
-                case "ROUTINES":
-                    return "Routines";
-                case "REGISTERS":
-                    return "Registers";
-                case "STRUCTURES":
-                    return "Structures";
-                case "TABLES":
-                    return "Tables";
-                case "FUNCTIONS":
-                    return "Functions";
-                case "SCALARS":
-                    return "Scalars";
-            }
-            return string.Empty;
         }
     }
 }

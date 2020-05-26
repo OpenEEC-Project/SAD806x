@@ -117,6 +117,14 @@ namespace SAD806x
                 if (!File.Exists(FilePath))
                 {
                     valid = true;
+                    if (SADFixedSigs.Fixed_Routines_Signatures != null)
+                    {
+                        foreach (object[] routineSignature in SADFixedSigs.Fixed_Routines_Signatures)
+                        {
+                            S6xSignature s6xRS = new S6xSignature(routineSignature);
+                            slSignatures.Add(s6xRS.UniqueKey, s6xRS);
+                        }
+                    }
                     if (SADFixedSigs.Fixed_Elements_Signatures != null)
                     {
                         foreach (object[] elementSignature in SADFixedSigs.Fixed_Elements_Signatures)
@@ -198,13 +206,22 @@ namespace SAD806x
                     foreach (S6xElementSignature s6xESig in s6xXml.S6xElementsSignatures) slElementsSignatures.Add(s6xESig.UniqueKey, s6xESig);
                 }
                 // Fixed Signature Mngt
-                // Unicity Check to be Added !!!!
+                if (SADFixedSigs.Fixed_Routines_Signatures != null)
+                {
+                    foreach (object[] routineSignature in SADFixedSigs.Fixed_Routines_Signatures)
+                    {
+                        S6xSignature s6xRS = new S6xSignature(routineSignature);
+                        if (slSignatures.ContainsKey(s6xRS.UniqueKey)) slSignatures[s6xRS.UniqueKey] = s6xRS;
+                        else slSignatures.Add(s6xRS.UniqueKey, s6xRS);
+                    }
+                }
                 if (SADFixedSigs.Fixed_Elements_Signatures != null)
                 {
                     foreach (object[] elementSignature in SADFixedSigs.Fixed_Elements_Signatures)
                     {
                         S6xElementSignature s6xES = new S6xElementSignature(elementSignature);
-                        if (!slElementsSignatures.ContainsKey(s6xES.UniqueKey)) slElementsSignatures.Add(s6xES.UniqueKey, s6xES);
+                        if (slElementsSignatures.ContainsKey(s6xES.UniqueKey)) slElementsSignatures[s6xES.UniqueKey] = s6xES;
+                        else slElementsSignatures.Add(s6xES.UniqueKey, s6xES);
                     }
                 }
 
@@ -302,9 +319,18 @@ namespace SAD806x
             foreach (S6xStructure s6xObject in slStructures.Values) if (s6xObject.Store && !s6xObject.Skip) slProcessStructures.Add(s6xObject.UniqueAddress, s6xObject);
             foreach (S6xRoutine s6xObject in slRoutines.Values) if (s6xObject.Store && !s6xObject.Skip) slProcessRoutines.Add(s6xObject.UniqueAddress, s6xObject);
             foreach (S6xOperation s6xObject in slOperations.Values) if (!s6xObject.Skip) slProcessOperations.Add(s6xObject.UniqueAddress, s6xObject);
-            foreach (S6xRegister s6xObject in slRegisters.Values) if (s6xObject.Store && !s6xObject.Skip) slProcessRegisters.Add(s6xObject.UniqueAddress, s6xObject);
+            foreach (S6xRegister s6xObject in slRegisters.Values) if ((s6xObject.Store && !s6xObject.Skip) || s6xObject.AutoConstValue) slProcessRegisters.Add(s6xObject.UniqueAddress, s6xObject);
             foreach (S6xOtherAddress s6xObject in slOtherAddresses.Values) if (!s6xObject.Skip) slProcessOtherAddresses.Add(s6xObject.UniqueAddress, s6xObject);
-            foreach (S6xSignature s6xObject in slSignatures.Values) if (!s6xObject.Skip) slProcessSignatures.Add(s6xObject.UniqueKey, s6xObject);
+
+            foreach (S6xSignature s6xObject in slSignatures.Values)
+            {
+                if (!s6xObject.Skip)
+                {
+                    s6xObject.Found = false;
+                    s6xObject.Ignore = false;
+                    slProcessSignatures.Add(s6xObject.UniqueKey, s6xObject);
+                }
+            }
 
             foreach (S6xElementSignature s6xObject in slElementsSignatures.Values)
             {
@@ -2215,14 +2241,15 @@ namespace SAD806x
             if (Label == string.Empty) Label = tableCalElem.TableElem.RBaseCalc;
             ShortLabel = tableCalElem.TableElem.ShortLabel;
             if (ShortLabel == string.Empty) ShortLabel = tableCalElem.TableElem.Address;
-            Comments = tableCalElem.TableElem.FullLabel;
+            if (tableCalElem.TableElem.Comments == string.Empty) Comments = tableCalElem.TableElem.FullLabel;
+            else Comments = tableCalElem.TableElem.Comments;
             ColsScalerAddress = tableCalElem.TableElem.ColsScalerUniqueAddress;  // From Forced Values at lower level
             RowsScalerAddress = tableCalElem.TableElem.RowsScalerUniqueAddress;  // From Forced Values at lower level
             CellsScaleExpression = tableCalElem.TableElem.CellsScaleExpression;  // From Forced Values at lower level
             CellsScalePrecision = tableCalElem.TableElem.CellsScalePrecision;
-            ColsUnits = string.Empty;
-            RowsUnits = string.Empty;
-            CellsUnits = string.Empty;
+            ColsUnits = tableCalElem.TableElem.ColsUnits;
+            RowsUnits = tableCalElem.TableElem.RowsUnits;
+            CellsUnits = tableCalElem.TableElem.CellsUnits;
 
             // Forced Values (Initially from S6x Inputs)
             foreach (RoutineCallInfoTable ciCI in tableCalElem.TableElem.RoutinesCallsInfos)
@@ -2287,14 +2314,14 @@ namespace SAD806x
             if (table.Lines != null) RowsNumber = table.Lines.Length;
             Label = table.Label;
             ShortLabel = table.ShortLabel;
-            Comments = string.Empty;
+            Comments = table.Comments;
             ColsScalerAddress = table.ColsScalerUniqueAddress;  // From Forced Values at lower level
             RowsScalerAddress = table.RowsScalerUniqueAddress;  // From Forced Values at lower level
             CellsScaleExpression = table.CellsScaleExpression;  // From Forced Values at lower level
             CellsScalePrecision = table.CellsScalePrecision;
-            ColsUnits = string.Empty;
-            RowsUnits = string.Empty;
-            CellsUnits = string.Empty;
+            ColsUnits = table.ColsUnits;
+            RowsUnits = table.RowsUnits;
+            CellsUnits = table.CellsUnits;
 
             // Forced Values (Initially from S6x Inputs)
             foreach (RoutineCallInfoTable ciCI in table.RoutinesCallsInfos)
@@ -2497,6 +2524,8 @@ namespace SAD806x
             clone.Label = Label;
             clone.Comments = Comments;
 
+            clone.Information = Information;
+
             return clone;
         }
 
@@ -2626,13 +2655,14 @@ namespace SAD806x
             if (Label == string.Empty) Label = functionCalElem.FunctionElem.RBaseCalc;
             ShortLabel = functionCalElem.FunctionElem.ShortLabel;
             if (ShortLabel == string.Empty) ShortLabel = functionCalElem.FunctionElem.Address;
-            Comments = functionCalElem.FunctionElem.FullLabel;
+            if (functionCalElem.FunctionElem.Comments == string.Empty) Comments = functionCalElem.FunctionElem.FullLabel;
+            else Comments = functionCalElem.FunctionElem.Comments;
             InputScaleExpression = functionCalElem.FunctionElem.InputScaleExpression;       // From Forced Values at lower level
             OutputScaleExpression = functionCalElem.FunctionElem.OutputScaleExpression;     // From Forced Values at lower level
             InputScalePrecision = functionCalElem.FunctionElem.InputScalePrecision;
             OutputScalePrecision = functionCalElem.FunctionElem.OutputScalePrecision;
-            InputUnits = string.Empty;
-            OutputUnits = string.Empty;
+            InputUnits = functionCalElem.FunctionElem.InputUnits;
+            OutputUnits = functionCalElem.FunctionElem.OutputUnits;
 
             // Forced Values (Initially from S6x Inputs)
             foreach (RoutineCallInfoFunction ciCI in functionCalElem.FunctionElem.RoutinesCallsInfos)
@@ -2690,13 +2720,13 @@ namespace SAD806x
             if (function.Lines != null) RowsNumber = function.Lines.Length;
             Label = function.Label;
             ShortLabel = function.ShortLabel;
-            Comments = string.Empty;
+            Comments = function.Comments;
             InputScaleExpression = function.InputScaleExpression;         // From Forced Values at lower level
             OutputScaleExpression = function.OutputScaleExpression;       // From Forced Values at lower level
             InputScalePrecision = function.InputScalePrecision;
             OutputScalePrecision = function.OutputScalePrecision;
-            InputUnits = string.Empty;
-            OutputUnits = string.Empty;
+            InputUnits = function.InputUnits;
+            OutputUnits = function.OutputUnits;
 
             // Forced Values (Initially from S6x Inputs)
             foreach (RoutineCallInfoFunction ciCI in function.RoutinesCallsInfos)
@@ -2851,6 +2881,8 @@ namespace SAD806x
             clone.Label = Label;
             clone.Comments = Comments;
 
+            clone.Information = Information;
+
             return clone;
         }
 
@@ -2948,6 +2980,8 @@ namespace SAD806x
 
         [XmlAttribute]
         public bool OutputComments { get; set; }
+        [XmlAttribute]
+        public bool InlineComments { get; set; }
 
         public string Label { get; set; }
         public string Comments { get; set; }
@@ -2960,6 +2994,9 @@ namespace SAD806x
 
         [XmlIgnore]
         public bool Store { get; set; }
+
+        [XmlIgnore]
+        public string Information { get; set; }
 
         [XmlArray(ElementName = "BitFlags")]
         [XmlArrayItem(ElementName = "BitFlag")]
@@ -2999,10 +3036,11 @@ namespace SAD806x
             if (Label == string.Empty) Label = scalarCalElem.ScalarElem.RBaseCalc;
             ShortLabel = scalarCalElem.ScalarElem.ShortLabel;
             if (ShortLabel == string.Empty) ShortLabel = scalarCalElem.ScalarElem.Address;
-            Comments = scalarCalElem.ScalarElem.Address;
+            if (scalarCalElem.ScalarElem.Comments == string.Empty) Comments = scalarCalElem.ScalarElem.Address;
+            else Comments = scalarCalElem.ScalarElem.Comments;
             ScaleExpression = scalarCalElem.ScalarElem.ScaleExpression;  // From Forced Values at lower level
             ScalePrecision = scalarCalElem.ScalarElem.ScalePrecision;
-            Units = string.Empty;
+            Units = scalarCalElem.ScalarElem.Units;
 
             if (scalarCalElem.ScalarElem.isBitFlags)
             {
@@ -3075,10 +3113,10 @@ namespace SAD806x
             Label = scalar.Label;
             ShortLabel = scalar.ShortLabel;
             if (Label == string.Empty) Label = ShortLabel;
-            Comments = string.Empty;
+            Comments = scalar.Comments;
             ScaleExpression = scalar.ScaleExpression;  // From Forced Values at lower level
             ScalePrecision = scalar.ScalePrecision;
-            Units = string.Empty;
+            Units = scalar.Units;
 
             if (scalar.isBitFlags)
             {
@@ -3234,11 +3272,10 @@ namespace SAD806x
 
             if (!existingBitFlag)
             {
-                bitFlag.ShortLabel = Tools.XDFLabelComToShortLabel(Label, Comments, "B" + bitFlag.Position.ToString());
-                bitFlag.Label = Tools.XDFLabelReview(Label, ShortLabel);
+                bitFlag.ShortLabel = Tools.XDFLabelComToShortLabel(bitFlag.Label, bitFlag.Comments, "B" + bitFlag.Position.ToString());
+                bitFlag.Label = Tools.XDFLabelReview(bitFlag.Label, bitFlag.ShortLabel);
                 bitFlag.SetValue = "1";
                 bitFlag.NotSetValue = "0";
-
             }
 
             BitFlags = new S6xBitFlag[slBitFlags.Count];
@@ -3296,8 +3333,11 @@ namespace SAD806x
 
             clone.ShortLabel = ShortLabel;
             clone.OutputComments = OutputComments;
+            clone.InlineComments = InlineComments;
             clone.Label = Label;
             clone.Comments = Comments;
+
+            clone.Information = Information;
 
             if (BitFlags != null) clone.BitFlags = (S6xBitFlag[])BitFlags.Clone();
             return clone;
@@ -3373,6 +3413,9 @@ namespace SAD806x
         public bool Store { get; set; }
 
         [XmlIgnore]
+        public string Information { get; set; }
+
+        [XmlIgnore]
         public string Address { get { return string.Format("{0:x4}", AddressInt + SADDef.EecBankStartAddress); } }
 
         [XmlIgnore]
@@ -3406,32 +3449,6 @@ namespace SAD806x
         {
         }
 
-        public S6xStructure(Structure structure)
-        {
-            BankNum = structure.BankNum;
-            AddressInt = structure.AddressInt;
-            AddressBinInt = structure.AddressBinInt;
-            Structure = structure;
-            StructDef = Structure.StructDefString;
-            Number = structure.Number;
-            Skip = false;
-            Label = structure.Label;
-            ShortLabel = structure.ShortLabel;
-            Comments = (structure.Defaulted) ? "Structure definition was defaulted" : string.Empty;
-
-            // Forced Values (Initially from S6x Internals)
-            if (structure.S6xElementSignatureSource != null)
-            {
-                if (structure.S6xElementSignatureSource.Structure != null)
-                {
-                    if (structure.S6xElementSignatureSource.Structure.Comments != null && structure.S6xElementSignatureSource.Structure.Comments != string.Empty)
-                    {
-                        Comments = structure.S6xElementSignatureSource.Structure.Comments;
-                    }
-                }
-            }
-        }
-
         public S6xStructure(CalibrationElement structureCalElem)
         {
 
@@ -3447,7 +3464,8 @@ namespace SAD806x
             if (Label == string.Empty) Label = structureCalElem.StructureElem.RBaseCalc;
             ShortLabel = structureCalElem.StructureElem.ShortLabel;
             if (ShortLabel == string.Empty) ShortLabel = structureCalElem.StructureElem.Address;
-            Comments = (structureCalElem.StructureElem.Defaulted) ? "Structure definition was defaulted" : string.Empty;
+            if (structureCalElem.StructureElem.Comments == string.Empty) Comments = (structureCalElem.StructureElem.Defaulted) ? "Structure definition was defaulted" : string.Empty;
+            else Comments = structureCalElem.StructureElem.Comments;
 
             // Forced Values (Initially from S6x Internals)
             if (structureCalElem.StructureElem.S6xElementSignatureSource != null)
@@ -3457,6 +3475,33 @@ namespace SAD806x
                     if (structureCalElem.StructureElem.S6xElementSignatureSource.Structure.Comments != null && structureCalElem.StructureElem.S6xElementSignatureSource.Structure.Comments != string.Empty)
                     {
                         Comments = structureCalElem.StructureElem.S6xElementSignatureSource.Structure.Comments;
+                    }
+                }
+            }
+        }
+
+        public S6xStructure(Structure structure)
+        {
+            BankNum = structure.BankNum;
+            AddressInt = structure.AddressInt;
+            AddressBinInt = structure.AddressBinInt;
+            Structure = structure;
+            StructDef = Structure.StructDefString;
+            Number = structure.Number;
+            Skip = false;
+            Label = structure.Label;
+            ShortLabel = structure.ShortLabel;
+            if (structure.Comments == string.Empty) Comments = (structure.Defaulted) ? "Structure definition was defaulted" : string.Empty;
+            else Comments = structure.Comments;
+
+            // Forced Values (Initially from S6x Internals)
+            if (structure.S6xElementSignatureSource != null)
+            {
+                if (structure.S6xElementSignatureSource.Structure != null)
+                {
+                    if (structure.S6xElementSignatureSource.Structure.Comments != null && structure.S6xElementSignatureSource.Structure.Comments != string.Empty)
+                    {
+                        Comments = structure.S6xElementSignatureSource.Structure.Comments;
                     }
                 }
             }
@@ -3518,6 +3563,8 @@ namespace SAD806x
             clone.OutputComments = OutputComments;
             clone.Label = Label;
             clone.Comments = Comments;
+
+            clone.Information = Information;
 
             return clone;
         }
@@ -3622,6 +3669,13 @@ namespace SAD806x
         public bool Skip { get; set; }
         [XmlIgnore]
         public bool Store { get; set; }
+        [XmlIgnore]
+        public bool SignatureForced { get; set; }
+        [XmlIgnore]
+        public string SignatureKey { get; set; }
+
+        [XmlIgnore]
+        public string Information { get; set; }
 
         [XmlArray(ElementName = "InputArguments")]
         [XmlArrayItem(ElementName = "InputArgument")]
@@ -3685,29 +3739,40 @@ namespace SAD806x
         {
             BankNum = cCall.BankNum;
             AddressInt = cCall.AddressInt;
-            ByteArgumentsNum = cCall.ArgsNum;
+            ByteArgumentsNum = cCall.ByteArgsNum;
             if (cCall.ArgsCondValidated) ByteArgumentsNum += cCall.ArgsNumCondAdder;
             if (ByteArgumentsNum < 0) ByteArgumentsNum = 0;
-            if (cCall.ArgsStackDepth != 1) ByteArgumentsNum = 0;
+            if (cCall.ArgsStackDepthMax < 1) ByteArgumentsNum = 0;
             ByteArgumentsNumOverride = false;
             Label = cCall.Label;
             ShortLabel = cCall.ShortLabel;
             if (Label == string.Empty) Label = cCall.UniqueAddressHex;
             if (rRoutine == null) Comments = cCall.UniqueAddressHex;
             else Comments = rRoutine.Comments;
-            if (cCall.Callers.Count > 4) Comments += "\r\nCalled " + cCall.Callers.Count.ToString() + " times.";
 
             if (cCall.Arguments != null && ByteArgumentsNum > 0)
             {
-                InputArguments = new S6xRoutineInputArgument[cCall.Arguments.Length];
-                for (int iArg = 0; iArg < InputArguments.Length; iArg++)
+                int iMatchingArgs = 0;
+                foreach (CallArgument cArg in cCall.Arguments) if (cArg.StackDepth == 1) iMatchingArgs++;
+                if (iMatchingArgs > 0)
                 {
-                    InputArguments[iArg] = new S6xRoutineInputArgument();
-                    InputArguments[iArg].UniqueKey = string.Format("Ra{0:d3}", iArg + 1);
-                    InputArguments[iArg].Position = iArg + 1;
-                    InputArguments[iArg].Encryption = (int)cCall.Arguments[iArg].Mode;
-                    InputArguments[iArg].Word = cCall.Arguments[iArg].Word;
-                    InputArguments[iArg].Pointer = InputArguments[iArg].Word;
+                    ByteArgumentsNum = 0;
+                    if (cCall.ArgsCondValidated) ByteArgumentsNum += cCall.ArgsNumCondAdder;
+                    int iCallArg = 0;
+                    InputArguments = new S6xRoutineInputArgument[iMatchingArgs];
+                    foreach (CallArgument cArg in cCall.Arguments)
+                    {
+                        if (cArg.StackDepth != 1) continue;
+                        InputArguments[iCallArg] = new S6xRoutineInputArgument();
+                        InputArguments[iCallArg].Position = iCallArg + 1;
+                        InputArguments[iCallArg].UniqueKey = string.Format("Ra{0:d3}", InputArguments[iCallArg].Position);
+                        InputArguments[iCallArg].Encryption = (int)cArg.Mode;
+                        InputArguments[iCallArg].Word = cArg.Word;
+                        InputArguments[iCallArg].Pointer = cArg.Word;
+                        ByteArgumentsNum++;
+                        if (cArg.Word) ByteArgumentsNum++;
+                        iCallArg++;
+                    }
                 }
             }
 
@@ -3893,6 +3958,8 @@ namespace SAD806x
             clone.OutputComments = OutputComments;
             clone.Label = Label;
             clone.Comments = Comments;
+
+            clone.Information = Information;
 
             if (InputArguments != null)
             {
@@ -4169,6 +4236,8 @@ namespace SAD806x
 
         [XmlAttribute]
         public bool OutputComments { get; set; }
+        [XmlAttribute]
+        public bool InlineComments { get; set; }
 
         public string Label { get; set; }
         public string Comments { get; set; }
@@ -4201,6 +4270,7 @@ namespace SAD806x
             clone.Signed = Signed;
             clone.ShortLabel = ShortLabel;
             clone.OutputComments = OutputComments;
+            clone.InlineComments = InlineComments;
             clone.Label = Label;
             clone.Comments = Comments;
             clone.ScaleExpression = ScaleExpression;
@@ -4573,9 +4643,14 @@ namespace SAD806x
 
         [XmlAttribute]
         public bool OutputComments { get; set; }
+        [XmlAttribute]
+        public bool InlineComments { get; set; }
 
         public string Label { get; set; }
         public string Comments { get; set; }
+
+        [XmlIgnore]
+        public string Information { get; set; }
 
         [XmlIgnore]
         public string Address { get { return string.Format("{0:x4}", AddressInt + SADDef.EecBankStartAddress); } }
@@ -4604,6 +4679,15 @@ namespace SAD806x
         [XmlIgnore]
         public bool Store { get; set; }
 
+        [XmlAttribute]
+        public bool isRBase { get; set; }
+        [XmlAttribute]
+        public bool isRConst { get; set; }
+        [XmlAttribute]
+        public string ConstValue { get; set; }
+        [XmlIgnore]
+        public bool AutoConstValue { get; set; }
+
         public string Label { get; set; }
         public string ByteLabel { get; set; }
         public string WordLabel { get; set; }
@@ -4612,6 +4696,12 @@ namespace SAD806x
         [XmlArray(ElementName = "BitFlags")]
         [XmlArrayItem(ElementName = "BitFlag")]
         public S6xBitFlag[] BitFlags { get; set; }
+
+        public string ScaleExpression { get; set; }
+        [XmlAttribute]
+        public int ScalePrecision { get; set; }
+
+        public string Units { get; set; }
 
         [XmlIgnore]
         public string Information { get; set; }
@@ -4690,11 +4780,14 @@ namespace SAD806x
 
         public S6xRegister()
         {
+            ScalePrecision = SADDef.DefaultScalePrecision;
         }
 
         public S6xRegister(int addressInt)
         {
             AddressInt = addressInt;
+
+            ScalePrecision = SADDef.DefaultScalePrecision;
         }
 
         public S6xRegister(string address)
@@ -4711,6 +4804,8 @@ namespace SAD806x
             {
                 AddressInt = Convert.ToInt32(address, 16);
             }
+
+            ScalePrecision = SADDef.DefaultScalePrecision;
         }
 
         public void AddBitFlag(S6xBitFlag s6xBitFlag)
@@ -4734,6 +4829,7 @@ namespace SAD806x
             bitFlag.ShortLabel = s6xBitFlag.ShortLabel;
             bitFlag.SetValue = s6xBitFlag.SetValue;
             bitFlag.NotSetValue = s6xBitFlag.NotSetValue;
+            bitFlag.HideParent = s6xBitFlag.HideParent;
 
             BitFlags = new S6xBitFlag[slBitFlags.Count];
             slBitFlags.Values.CopyTo(BitFlags, 0);
@@ -4750,10 +4846,20 @@ namespace SAD806x
             clone.Skip = Skip;
             clone.Store = Store;
 
+            clone.isRBase = isRBase;
+            clone.isRConst = isRConst;
+            clone.ConstValue = ConstValue;
+            clone.AutoConstValue = AutoConstValue;
+
             clone.Label = Label;
             clone.ByteLabel = ByteLabel;
             clone.WordLabel = WordLabel;
             clone.Comments = Comments;
+
+            clone.ScaleExpression = ScaleExpression;
+            clone.ScalePrecision = ScalePrecision;
+
+            clone.Units = Units;
 
             clone.Information = Information;
 
@@ -4775,10 +4881,17 @@ namespace SAD806x
         public bool Skip { get; set; }
 
         [XmlAttribute]
+        public bool OutputLabel { get; set; }
+        [XmlAttribute]
         public bool OutputComments { get; set; }
+        [XmlAttribute]
+        public bool InlineComments { get; set; }
 
         public string Label { get; set; }
         public string Comments { get; set; }
+
+        [XmlIgnore]
+        public string Information { get; set; }
 
         [XmlIgnore]
         public string Address { get { return string.Format("{0:x4}", AddressInt + SADDef.EecBankStartAddress); } }
@@ -4788,6 +4901,12 @@ namespace SAD806x
         [XmlIgnore]
         public string UniqueAddressHex { get { return string.Format("{0,1} {1,4}", BankNum, Address); } }
 
+        [XmlIgnore]
+        public string DefaultLabel { get { return SADDef.ShortOtherAddressPrefix + UniqueAddressHex.Replace(" ", "_"); } }
+
+        [XmlIgnore]
+        public bool hasDefaultLabel { get { return Label == DefaultLabel; } }
+        
         public S6xOtherAddress()
         {
         }
@@ -4803,21 +4922,40 @@ namespace SAD806x
         [XmlAttribute]
         public bool Skip { get; set; }
 
+        [XmlAttribute]
+        public bool Forced { get; set; }
+
         public string Signature { get; set; }
 
+        // Routine Dedicated - Values from V0
         [XmlAttribute]
         public string ShortLabel { get; set; }
 
         [XmlAttribute]
         public bool OutputComments { get; set; }
-        
+
         public string Label { get; set; }
+
         public string Comments { get; set; }
+
+        // Signature Dedicated - New Values
+        public string SignatureLabel { get; set; }
+        public string SignatureCategory { get; set; }
+        public string SignatureCategory2 { get; set; }
+        public string SignatureCategory3 { get; set; }
+        public string SignatureComments { get; set; }
+        
+        [XmlAttribute]
+        public string for806x { get; set; }
+        [XmlAttribute]
+        public string forBankNum { get; set; }
 
         [XmlIgnore]
         public bool Ignore { get; set; }
         [XmlIgnore]
         public string Information { get; set; }
+        [XmlIgnore]
+        public bool Found { get; set; }
 
         [XmlArray(ElementName = "InternalStructures")]
         [XmlArrayItem(ElementName = "InternalStructure")]
@@ -4897,16 +5035,97 @@ namespace SAD806x
         {
         }
 
+        public S6xSignature(object[] routineSignature)
+        {
+            Forced = true;
+
+            try
+            {
+                // routineSignature
+                // Fixed Routines Signatures Array
+                // UniqueKey, Calibration Element Enum (Enum), Bytes Signature (String), Signature Label (String), Signature Categ (String), Signature Categ 2 (String), Signature Categ 2 (String), Signature Comments (String)
+
+                UniqueKey = (string)routineSignature[0];
+                Signature = (string)routineSignature[2];
+                SignatureLabel = (string)routineSignature[3];
+                SignatureCategory = (string)routineSignature[4];
+                SignatureCategory2 = (string)routineSignature[5];
+                SignatureCategory3 = (string)routineSignature[6];
+                SignatureComments = (string)routineSignature[7];
+
+                S6xSignature rSig = SADFixedSigs.GetFixedRoutineSignatureTemplate((SADFixedSigs.Fixed_Routines)routineSignature[1]);
+                if (rSig == null)
+                {
+                    Skip = true;
+                    return;
+                }
+
+                // Routine part
+                ShortLabel = rSig.ShortLabel;
+                Label = rSig.Label;
+                Comments = rSig.Comments;
+                OutputComments = rSig.OutputComments;
+                
+                for806x = rSig.for806x;
+                forBankNum = rSig.forBankNum;
+
+                if (rSig.InputArguments != null)
+                {
+                    InputArguments = new S6xRoutineInputArgument[rSig.InputArguments.Length];
+                    for (int iInputO = 0; iInputO < InputArguments.Length; iInputO++)
+                    {
+                        InputArguments[iInputO] = rSig.InputArguments[iInputO].Clone();
+                        InputArguments[iInputO].UniqueKey = string.Format("Ra{0:d3}", InputArguments[iInputO].Position);
+                    }
+                }
+                // ...
+                if (rSig.InternalStructures != null)
+                {
+                    InternalStructures = new S6xRoutineInternalStructure[rSig.InternalStructures.Length];
+                    for (int iInterO = 0; iInterO < InternalStructures.Length; iInterO++)
+                    {
+                        InternalStructures[iInterO] = rSig.InternalStructures[iInterO].Clone();
+                        InternalStructures[iInterO].UniqueKey = getNewElemUniqueKey();
+                    }
+                }
+                rSig = null;
+
+                Found = false;
+                Ignore = false;
+
+                Skip = false;
+            }
+            catch
+            {
+                Skip = true;
+            }
+        }
+
         public S6xSignature Clone()
         {
             S6xSignature clone = new S6xSignature();
             clone.UniqueKey = UniqueKey;
             clone.Skip = Skip;
             clone.Signature = Signature;
+            clone.SignatureLabel = SignatureLabel;
+            clone.SignatureCategory = SignatureCategory;
+            clone.SignatureCategory2 = SignatureCategory2;
+            clone.SignatureCategory3 = SignatureCategory3;
+            clone.SignatureComments = SignatureComments;
+
+            // Routine part
             clone.ShortLabel = ShortLabel;
-            clone.OutputComments = OutputComments;
             clone.Label = Label;
             clone.Comments = Comments;
+            clone.OutputComments = OutputComments;
+
+            clone.for806x = for806x;
+            clone.forBankNum = forBankNum;
+
+            clone.Found = Found;
+            clone.Ignore = Ignore;
+
+            clone.Information = Information;
 
             if (InputArguments != null)
             {
@@ -4957,6 +5176,121 @@ namespace SAD806x
 
             return clone;
         }
+
+        public string getNewElemUniqueKey()
+        {
+            int cnt = 0;
+            ArrayList alKeys = new ArrayList();
+
+            if (InternalStructures != null)
+            {
+                cnt += InternalStructures.Length;
+                foreach (S6xRoutineInternalStructure s6xObject in InternalStructures)
+                {
+                    if (s6xObject == null) continue;
+                    if (s6xObject.UniqueKey == null) continue;
+                    if (alKeys.Contains(s6xObject.UniqueKey)) continue;
+                    alKeys.Add(s6xObject.UniqueKey);
+                }
+            }
+            if (InternalTables != null)
+            {
+                cnt += InternalTables.Length;
+                foreach (S6xRoutineInternalTable s6xObject in InternalTables)
+                {
+                    if (s6xObject == null) continue;
+                    if (s6xObject.UniqueKey == null) continue;
+                    if (alKeys.Contains(s6xObject.UniqueKey)) continue;
+                    alKeys.Add(s6xObject.UniqueKey);
+                }
+            }
+            if (InternalFunctions != null)
+            {
+                cnt += InternalFunctions.Length;
+                foreach (S6xRoutineInternalFunction s6xObject in InternalFunctions)
+                {
+                    if (s6xObject == null) continue;
+                    if (s6xObject.UniqueKey == null) continue;
+                    if (alKeys.Contains(s6xObject.UniqueKey)) continue;
+                    alKeys.Add(s6xObject.UniqueKey);
+                }
+            }
+            if (InternalScalars != null)
+            {
+                cnt += InternalScalars.Length;
+                foreach (S6xRoutineInternalScalar s6xObject in InternalScalars)
+                {
+                    if (s6xObject == null) continue;
+                    if (s6xObject.UniqueKey == null) continue;
+                    if (alKeys.Contains(s6xObject.UniqueKey)) continue;
+                    alKeys.Add(s6xObject.UniqueKey);
+                }
+            }
+            if (InputArguments != null)
+            {
+                cnt += InputArguments.Length;
+                foreach (S6xRoutineInputArgument s6xObject in InputArguments)
+                {
+                    if (s6xObject == null) continue;
+                    if (s6xObject.UniqueKey == null) continue;
+                    if (alKeys.Contains(s6xObject.UniqueKey)) continue;
+                    alKeys.Add(s6xObject.UniqueKey);
+                }
+            }
+            if (InputStructures != null)
+            {
+                cnt += InputStructures.Length;
+                foreach (S6xRoutineInputStructure s6xObject in InputStructures)
+                {
+                    if (s6xObject == null) continue;
+                    if (s6xObject.UniqueKey == null) continue;
+                    if (alKeys.Contains(s6xObject.UniqueKey)) continue;
+                    alKeys.Add(s6xObject.UniqueKey);
+                }
+            }
+            if (InputTables != null)
+            {
+                cnt += InputTables.Length;
+                foreach (S6xRoutineInputTable s6xObject in InputTables)
+                {
+                    if (s6xObject == null) continue;
+                    if (s6xObject.UniqueKey == null) continue;
+                    if (alKeys.Contains(s6xObject.UniqueKey)) continue;
+                    alKeys.Add(s6xObject.UniqueKey);
+                }
+            }
+            if (InputFunctions != null)
+            {
+                cnt += InputFunctions.Length;
+                foreach (S6xRoutineInputFunction s6xObject in InputFunctions)
+                {
+                    if (s6xObject == null) continue;
+                    if (s6xObject.UniqueKey == null) continue;
+                    if (alKeys.Contains(s6xObject.UniqueKey)) continue;
+                    alKeys.Add(s6xObject.UniqueKey);
+                }
+            }
+            if (InputScalars != null)
+            {
+                cnt += InputScalars.Length;
+                foreach (S6xRoutineInputScalar s6xObject in InputScalars)
+                {
+                    if (s6xObject == null) continue;
+                    if (s6xObject.UniqueKey == null) continue;
+                    if (alKeys.Contains(s6xObject.UniqueKey)) continue;
+                    alKeys.Add(s6xObject.UniqueKey);
+                }
+            }
+
+            string uniqueKey = string.Empty;
+            while (true)
+            {
+                uniqueKey = string.Format("Sa{0:d3}", cnt);
+                if (!alKeys.Contains(uniqueKey)) break;
+                cnt++;
+            }
+            return uniqueKey;
+        }
     }
 
     [Serializable]
@@ -4975,9 +5309,17 @@ namespace SAD806x
         public string Signature { get; set; }
 
         public string SignatureLabel { get; set; }
+        public string SignatureCategory { get; set; }
+        public string SignatureCategory2 { get; set; }
+        public string SignatureCategory3 { get; set; }
         public string SignatureComments { get; set; }
 
         public string SignatureOpeIncludingElemAddress { get; set; }
+
+        [XmlAttribute]
+        public bool for8061 { get; set; }
+        [XmlAttribute]
+        public string forBankNum { get; set; }
 
         [XmlIgnore]
         public string SignatureKey
@@ -4997,11 +5339,9 @@ namespace SAD806x
         public string Information { get; set; }
 
         [XmlIgnore]
-        public bool for8061 { get; set; }
-        [XmlIgnore]
-        public string forBankNum { get; set; }
-        [XmlIgnore]
         public bool Found { get; set; }
+        [XmlIgnore]
+        public bool Ignore { get; set; }
 
         public S6xRoutineInternalStructure Structure { get; set; }
         public S6xRoutineInternalTable Table { get; set; }
@@ -5024,23 +5364,31 @@ namespace SAD806x
 
             try
             {
+                // elementSignature
+                // Fixed Elements Signatures Array
+                // UniqueKey, Label, Signature Categ (String), Signature Categ 2 (String), Signature Categ 3 (String), Comments, Is 8061 (True, False), Fixed Bank (-1, 0, 1, 8, 9), Calibration Element Enum (Enum), Bytes Signature (String)
+
                 UniqueKey = (string)elementSignature[0];
                 SignatureLabel = (string)elementSignature[1];
-                SignatureComments = (string)elementSignature[2];
+                SignatureCategory = (string)elementSignature[2];
+                SignatureCategory2 = (string)elementSignature[3];
+                SignatureCategory3 = (string)elementSignature[4];
+                SignatureComments = (string)elementSignature[5];
 
-                for8061 = (bool)elementSignature[3];
-                forBankNum = (string)elementSignature[4];
+                for8061 = (bool)elementSignature[6];
+                forBankNum = (string)elementSignature[7];
 
-                object oElement = SADFixedSigs.GetFixedElementS6xRoutineInternalTemplate((SADFixedSigs.Fixed_Elements)elementSignature[5]);
+                object oElement = SADFixedSigs.GetFixedElementS6xRoutineInternalTemplate((SADFixedSigs.Fixed_Elements)elementSignature[8]);
                 if (oElement.GetType() == typeof(S6xRoutineInternalStructure)) Structure = (S6xRoutineInternalStructure)oElement;
                 else if (oElement.GetType() == typeof(S6xRoutineInternalTable)) Table = (S6xRoutineInternalTable)oElement;
                 else if (oElement.GetType() == typeof(S6xRoutineInternalFunction)) Function = (S6xRoutineInternalFunction)oElement;
                 else if (oElement.GetType() == typeof(S6xRoutineInternalScalar)) Scalar = (S6xRoutineInternalScalar)oElement;
                 oElement = null;
 
-                Signature = (string)elementSignature[6];
+                Signature = (string)elementSignature[9];
 
                 Found = false;
+                Ignore = false;
 
                 SignatureOpeIncludingElemAddress = SADFixedSigs.Fixed_String_OpeIncludingElemAddress;
                 
@@ -5065,11 +5413,17 @@ namespace SAD806x
             clone.Skip = Skip;
             clone.Signature = Signature;
             clone.SignatureLabel = SignatureLabel;
+            clone.SignatureCategory = SignatureCategory;
+            clone.SignatureCategory2 = SignatureCategory2;
+            clone.SignatureCategory3 = SignatureCategory3;
             clone.SignatureComments = SignatureComments;
 
             clone.for8061 = for8061;
             clone.forBankNum = forBankNum;
             clone.Found = Found;
+            clone.Ignore = Ignore;
+
+            clone.Information = Information;
 
             if (Structure != null) clone.Structure = Structure.Clone();
             if (Table != null) clone.Table = Table.Clone();
@@ -5081,7 +5435,7 @@ namespace SAD806x
 
         public bool matchSignature(ref Operation elementUseOpe, SADBank elementUseOpeBank, bool is8061)
         {
-            if (Skip || Found) return false;
+            if (Skip || Found || Ignore) return false;
             if (Signature.Contains("*") || Signature.Contains("{")) return false; // Not authorized for elements, based on operation location
             if (for8061 && !is8061) return false;
             switch (forBankNum)
@@ -5136,6 +5490,11 @@ namespace SAD806x
 
         [XmlAttribute]
         public bool RegListOutput { get; set; }
+
+        [XmlAttribute]
+        public bool OutputHeader { get; set; }
+
+        public string Header { get; set; }
 
         [XmlAttribute]
         public string XdfBaseOffset { get; set; }

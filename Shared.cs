@@ -4,13 +4,22 @@ using System.Text;
 
 namespace SAD806x
 {
-    // Main Form Processes
-    public enum ProcessType
+    // Routine Signature available 806x options
+    public enum Signature806xOptions
     {
-        None,
-        Load,
-        Disassemble,
-        Output
+        Undefined = 0,
+        for8061Only = 1,
+        for8065Only = 2
+    }
+
+    // Routine Signature available Bank options
+    public enum SignatureBankOptions
+    {
+        Undefined = 0,
+        forBank8Only = 1,
+        forBank1Only = 2,
+        forBank9Only = 3,
+        forBank0Only = 4,
     }
     
     // SAD Info
@@ -88,7 +97,12 @@ namespace SAD806x
 
         public bool isIncluded = false;
         public SortedList IncludedElements = null;
-        
+
+        public string Address { get { return string.Format("{0:x4}", SADDef.EecBankStartAddress + AddressInt); } }
+
+        public string UniqueAddress { get { return string.Format("{0,1} {1,5}", BankNum, AddressInt); } }
+        public string UniqueAddressHex { get { return string.Format("{0,1} {1,4}", BankNum, Address); } }
+
         public Element(object element, MergedType type)
         {
             Type = type;
@@ -492,6 +506,222 @@ namespace SAD806x
         }
     }
 
+    // Register Links
+    public class RegisterFunctionLink
+    {
+        public string FunctionUniqueAddress = string.Empty;
+
+        public bool isInputRegister = false;
+        public bool isOutputRegister = false;
+        public bool isOutputRegisterByte = false;
+
+        public RegisterFunctionLink(string functionUniqueAddress)
+        {
+            FunctionUniqueAddress = functionUniqueAddress;
+        }
+
+        public void SetRegisterRole(bool setInputRegister, bool setOutputRegister, bool setOutputRegisterByte)
+        {
+            if (setInputRegister) isInputRegister = true;
+            if (setOutputRegister) isOutputRegister = true;
+            if (setOutputRegisterByte) isOutputRegisterByte = true;
+        }
+    }
+
+    public class RegisterTableLink
+    {
+        public string TableUniqueAddress = string.Empty;
+
+        public bool isColumnsScaler = false;
+        public bool isRowsScaler = false;
+
+        public bool isOutputRegister = false;
+        public bool isOutputRegisterByte = false;
+
+        public RegisterTableLink(string tableUniqueAddress)
+        {
+            TableUniqueAddress = tableUniqueAddress;
+        }
+
+        public void SetRegisterRole(bool setColumnsScaler, bool setRowsScaler, bool setOutputRegister, bool setOutputRegisterByte)
+        {
+            if (setColumnsScaler) isColumnsScaler = true;
+            if (setRowsScaler) isRowsScaler = true;
+
+            if (setOutputRegister) isOutputRegister = true;
+            if (setOutputRegisterByte) isOutputRegisterByte = true;
+        }
+    }
+
+    public class RegisterRegisterLink
+    {
+        public string RegisterUniqueAddress = string.Empty;
+
+        public bool isSourceThroughFunction = false;
+        public bool isDestinationThroughFunction = false;
+
+        public bool isSourceScaler = false;
+        public bool isDestinationScaler = false;
+
+        public ArrayList RelatedFunctionsUniqueAddresses = null;
+
+        public RegisterRegisterLink(string registerUniqueAddress)
+        {
+            RegisterUniqueAddress = registerUniqueAddress;
+            RelatedFunctionsUniqueAddresses = new ArrayList();
+        }
+
+        public void SetRegisterRole(bool setSourceThroughFunction, bool setDestinationThroughFunction, string relatedFunctionUniqueAddress, bool scalerContext)
+        {
+            if (setSourceThroughFunction) isSourceThroughFunction = true;
+            if (setDestinationThroughFunction) isDestinationThroughFunction = true;
+
+            if (scalerContext && setSourceThroughFunction) isSourceScaler = true;
+            if (scalerContext && setDestinationThroughFunction) isDestinationScaler = true;
+
+            if (!RelatedFunctionsUniqueAddresses.Contains(relatedFunctionUniqueAddress)) RelatedFunctionsUniqueAddresses.Add(relatedFunctionUniqueAddress);
+        }
+    }
+
+    public class RegisterLinks
+    {
+        private SortedList functionsLinks = null;
+        private SortedList tablesLinks = null;
+        private SortedList registersLinks = null;
+
+        public SortedList FunctionsLinks { get { return functionsLinks; } }
+        public SortedList TablesLinks { get { return tablesLinks; } }
+        public SortedList RegistersLinks { get { return registersLinks; } }
+
+        public RegisterLinks()
+        {
+            functionsLinks = new SortedList();
+            tablesLinks = new SortedList();
+            registersLinks = new SortedList();
+        }
+
+        public void addFunctionLink(string uniqueAddress, bool setInputRegister, bool setOutputRegister, bool setOutputRegisterByte)
+        {
+            RegisterFunctionLink lLink = (RegisterFunctionLink)functionsLinks[uniqueAddress];
+            if (lLink == null)
+            {
+                lLink = new RegisterFunctionLink(uniqueAddress);
+                functionsLinks.Add(uniqueAddress, lLink);
+            }
+            lLink.SetRegisterRole(setInputRegister, setOutputRegister, setOutputRegisterByte);
+        }
+
+        public RegisterFunctionLink getFunctionLink(string uniqueAddress)
+        {
+            return (RegisterFunctionLink)functionsLinks[uniqueAddress];
+        }
+
+        public void addTableLink(string uniqueAddress, bool setColumnsScaler, bool setRowsScaler, bool setOutputRegister, bool setOutputRegisterByte)
+        {
+            RegisterTableLink lLink = (RegisterTableLink)tablesLinks[uniqueAddress];
+            if (lLink == null)
+            {
+                lLink = new RegisterTableLink(uniqueAddress);
+                tablesLinks.Add(uniqueAddress, lLink);
+            }
+            lLink.SetRegisterRole(setColumnsScaler, setRowsScaler, setOutputRegister, setOutputRegisterByte);
+
+        }
+
+        public RegisterTableLink getTableLink(string uniqueAddress)
+        {
+            return (RegisterTableLink)tablesLinks[uniqueAddress];
+        }
+
+        public void addRegisterLink(string registerUniqueAddress, bool setSourceThroughFunction, bool setDestinationThroughFunction, string relatedFunctionUniqueAddress, bool scalerContext)
+        {
+            RegisterRegisterLink lLink = (RegisterRegisterLink)registersLinks[registerUniqueAddress];
+            if (lLink == null)
+            {
+                lLink = new RegisterRegisterLink(registerUniqueAddress);
+                registersLinks.Add(registerUniqueAddress, lLink);
+            }
+            lLink.SetRegisterRole(setSourceThroughFunction, setDestinationThroughFunction, relatedFunctionUniqueAddress, scalerContext);
+
+        }
+
+        public RegisterRegisterLink getRegisterLink(string uniqueAddress)
+        {
+            return (RegisterRegisterLink)registersLinks[uniqueAddress];
+        }
+    }
+    
+    // Register
+    public class Register
+    {
+        public int AddressInt = -1;
+        public string AdditionalAddress10 = string.Empty;
+
+        public bool is8061KAMRegister = false;
+        public bool is8061CCRegister = false;
+        public bool is8061ECRegister = false;
+
+        public RBase RBase = null;
+        public RConst RConst = null;
+        public EecRegister EecRegister = null;
+
+        public S6xRegister S6xRegister = null;
+
+        public RegisterLinks Links = null;
+        
+        public string Address
+        {
+            get
+            {
+                if (isDual) return string.Format("{0:x2}", AddressInt) + SADDef.AdditionSeparator + string.Format("{0:x2}", Convert.ToInt32(AdditionalAddress10));
+                else return string.Format("{0:x2}", AddressInt);
+            }
+        }
+
+        public string UniqueAddress
+        {
+            get
+            {
+                if (isDual) return Tools.RegisterUniqueAddress(AddressInt) + SADDef.AdditionSeparator + AdditionalAddress10;
+                else return Tools.RegisterUniqueAddress(AddressInt);
+            }
+        }
+
+        public int UniqueAddressInt
+        {
+            get
+            {
+                if (isDual) return AddressInt + Convert.ToInt32(AdditionalAddress10);
+                else return AddressInt;
+            }
+        }
+
+        public bool isDual { get { return !(AdditionalAddress10 == null || AdditionalAddress10 == string.Empty); } }
+
+        public string Instruction { get { return Tools.RegisterInstruction(Address); } } 
+
+        public Register(int addressInt)
+        {
+            AddressInt = addressInt;
+        }
+
+        public Register(string address)
+        {
+            if (address.Contains(SADDef.AdditionSeparator))
+            {
+                string regPart1 = address.Substring(0, address.IndexOf(SADDef.AdditionSeparator));
+                string regPart2 = address.Replace(regPart1 + SADDef.AdditionSeparator, string.Empty);
+
+                AddressInt = Convert.ToInt32(regPart1, 16);
+                AdditionalAddress10 = Convert.ToString(Convert.ToInt32(regPart2, 16), 10);
+            }
+            else
+            {
+                AddressInt = Convert.ToInt32(address, 16);
+            }
+        }
+    }
+
     // EecRegister
 
     public enum EecRegisterCheck
@@ -632,8 +862,36 @@ namespace SAD806x
         Mode4Struct = 7
     }
 
+    public class CallArgumentDetection
+    {
+        public int StackDepth = -1;
+        public string StackReadRegister = string.Empty;
+
+        public bool CountModeOn = false;
+
+        public CallArgument CallArgument = null;
+        
+        public CallArgumentDetection(int stackDepth, string stackReadRegister)
+        {
+            StackDepth = stackDepth;
+            StackReadRegister = stackReadRegister;
+        }
+
+        public void CreateCallArgument(int outputRegisterAddressInt)
+        {
+            CallArgument = new CallArgument();
+            CallArgument.StackDepth = StackDepth;
+            CallArgument.StackReadRegister = StackReadRegister;
+
+            CallArgument.OutputRegisterAddressInt = outputRegisterAddressInt;
+        }
+    }
+
     public class CallArgument
     {
+        public int StackDepth = -1;
+        public string StackReadRegister = string.Empty;
+
         public int OutputRegisterAddressInt = -1;
         public bool Word = false;
         public CallArgsMode Mode = CallArgsMode.Unknown;
@@ -654,18 +912,20 @@ namespace SAD806x
 
         public CallArgument Clone()
         {
-            CallArgument caRes = new CallArgument();
-            caRes.OutputRegisterAddressInt = OutputRegisterAddressInt;
-            caRes.Word = Word;
-            caRes.Mode = Mode;
+            CallArgument clone = new CallArgument();
+            clone.StackDepth = StackDepth;
+            clone.StackReadRegister = StackReadRegister;
+            clone.OutputRegisterAddressInt = OutputRegisterAddressInt;
+            clone.Word = Word;
+            clone.Mode = Mode;
 
-            caRes.Position = Position;
-            caRes.InputValueInt = InputValueInt;
-            caRes.DecryptedValueInt = DecryptedValueInt;
+            clone.Position = Position;
+            clone.InputValueInt = InputValueInt;
+            clone.DecryptedValueInt = DecryptedValueInt;
 
-            caRes.S6xRoutineInputArgument = S6xRoutineInputArgument;
+            clone.S6xRoutineInputArgument = S6xRoutineInputArgument;
 
-            return caRes;
+            return clone;
         }
     }
     
@@ -699,9 +959,9 @@ namespace SAD806x
 
         public CallType CallType = CallType.Unknown;
         
-        public int ArgsNum = 0;
+        public int ByteArgsNum = 0;
         public int ArgsNumCondAdder = 0;
-        public int ArgsStackDepth = -1;
+        public int ArgsStackDepthMax = -1;
         public CallArgsType ArgsType = CallArgsType.Unknown;
         public int ArgsVariableOutputFirstRegisterAddress = -1;
         public string ArgsVariableExternalRegister = string.Empty;
@@ -785,6 +1045,15 @@ namespace SAD806x
             }
         }
 
+        public bool OutputComments
+        {
+            get
+            {
+                if (S6xRoutine == null) return false;
+                else return S6xRoutine.OutputComments;
+            }
+        }
+
         public Call(int bankNum, int addressInt, CallType callType, int callerBankNum, int callerAddressInt)
         {
             BankNum = bankNum;
@@ -851,6 +1120,7 @@ namespace SAD806x
         Unknown,
         Checksum,
         Init,
+        CoreInit,
         TableCore
     }
 
@@ -1399,8 +1669,14 @@ namespace SAD806x
         public string CellsScaleExpression = "X";
         public int CellsScalePrecision = SADDef.DefaultScalePrecision;
 
+        public string ColsUnits = string.Empty;
+        public string RowsUnits = string.Empty;
+        public string CellsUnits = string.Empty;
+
         private string label = string.Empty;
         private string shortLabel = string.Empty;
+
+        private string comments = string.Empty;
 
         public S6xTable S6xTable = null;
         public S6xElementSignature S6xElementSignatureSource = null;
@@ -1476,10 +1752,20 @@ namespace SAD806x
         {
             get
             {
-                if (S6xTable == null) return string.Empty;
+                if (S6xTable == null) return comments;
                 else if (S6xTable.Comments == null) return string.Empty;
                 else if (!S6xTable.OutputComments) return string.Empty;
                 else return S6xTable.Comments; 
+            }
+            set { comments = value; }
+        }
+
+        public bool OutputComments
+        {
+            get
+            {
+                if (S6xTable == null) return false;
+                else return S6xTable.OutputComments;
             }
         }
 
@@ -1495,6 +1781,9 @@ namespace SAD806x
             WordOutput = s6xTable.WordOutput;
             SignedOutput = s6xTable.SignedOutput;
             ColsNumber = s6xTable.ColsNumber;
+
+            CellsScaleExpression = s6xTable.CellsScaleExpression;
+            CellsScalePrecision = s6xTable.CellsScalePrecision;
 
             S6xTable = s6xTable;
         }
@@ -1584,8 +1873,13 @@ namespace SAD806x
         public int InputScalePrecision = SADDef.DefaultScalePrecision;
         public int OutputScalePrecision = SADDef.DefaultScalePrecision;
 
+        public string InputUnits = string.Empty;
+        public string OutputUnits = string.Empty;
+
         private string label = string.Empty;
         private string shortLabel = string.Empty;
+
+        private string comments = string.Empty;
 
         public S6xFunction S6xFunction = null;
         public S6xElementSignature S6xElementSignatureSource = null;
@@ -1689,10 +1983,20 @@ namespace SAD806x
         {
             get
             {
-                if (S6xFunction == null) return string.Empty;
+                if (S6xFunction == null) return comments;
                 else if (S6xFunction.Comments == null) return string.Empty;
                 else if (!S6xFunction.OutputComments) return string.Empty;
                 else return S6xFunction.Comments;
+            }
+            set { comments = value; }
+        }
+
+        public bool OutputComments
+        {
+            get
+            {
+                if (S6xFunction == null) return false;
+                else return S6xFunction.OutputComments;
             }
         }
 
@@ -1710,6 +2014,11 @@ namespace SAD806x
             SignedInput = s6xFunction.SignedInput;
             SignedOutput = s6xFunction.SignedOutput;
 
+            InputScaleExpression = s6xFunction.InputScaleExpression;
+            InputScalePrecision = s6xFunction.InputScalePrecision;
+            OutputScaleExpression = s6xFunction.OutputScaleExpression;
+            OutputScalePrecision = s6xFunction.OutputScalePrecision;
+            
             S6xFunction = s6xFunction;
         }
 
@@ -1838,8 +2147,12 @@ namespace SAD806x
         public string ScaleExpression = "X";
         public int ScalePrecision = SADDef.DefaultScalePrecision;
 
+        public string Units = string.Empty;
+
         private string label = string.Empty;
         private string shortLabel = string.Empty;
+
+        private string comments = string.Empty;
 
         public S6xScalar S6xScalar = null;
         public S6xElementSignature S6xElementSignatureSource = null;
@@ -1941,10 +2254,32 @@ namespace SAD806x
         {
             get
             {
-                if (S6xScalar == null) return string.Empty;
+                if (S6xScalar == null) return comments;
                 else if (S6xScalar.Comments == null) return string.Empty;
                 else if (!S6xScalar.OutputComments) return string.Empty;
                 else return S6xScalar.Comments;
+            }
+            set
+            {
+                comments = value;
+            }
+        }
+
+        public bool OutputComments
+        {
+            get
+            {
+                if (S6xScalar == null) return false;
+                else return S6xScalar.OutputComments;
+            }
+        }
+
+        public bool InlineComments
+        {
+            get
+            {
+                if (S6xScalar == null) return false;
+                else return S6xScalar.InlineComments;
             }
         }
 
@@ -2092,6 +2427,8 @@ namespace SAD806x
         Vector1,    // VECT1
         Vector9,    // VECT9
         Vector0,    // VECT0
+        Num,        // NUM
+        NumHex,     // NUMHEX
         Empty       // EMPTY
     }
 
@@ -2127,7 +2464,7 @@ namespace SAD806x
             Type = type;
         }
 
-        public string Value()
+        public string Value(int structLineNum)
         {
             int iValue = 0;
 
@@ -2136,6 +2473,8 @@ namespace SAD806x
                 case StructureItemType.Skip:
                 case StructureItemType.String:
                 case StructureItemType.Empty:
+                case StructureItemType.Num:
+                case StructureItemType.NumHex:
                     break;
                 default:
                     if (arrBytes == null) return string.Empty;
@@ -2211,6 +2550,14 @@ namespace SAD806x
                 case StructureItemType.Vector0:
                     if (Size == 2) return Convert.ToString(Tools.getWordInt(arrBytes, false, true), 16);
                     break;
+                case StructureItemType.Num:
+                    iValue = structLineNum;
+                    if (ScaleExpression == string.Empty) return iValue.ToString();
+                    else return string.Format("{0}", Tools.ScaleValue(iValue, ScaleExpression, 0, false));
+                case StructureItemType.NumHex:
+                    iValue = structLineNum;
+                    if (ScaleExpression != string.Empty) iValue = (int)Tools.ScaleValue(iValue, ScaleExpression, false);
+                    return string.Format("{0:x}", iValue);
                 case StructureItemType.Empty:
                     return string.Empty;
             }
@@ -2225,6 +2572,7 @@ namespace SAD806x
         public int BankNum = -1;
         public int AddressInt = -1;
         public int AddressBinInt = -1;
+        public int NumberInStructure = -1;
         public ArrayList Items = null;
 
         public string Address { get { return string.Format("{0:x4}", AddressInt + SADDef.EecBankStartAddress); } }
@@ -2257,6 +2605,8 @@ namespace SAD806x
                         {
                             case StructureItemType.Empty:
                             case StructureItemType.String:
+                            case StructureItemType.Num:
+                            case StructureItemType.NumHex:
                                 break;
                             default:
                                 if (sResult != string.Empty) sResult += SADDef.GlobalSeparator;
@@ -2274,11 +2624,12 @@ namespace SAD806x
             Items = new ArrayList();
         }
 
-        public StructureLine(int bankNum, int addressInt, int addressBinInt)
+        public StructureLine(int bankNum, int addressInt, int addressBinInt, int numberInStructure)
         {
             BankNum = bankNum;
             AddressInt = addressInt;
             AddressBinInt = addressBinInt;
+            NumberInStructure = numberInStructure;
             Items = new ArrayList();
         }
     }
@@ -2677,11 +3028,10 @@ namespace SAD806x
                                     // Other J Ops using GotoOpParams
                                     case "d":
                                         if (cOpe.GotoOpParams == null) continue;
-                                        if (cOpe.GotoOpParams.Length == 0) continue;
-                                        Operation cmpOpe = (Operation)siaCond.ReadCondCmpOperations[cOpe.GotoOpParams[0]];
+                                        Operation cmpOpe = (Operation)siaCond.ReadCondCmpOperations[cOpe.GotoOpParams.OpeUniqueAddress];
                                         if (cmpOpe == null) continue;
-                                        if (cmpOpe.InstructedParams.Length == 0) continue;
-                                        object[] arrPointersValues = Tools.InstructionPointersValues(cmpOpe.InstructedParams[cmpOpe.InstructedParams.Length - 1]);
+                                        if (cmpOpe.OperationParams.Length == 0) continue;
+                                        object[] arrPointersValues = Tools.InstructionPointersValues(cmpOpe.OperationParams[cmpOpe.OperationParams.Length - 1].InstructedParam);
                                         if ((bool)arrPointersValues[0]) continue;
                                         // Inverted - Set to condition to read structure item
                                         switch (cOpe.OriginalInstruction.ToLower())
@@ -2762,6 +3112,8 @@ namespace SAD806x
 
         private string label = string.Empty;
         private string shortLabel = string.Empty;
+
+        private string comments = string.Empty;
 
         private bool bIsVectorsList = false;
         private int iVectorsBankNum = -1;
@@ -2861,10 +3213,20 @@ namespace SAD806x
         {
             get
             {
-                if (S6xStructure == null) return string.Empty;
+                if (S6xStructure == null) return comments;
                 else if (S6xStructure.Comments == null) return string.Empty;
                 else if (!S6xStructure.OutputComments) return string.Empty;
                 else return S6xStructure.Comments;
+            }
+            set { comments = value; }
+        }
+
+        public bool OutputComments
+        {
+            get
+            {
+                if (S6xStructure == null) return false;
+                else return S6xStructure.OutputComments;
             }
         }
 
@@ -3193,6 +3555,12 @@ namespace SAD806x
                             case StructureItemType.Vector0:
                                 sResult += "Vect0";
                                 break;
+                            case StructureItemType.Num:
+                                sResult += "Num";
+                                break;
+                            case StructureItemType.NumHex:
+                                sResult += "NumHex";
+                                break;
                             case StructureItemType.Empty:
                                 sResult += "Empty";
                                 break;
@@ -3366,7 +3734,7 @@ namespace SAD806x
                         }
                         if (arrInst[1].ToString().Length <= 0 && arrInst[1].ToString().Length >= 3) return null;
                         arrInst[3] = arrInst[1];
-                        // Included formula, only for byte, word and signed versions
+                        // Included formula, only for byte, word and signed versions and in addition num and numhex
                         if (arrInst[2].ToString().Contains("(") && arrInst[2].ToString().EndsWith(")"))
                         {
                             arrInst[4] = arrInst[2].ToString().Split('(')[1];
@@ -3441,6 +3809,14 @@ namespace SAD806x
                                     arrInst[2] = StructureItemType.Vector0;
                                     arrInst[3] = (int)arrInst[1] * 2;
                                     if (arrInst[4].ToString() != string.Empty) return null;
+                                    break;
+                                case "num":
+                                    arrInst[2] = StructureItemType.Num;
+                                    arrInst[3] = 0;
+                                    break;
+                                case "numhex":
+                                    arrInst[2] = StructureItemType.NumHex;
+                                    arrInst[3] = 0;
                                     break;
                                 case "empty":
                                     arrInst[2] = StructureItemType.Empty;
@@ -3664,7 +4040,7 @@ namespace SAD806x
             int iPos = 0;
             for (int iNum = 0; iNum < number; iNum++)
             {
-                if (!ReadLines(ref Lines, ref arrBytes, iPos))
+                if (!ReadLines(ref Lines, ref arrBytes, iPos, iNum))
                 {
                     Lines = new ArrayList();
                     break;
@@ -3696,14 +4072,14 @@ namespace SAD806x
                                 bNum = 9;
                                 break;
                         }
-                        if (bNum != -1) alIncludedOtherVectorAddresses.Add(new int[] { bNum, Convert.ToInt32(sItem.Value(), 16) - SADDef.EecBankStartAddress });
+                        if (bNum != -1) alIncludedOtherVectorAddresses.Add(new int[] { bNum, Convert.ToInt32(sItem.Value(sLine.NumberInStructure), 16) - SADDef.EecBankStartAddress });
                     }
                 }
                 includedOtherVectorAddresses = (int[][])alIncludedOtherVectorAddresses.ToArray(typeof(int[]));
             }
         }
 
-        private bool ReadLines(ref ArrayList arrLines, ref string[] arrBytes, int iPos)
+        private bool ReadLines(ref ArrayList arrLines, ref string[] arrBytes, int iPos, int iNum)
         {
             StructureLine structLine = null;
 
@@ -3715,7 +4091,7 @@ namespace SAD806x
 
             try
             {
-                structLine = new StructureLine(BankNum, AddressInt + iPos, AddressBinInt + iPos);
+                structLine = new StructureLine(BankNum, AddressInt + iPos, AddressBinInt + iPos, iNum);
 
                 for (int iElem = 0; iElem < structDef.Length; iElem++)
                 {
@@ -3764,7 +4140,7 @@ namespace SAD806x
                                         if (iLine == 0 && subStruct.Lines.Count > 1)
                                         {
                                             arrLines.Add(structLine);
-                                            structLine = new StructureLine(BankNum, AddressInt + iPos, AddressBinInt + iPos);
+                                            structLine = new StructureLine(BankNum, AddressInt + iPos, AddressBinInt + iPos, iNum);
                                         }
                                     }
                                     else
@@ -3781,7 +4157,7 @@ namespace SAD806x
                             if (structLine.Items.Count > 0)
                             {
                                 arrLines.Add(structLine);
-                                structLine = new StructureLine(BankNum, AddressInt + iPos, AddressBinInt + iPos);
+                                structLine = new StructureLine(BankNum, AddressInt + iPos, AddressBinInt + iPos, iNum);
                             }
                             break;
                         case "VAL":
@@ -3823,6 +4199,12 @@ namespace SAD806x
                                     iItemsNum = (int)structDefElem[1];
                                     iBytesNum = 0;
                                     sString = structDefElem[4].ToString();
+                                    break;
+                                case StructureItemType.Num:
+                                case StructureItemType.NumHex:
+                                    iItemsNum = (int)structDefElem[1];
+                                    iBytesNum = 0;
+                                    sScaleExp = structDefElem[4].ToString();
                                     break;
                                 case StructureItemType.Empty:
                                     iItemsNum = (int)structDefElem[1];
@@ -3893,8 +4275,113 @@ namespace SAD806x
         public bool isPointer;          // XXP
     }
 
+    public enum CarryMode
+    {
+        Default,        // DEFAULT
+        Carry,          // CY
+        Comparison,     // CMP
+        Substract,      // -
+        AddWords,       // +W
+        AddBytes,       // +B
+        MultiplyWords,  // *W
+        MultiplyBytes   // *B
+    }
+
+    // GotoOpParam
+    // GotoOpParam[Ope UniqueAddress, Ope Elem UniqueAddress, P1, P2, CY Ope UniqueAddress, CY Mode, CY P1, CY P2]
+    public class GotoOpParams
+    {
+        public int OpeBankNum = -1;
+        public int OpeAddressInt = -1;
+
+        public object OpeEmbeddedParam1 = null;
+        public object OpeEmbeddedParam2 = null;
+        
+        public string OpeDefaultParamTranslation1 = "0";
+        public string OpeDefaultParamTranslation2 = "0";
+
+        public int ElemBankNum = -1;
+        public int ElemAddressInt = -1;
+
+        public int CarryOpeBankNum = -1;
+        public int CarryOpeAddressInt = -1;
+
+        public CarryMode CarryOpeMode = CarryMode.Default;
+
+        public object CarryOpeEmbeddedParam1 = null;
+        public object CarryOpeEmbeddedParam2 = null;
+
+        public string CarryOpeDefaultParamTranslation1 = "0";
+        public string CarryOpeDefaultParamTranslation2 = "0";
+
+        public string OpeUniqueAddress { get { if (OpeBankNum == -1 || OpeAddressInt == -1) return string.Empty; else return string.Format("{0,1} {1,5}", OpeBankNum, OpeAddressInt); } }
+        public string ElemUniqueAddress { get { if (ElemBankNum == -1 || ElemAddressInt == -1) return string.Empty; else return string.Format("{0,1} {1,5}", ElemBankNum, ElemAddressInt); } }
+        public string CarryOpeUniqueAddress { get { if (CarryOpeBankNum == -1 || CarryOpeAddressInt == -1) return string.Empty; else return string.Format("{0,1} {1,5}", CarryOpeBankNum, CarryOpeAddressInt); } }
+
+        public string OpeAddress { get { return string.Format("{0:x4}", OpeAddressInt + SADDef.EecBankStartAddress); } }
+        public string ElemAddress { get { return string.Format("{0:x4}", ElemAddressInt + SADDef.EecBankStartAddress); } }
+        public string CarryOpeAddress { get { return string.Format("{0:x4}", CarryOpeAddressInt + SADDef.EecBankStartAddress); } }
+
+        public GotoOpParams(int opeBankNum, int opeAddressInt)
+        {
+            OpeBankNum = opeBankNum;
+            OpeAddressInt = opeAddressInt;
+        }
+
+        public GotoOpParams Clone()
+        {
+            GotoOpParams clone = new GotoOpParams(OpeBankNum, OpeAddressInt);
+
+            clone.OpeEmbeddedParam1 = OpeEmbeddedParam1;
+            clone.OpeEmbeddedParam2 = OpeEmbeddedParam2;
+
+            clone.OpeDefaultParamTranslation1 = OpeDefaultParamTranslation1;
+            clone.OpeDefaultParamTranslation2 = OpeDefaultParamTranslation2;
+
+            clone.ElemBankNum = ElemBankNum;
+            clone.ElemAddressInt = ElemAddressInt;
+
+            clone.CarryOpeBankNum = CarryOpeBankNum;
+            clone.CarryOpeAddressInt = CarryOpeAddressInt;
+
+            clone.CarryOpeMode = CarryOpeMode;
+
+            clone.CarryOpeEmbeddedParam1 = CarryOpeEmbeddedParam1;
+            clone.CarryOpeEmbeddedParam2 = CarryOpeEmbeddedParam2;
+
+            clone.CarryOpeDefaultParamTranslation1 = CarryOpeDefaultParamTranslation1;
+            clone.CarryOpeDefaultParamTranslation2 = CarryOpeDefaultParamTranslation2;
+
+            return clone;
+        }
+    }
+
+    // Operation Param
+    public class OperationParam
+    {
+        public string InstructedParam = string.Empty;
+        public string CalculatedParam = string.Empty;
+        public string DefaultTranslatedParam = string.Empty;
+
+        public object EmbeddedParam = null;
+    }
+
+    public class CallArgsParam
+    {
+        public string DefaultTranslatedParam = string.Empty;
+
+        public object EmbeddedParam = null;
+    }
+    
+    // Operation
     public class Operation
     {
+        // 20200409 - PYM - Creation Parameters to get a backup and to be able to reprocess operation entirely
+        public SADOPCode OPCode = null;
+        public bool ApplySignedAlt = false;
+        public Operation initialOpPrevResult = null;
+        public GotoOpParams initialGotoOpParams = null;
+
         public string OriginalOPCode = string.Empty;
         public string OriginalInstruction = string.Empty;
 
@@ -3909,24 +4396,25 @@ namespace SAD806x
 
         public int CallArgsNum = 0;
         public string[] CallArgsArr = new string[] {};
-        //public CallArgsMode[] CallArgsModes = null;
         public CallArgument[] CallArguments = null;
-        public string[] CallArgsTranslatedArr = new string[] { };
+        public CallArgsParam[] CallArgsParams = new CallArgsParam[] { }; 
         public string CallArgsStructRegister = string.Empty;
 
-        public string[] GotoOpParams = null;
+        public GotoOpParams GotoOpParams = null;
 
         public int SetBankNum = -1;
         public int ApplyOnBankNum = -1;
         public int ReadDataBankNum = -1;
 
-        public string Instruction = string.Empty;
-        public string Translation1 = string.Empty;
-        public string Translation2 = string.Empty;
-        public string Translation3 = string.Empty;
-        public string[] InstructedParams = new string[] {};
-        public string[] CalculatedParams = new string[] { };
-        public string[] TranslatedParams = new string[] { };
+        public string forcedInstruction = string.Empty;
+        public string forcedTranslation1 = string.Empty;
+        public string forcedTranslation2 = string.Empty;
+        public string forcedTranslation3 = string.Empty;
+
+        public string TranslationReplacementAddress = string.Empty;
+        public string TranslationReplacementLabel = string.Empty;
+
+        public OperationParam[] OperationParams = new OperationParam[] { };
         public int IgnoredTranslatedParam = -1;
 
         public CallType CallType = CallType.Unknown;
@@ -3935,8 +4423,10 @@ namespace SAD806x
         public bool isFEConflict = false;
 
         public ArrayList alCalibrationElems = null;
+
         public string OtherElemAddress = string.Empty;
         public string KnownElemAddress = string.Empty;
+
         public string CalElemRBaseStructRBase = string.Empty;
         public string CalElemRBaseStructAddress = string.Empty;
         public bool CalElemRBaseStructAdder = false;
@@ -3962,12 +4452,46 @@ namespace SAD806x
 
         public string CallArgsAddress { get { if (CallArgsNum == 0) return string.Empty; else return string.Format("{0:x4}", AddressInt + BytesNumber + SADDef.EecBankStartAddress); } }
         public string CallArgs { get { if (CallArgsArr == null) return string.Empty; else return string.Join(SADDef.GlobalSeparator.ToString(), CallArgsArr); } }
-        public string CallArgsTranslated { get { if (CallArgsTranslatedArr == null) return string.Empty; else return string.Join(SADDef.GlobalSeparator.ToString(), CallArgsTranslatedArr); } }
+        public string CallArgsTranslated
+        {
+            get
+            {
+                if (CallArgsParams == null) return string.Empty;
+
+                string[] sTranslations = new string[CallArgsParams.Length];
+                for (int iArg = 0; iArg < sTranslations.Length; iArg++) sTranslations[iArg] = OPCode.getParamTranslation(CallArgsParams[iArg].EmbeddedParam, CallArgsParams[iArg].DefaultTranslatedParam, false);
+
+                return string.Join(SADDef.GlobalSeparator.ToString(), sTranslations);
+            }
+        }
 
         public string UniqueAddress { get { return string.Format("{0,1} {1,5}", BankNum, AddressInt); } }
         public string UniqueAddressHex { get { return string.Format("{0,1} {1,4}", BankNum, Address); } }
         public string UniqueCallArgsAddressHex { get { if (CallArgsNum == 0) return string.Empty; else return string.Format("{0,1} {1,4}", BankNum, CallArgsAddress); } }
 
+        public string Instruction
+        {
+            get
+            {
+                if (forcedInstruction != string.Empty) return forcedInstruction;
+                if (OPCode != null) return OPCode.TranslateInstruction(this);
+                return string.Empty;
+            }
+        }
+
+        public string Translation
+        {
+            get
+            {
+                if (OPCode != null) return OPCode.TranslateTranslation(this);
+                return string.Empty;
+            }
+        }
+
+        public string Translation1 { get { if (forcedTranslation1 != string.Empty) return forcedTranslation1; else return Translation; } }
+        public string Translation2 { get { if (forcedTranslation2 != string.Empty) return forcedTranslation2; else return Translation; } }
+        public string Translation3 { get { if (forcedTranslation3 != string.Empty) return forcedTranslation3; else return Translation; } } 
+        
         public string Label
         {
             get
@@ -4008,6 +4532,24 @@ namespace SAD806x
             }
         }
 
+        public bool OutputComments
+        {
+            get
+            {
+                if (S6xOperation == null) return false;
+                else return S6xOperation.OutputComments;
+            }
+        }
+
+        public bool InlineComments
+        {
+            get
+            {
+                if (S6xOperation == null) return false;
+                else return S6xOperation.InlineComments;
+            }
+        }
+
         public Operation(int bankNum, int addressInt)
         {
             BankNum = bankNum;
@@ -4025,7 +4567,7 @@ namespace SAD806x
             Operation = ope;
         }
     }
-
+    
     public class RoutineSkeleton
     {
         public int BankNum = -1;
@@ -4085,7 +4627,7 @@ namespace SAD806x
             if (alOperations == null)
             {
                 opsNumber = (alOperations == null) ? -1 : alOperations.Count;
-                opsBytes = (alOperations == null) ? string.Empty : Tools.skeletonToBytes(opsSkeleton);
+                opsBytes = (alOperations == null) ? string.Empty : ToolsRoutinesComp.skeletonToBytes(opsSkeleton);
             }
             else
             {
@@ -4124,7 +4666,7 @@ namespace SAD806x
                     opsSkeleton += "\t" + opeCode + "\n";
                 }
                 opsNumber = alOperations.Count;
-                opsBytes = Tools.skeletonToBytes(opsSkeleton);
+                opsBytes = ToolsRoutinesComp.skeletonToBytes(opsSkeleton);
             }
         }
 
@@ -4133,7 +4675,7 @@ namespace SAD806x
             opsSkeleton = sSkeleton;
             alOperations = null;
             opsNumber = opsSkeleton.Split('\n').Length - 1;
-            opsBytes = Tools.skeletonToBytes(opsSkeleton);
+            opsBytes = ToolsRoutinesComp.skeletonToBytes(opsSkeleton);
         }
 
         public RoutineSkeleton Clone()

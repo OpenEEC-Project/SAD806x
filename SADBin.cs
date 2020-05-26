@@ -231,7 +231,18 @@ namespace SAD806x
                 if (validPrevPattern)
                 {
                     sPrevPattern = sPattern.Substring(0, 16);
-                    if (sPattern.StartsWith(SADDef.Bank_8_9_0_SigStart.ToLower()))
+
+                    if (sPattern.StartsWith(SADDef.Bank_8_Early_SigStart_S.ToLower()))
+                    // Bank 8 Early Euro Special
+                    {
+                        bis8061 = true;
+                        bisEarly = true;
+                        banksInfos.Add(new int[] { 8, iPos, SADDef.Bank_Max_Size });
+                        bank8StartAddress = iPos;
+                        iPos += SADDef.Bank_Min_Size - 16;
+                        sPrevPattern = string.Empty;
+                    }
+                    else if (sPattern.StartsWith(SADDef.Bank_8_9_0_SigStart.ToLower()))
                     // Bank 8 9 0
                     {
                         if (sPattern.StartsWith(SADDef.Bank_9_0_SigStart.ToLower()))
@@ -681,6 +692,24 @@ namespace SAD806x
                 }
             }
 
+            foreach (RBase rBase in slRbases.Values)
+            {
+                // 20200512 - PYM
+                // Added to S6xRegisters
+                S6xRegister s6xReg = (S6xRegister)S6x.slRegisters[Tools.RegisterUniqueAddress(rBase.Code)];
+                if (s6xReg == null)
+                {
+                    s6xReg = new S6xRegister(rBase.Code);
+                    s6xReg.Label = Tools.RegisterInstruction(rBase.Code);
+                    s6xReg.Comments = "Base register (RBase) " + s6xReg.Label;
+                    S6x.slRegisters.Add(s6xReg.UniqueAddress, s6xReg);
+                }
+                s6xReg.isRBase = true;
+                s6xReg.isRConst = false;
+                s6xReg.ConstValue = Convert.ToString(SADDef.EecBankStartAddress + rBase.AddressBankInt, 16);
+                s6xReg.AutoConstValue = true;
+            }
+
             if (is8061 || isPilot) Calibration.Load(slRbases, ref Bank8, is8061, isEarly, isPilot, ref arrBytes);
             else Calibration.Load(slRbases, ref Bank1, is8061, isEarly, isPilot, ref arrBytes);
         }
@@ -723,7 +752,7 @@ namespace SAD806x
                 scalarEndAddress = null;
                 sStruct = null;
 
-                checkSumCalcSign = new string[] { SADDef.Info_8061_CheckSumCalc_Signature_1.ToLower(), SADDef.Info_8061_CheckSumCalc_Signature_2.ToLower(), SADDef.Info_8061_CheckSumCalc_Signature_3.ToLower(), SADDef.Info_8061_CheckSumCalc_Signature_4.ToLower() };
+                checkSumCalcSign = new string[] { SADDef.Info_8061_CheckSumCalc_Signature_1.ToLower(), SADDef.Info_8061_CheckSumCalc_Signature_2.ToLower(), SADDef.Info_8061_CheckSumCalc_Signature_3.ToLower(), SADDef.Info_8061_CheckSumCalc_Signature_4.ToLower(), SADDef.Info_8061_CheckSumCalc_Signature_5.ToLower() };
                 sigMode = 0;
                 foreach (string sig in checkSumCalcSign)
                 {
@@ -734,7 +763,7 @@ namespace SAD806x
                         sigResult = (object[])sigResult[0];
                         try
                         {
-                            if (sigMode == 1)
+                            if (sigMode == 1 || sigMode == 5)
                             {
                                 checkSumOpeRoutineAddress = (int)sigResult[0];
 
@@ -1441,6 +1470,73 @@ namespace SAD806x
             }
         }
 
+        private void readRegisters()
+        {
+            Calibration.slRegisters = new SortedList();
+
+            for (int iAddress = 0x0; iAddress < 0x2000; iAddress++)
+            {
+                Register rReg = new Register(iAddress);
+                if (is8061)
+                {
+                    rReg.is8061KAMRegister = rReg.AddressInt >= SADDef.KAMRegisters8061MinAdress && rReg.AddressInt <= SADDef.KAMRegisters8061MaxAdress;
+                    rReg.is8061CCRegister = rReg.AddressInt >= SADDef.CCRegisters8061MinAdress && rReg.AddressInt <= SADDef.CCRegisters8061MaxAdress;
+                    rReg.is8061ECRegister = rReg.AddressInt >= SADDef.ECRegisters8061MinAdress && rReg.AddressInt <= SADDef.ECRegisters8061MaxAdress;
+                }
+
+                // RBase mapping
+                if (iAddress <= 0xff) rReg.RBase = (RBase)Calibration.slRbases[rReg.Address];
+                
+                // RConst will be managed by process
+
+                // EecRegisters mapping
+                if (iAddress <= 0x30 || (iAddress >= 0xc80 && iAddress <= 0x401)) rReg.EecRegister = (EecRegister)Calibration.slEecRegisters[rReg.Address];
+
+                // S6xRegisters mapping
+                rReg.S6xRegister = (S6xRegister)S6x.slProcessRegisters[rReg.UniqueAddress];
+
+                // S6xRegister defined as constant
+                if (rReg.S6xRegister != null)
+                {
+                    if (rReg.S6xRegister.isRConst)
+                    {
+                        // Normally at this level Calibration.slRconst is empty
+                        if (!Calibration.slRconst.ContainsKey(rReg.Address))
+                        {
+                            try { rReg.RConst = new RConst(rReg.Address, Convert.ToInt32(rReg.S6xRegister.ConstValue, 16)); }
+                            catch { }
+                            if (rReg.RConst != null) Calibration.slRconst.Add(rReg.Address, rReg.RConst);
+                        }
+                    }
+                }
+
+                Calibration.slRegisters.Add(rReg.UniqueAddress, rReg);
+            }
+
+            if (!is8061)
+            {
+                for (int iAddress = 0xf000; iAddress <= 0xffff; iAddress++)
+                {
+                    Register rReg = new Register(iAddress);
+
+                    // S6xRegisters mapping
+                    rReg.S6xRegister = (S6xRegister)S6x.slProcessRegisters[rReg.UniqueAddress];
+
+                    Calibration.slRegisters.Add(rReg.UniqueAddress, rReg);
+                }
+            }
+
+            foreach (S6xRegister s6xReg in S6x.slProcessRegisters.Values)
+            {
+                if (!Calibration.slRegisters.ContainsKey(s6xReg.UniqueAddress))
+                {
+                    Register rReg = new Register(s6xReg.Address);
+                    rReg.S6xRegister = s6xReg;
+                    Calibration.slRegisters.Add(rReg.UniqueAddress, rReg);
+                }
+            }
+        }
+        
         private void ProcessBinInit()
         {
             disassembled = false;
@@ -1486,6 +1582,9 @@ namespace SAD806x
             // OP Codes
             readDefOPCodes();
 
+            // Registers centralizing
+            readRegisters();
+            
             // Starting with S6x Signature detection
             foreach (S6xSignature s6xSig in S6x.slProcessSignatures.Values) s6xSig.Information = null;
             
@@ -1560,6 +1659,10 @@ namespace SAD806x
             //      Find Non Calibration Elements (Table, Functions, Scalars, Structures outside Calibration Part) // NOT MANAGED FOR NOW
             //      Process Non Calibration Elements (Table, Functions, Scalars outside Calibration Part)
             processBinRecursive(ref alErrors);
+
+            // Forced Signatures analysis
+            //  20200402 - PYM - New process added
+            SADFixedSigsProcesses.processForcedFoundSignatures(ref Calibration, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x, ref alErrors);
 
             // Calibration Elements Related Registers Processing (Tables Scalers, Register Creations, ...)
             Calibration.processCalibrationElementsRegisters(ref S6x);

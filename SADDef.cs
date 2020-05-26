@@ -15,6 +15,10 @@ namespace SAD806x
         // Settings file names
         public const string recentFilesFileName = "recent.xml";
         public const string settingsTextOuputFileName = "settingstextoutput.xml";
+        public const string settingsSAD806xImpExpFileName = "settingss6ximpexp.xml";
+        public const string settingsSADImpExpFileName = "settingssadimpexp.xml";
+        public const string settingsTunerProImpExpFileName = "settingstpimpexp.xml";
+        public const string settings806xUniDbImpExpFileName = "settingsudbimpexp.xml";
         
         // Repository file names
         public const string repoFileNameRegisters = "registers.xml";
@@ -24,6 +28,16 @@ namespace SAD806x
         public const string repoFileNameScalars = "scalars.xml";
         public const string repoFileNameUnits = "units.xml";
         public const string repoFileNameConversion = "conversion.xml";
+        public const string repoFileNameOBDIErrors = "obdierrors.xml";
+        public const string repoFileNameOBDIIErrors = "obdiierrors.xml";
+
+        // Repository other things
+        public const string repoLabelOBDIErrorsShortLabel = "Code";
+        public const string repoLabelOBDIIErrorsShortLabel = "Code";
+        public const string repoToolTipOBDIErrorsShortLabel = "XX or XXX\r\n_ER for Engine Running\r\n_EO for Engine Off)";
+        public const string repoToolTipOBDIIErrorsShortLabel = "PXXXX";
+        public const string repoCommentsHeaderOBDIErrors = "Related with OBDI Code #OBDCODE#.";
+        public const string repoCommentsHeaderOBDIIErrors = "Related with OBDII Code #OBDCODE#.";
 
         // Fixed EEC Bank Start Address 2000
         public const int EecBankStartAddress = 0x2000;
@@ -40,6 +54,7 @@ namespace SAD806x
         public static string[] Bank_Prev_Pattern_Possible_Fixed_Last_Bytes = new string[] {"91"};
         // To obtain "FFFFFFFF" or "FFFFFF91"
 
+        public const string Bank_8_Early_SigStart_S = "E71D00FFFFFFFFFFFFFF";
         public const string Bank_8_Early_SigStart_1 = "FFFA201C";
         public const string Bank_8_Early_SigStart_2 = "FFFA2021";
         public const string Bank_8_Early_SigStart_3 = "FFFA2023";
@@ -68,6 +83,7 @@ namespace SAD806x
         public const string Info_8061_CheckSumCalc_Signature_2 = "A1" + "%CSCSTARTP%" + "......00..DF..A2..........66....88....";
         public const string Info_8061_CheckSumCalc_Signature_3 = "A1" + "%CSCSTARTP%" + "......00..DF..A2....66....88....";
         public const string Info_8061_CheckSumCalc_Signature_4 = "C3....00A1" + "%CSCSTARTP%" + "..17..F0A3......A2....8800..";
+        public const string Info_8061_CheckSumCalc_Signature_5 = "A301" + "%CSCSTARTP%" + "..A301" + "%CSCENDP%" + "..01..95........110595....66....88....D...8900..";
         
         // VID Block
         public static object[] Info_8061_VID_Block_Addresses = new object[] {
@@ -124,6 +140,10 @@ namespace SAD806x
         public const string BitByteSetOPAltDefVal = "true";
         public const string BitByteUnSetOPAltDefVal = "false";
 
+        public const string ReplacementCoreStartString = "$";
+        public const string ReplacementCoreStartStringBis = "@";
+        public const string ReplacementCoreBitFlagString = ":";
+        
         // Signatures Keywords
         public const string SignatureParamBytePrefixSuffix = "#";
 
@@ -168,6 +188,9 @@ namespace SAD806x
         public const string ShortVectStructPrefix = "VecSt";
         public const string LongVectStructPrefix = "Vectors Structure ";
 
+        public const string ShortOtherAddressPrefix = "OAdr";
+        public const string LongOtherAddressPrefix = "Other Address ";
+
         public const string ArgumentCodePrefix = "Ar";
 
         // Other Labels
@@ -183,6 +206,8 @@ namespace SAD806x
 
         public const string ShortLabelStructCheckSumAdr = "ChkAdrStruct";
         public const string LongLabelStructCheckSumAdr = "Checksum Address Structure";
+
+        public const string LongSignaturePrefix = "Signature for ";
 
         // Fake Call Duplicates Detection Size
         public const int FakeCallDuplicatesDetectionSize = 5;
@@ -472,6 +497,7 @@ namespace SAD806x
         public static object[] RoutinesCodes = {
             new object[] { RoutineCode.Checksum, "CalCheck", "Calibration Starting Checks", "Calibration Starting Checks routine, used to check Calibration is Valid, Checksum calculation at least."},
             new object[] { RoutineCode.Init, "CalInit", "Calibration Init", "Calibration Init routine, used to define main information on the Calibration."},
+            new object[] { RoutineCode.CoreInit, "CoreCalInit", "Core Calibration Init", "Core Calibration Init routine, used to define main information on the Calibration."},
             new object[] { RoutineCode.TableCore, "TabCore", "Table Reader Core", "Core for all table reader variants."}
         };
         

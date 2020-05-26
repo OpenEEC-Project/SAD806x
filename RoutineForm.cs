@@ -70,7 +70,7 @@ namespace SAD806x
             advLabelTextBox.Text = s6xRoutine.Label;
             advSLabelTextBox.Text = s6xRoutine.UniqueAddressHex;
 
-            inputStructureTipPictureBox.Tag = Tools.StructureTip();
+            inputStructureTipPictureBox.Tag = SharedUI.StructureTip();
             inputStructureTipPictureBox.MouseHover += new EventHandler(TipPictureBox_MouseHover);
             inputStructureTipPictureBox.Click += new EventHandler(TipPictureBox_Click);
 

@@ -174,7 +174,17 @@ namespace SAD806x
                         {
                             S6xTable s6xTable = (S6xTable)cLabel.Tag;
                             mainToolTip.SetToolTip((Control)sender, s6xTable.Label + "\r\n" + s6xTable.UniqueAddressHex + "\r\n" + s6xTable.ShortLabel + "\r\n\r\n" + s6xTable.Comments);
-                            if (cChart == calibCurrentChart) elemsTreeView.SelectedNode = elemsTreeView.Nodes["TABLES"].Nodes[s6xTable.UniqueAddress];
+                            if (cChart == calibCurrentChart)
+                            {
+                                S6xNavInfo niMFHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES)]);
+                                if (niMFHeaderCateg.isValid)
+                                {
+                                    TreeNode tnMFNode = niMFHeaderCateg.FindElement(s6xTable.UniqueAddress);
+                                    if (tnMFNode != null) elemsTreeView.SelectedNode = tnMFNode;
+                                    tnMFNode = null;
+                                }
+                                niMFHeaderCateg = null;
+                            }
                         }
                         catch { }
                     }
@@ -184,7 +194,17 @@ namespace SAD806x
                         {
                             S6xFunction s6xFunction = (S6xFunction)cLabel.Tag;
                             mainToolTip.SetToolTip((Control)sender, s6xFunction.Label + "\r\n" + s6xFunction.UniqueAddressHex + "\r\n" + s6xFunction.ShortLabel + "\r\n\r\n" + s6xFunction.Comments);
-                            if (cChart == calibCurrentChart) elemsTreeView.SelectedNode = elemsTreeView.Nodes["FUNCTIONS"].Nodes[s6xFunction.UniqueAddress];
+                            if (cChart == calibCurrentChart)
+                            {
+                                S6xNavInfo niMFHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS)]);
+                                if (niMFHeaderCateg.isValid)
+                                {
+                                    TreeNode tnMFNode = niMFHeaderCateg.FindElement(s6xFunction.UniqueAddress);
+                                    if (tnMFNode != null) elemsTreeView.SelectedNode = tnMFNode;
+                                    tnMFNode = null;
+                                }
+                                niMFHeaderCateg = null;
+                            }
                         }
                         catch { }
                     }

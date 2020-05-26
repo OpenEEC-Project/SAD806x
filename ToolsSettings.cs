@@ -14,8 +14,13 @@ namespace SAD806x
             switch (specType)
             {
                 case "TEXTOUTPUT":
-                    currentVersion = "0.2";
+                    currentVersion = "0.22";
                     if (setSettings.version != currentVersion) UpdateTextOuput(ref setSettings);
+                    break;
+
+                case "SADIMPEXP":
+                    currentVersion = "0.01";
+                    if (setSettings.version != currentVersion) UpdateSADImpExp(ref setSettings);
                     break;
             }
         }
@@ -25,10 +30,10 @@ namespace SAD806x
             SortedList slDefaultSettings = new SortedList();
             SettingItem defItem = null;
 
-            string defaultSampleOps = "8 92be: 37,33,0a             jnb   B7,R33,92cb        if (!B7_R33) goto 92cb;";
-            defaultSampleOps += "\r\n8 92c1: 02,32                cplw  R32                R32 = ~R32;            ";
-            defaultSampleOps += "\r\n8 92c3: 03,30                negw  R30                R30 = -R30;            ";
-            defaultSampleOps += "\r\n8 92c5: a4,00,32             adcw  R32,0              R32 += 0 + CY;         ";
+            string defaultSampleOps = "8 92be: 37,33,0a             jnb   B7,R33,92cb        if (!B7_R33) goto 92cb;                                                   ";
+            defaultSampleOps += "\r\n8 92c1: 02,32                cplw  R32                R32 = ~R32;                                                               ";
+            defaultSampleOps += "\r\n8 92c3: 03,30                negw  R30                R30 = -R30;                                                               ";
+            defaultSampleOps += "\r\n8 92c5: a4,00,32             adcw  R32,0              R32 += 0 + CY;                                    //  is a 32 bit addition";
             
             string defaultSampleFill = "8 23d2 -> 23ff                     fill               ff";
 
@@ -83,12 +88,15 @@ namespace SAD806x
             defaultSampleVector += "\r\n8 4298: b7,44                44b7  Bank 8 Vector      Sub0039";
             defaultSampleVector += "\r\n8 429a: 52,45                4552  Bank 8 Vector      Sub0040";
 
+            string defaultSampleCommentsHeader = "//  FNLOAD - Load Table                                                                                   \\\\                                                                                                ";
+            defaultSampleCommentsHeader += "\r\nFNLOAD - Load Table:                                                                                                                                                                                          ";
+            defaultSampleCommentsHeader += "\r\n8 24b8: 8d,8d,8d,8d,80,80,7a,7a,7a,7a,7a       table       8d, 8d, 8d, 8d, 80, 80, 7a, 7a, 7a, 7a, 7a         110,16,  110,16,  110,16,  110,16,  100,00,  100,00,   95,31,   95,31,   95,31,   95,31,   95,31";
 
             defItem = new SettingItem("ACTIVE", "00000", "Activate Settings", SettingType.Boolean);
             defItem.Category = "Global";
             defItem.Information = defItem.Label + "\r\n\r\n";
             defItem.Information += "Define if settings have to be used, instead of original fixed behaviour.";
-            defItem.DefaultValue = "0";
+            defItem.DefaultValue = "1";
             defItem.Value = defItem.DefaultValue;
             slDefaultSettings.Add(defItem.UniqueId, defItem);
 
@@ -148,9 +156,9 @@ namespace SAD806x
             defItem.Category = "Global";
             defItem.Information = defItem.Label + "\r\n\r\n";
             defItem.Information += "Right part for each line, related with operations or equivalent.\r\nIt is a minimum width.";
-            defItem.DefaultValue = "100";
+            defItem.DefaultValue = "50";
             defItem.Value = defItem.DefaultValue;
-            defItem.MinValue = "100";
+            defItem.MinValue = "50";
             defItem.MaxValue = "200";
             defItem.Sample = defaultSampleOps;
             defItem.SampleMode = SettingSampleMode.StartAndValue;
@@ -164,7 +172,7 @@ namespace SAD806x
             defItem.DefaultValue = "21";
             defItem.Value = defItem.DefaultValue;
             defItem.MinValue = "21";
-            defItem.MaxValue = "50";
+            defItem.MaxValue = "40";
             defItem.Sample = defaultSampleOps;
             defItem.SampleMode = SettingSampleMode.StartAndValue;
             defItem.SampleSelectionStart = 54;
@@ -228,7 +236,7 @@ namespace SAD806x
             defItem.Information += "Right part for each line, related with data or equivalent.\r\nIt is a minimum width.";
             defItem.DefaultValue = "83";
             defItem.Value = defItem.DefaultValue;
-            defItem.MinValue = "83";
+            defItem.MinValue = "50";
             defItem.MaxValue = "200";
             defItem.Sample = defaultSampleData;
             defItem.SampleMode = SettingSampleMode.StartAndValue;
@@ -242,7 +250,7 @@ namespace SAD806x
             defItem.DefaultValue = "20";
             defItem.Value = defItem.DefaultValue;
             defItem.MinValue = "20";
-            defItem.MaxValue = "40";
+            defItem.MaxValue = "30";
             defItem.Sample = defaultSampleData;
             defItem.SampleMode = SettingSampleMode.StartAndValue;
             defItem.SampleSelectionStart = 60;
@@ -255,7 +263,7 @@ namespace SAD806x
             defItem.DefaultValue = "10";
             defItem.Value = defItem.DefaultValue;
             defItem.MinValue = "10";
-            defItem.MaxValue = "40";
+            defItem.MaxValue = "15";
             defItem.Sample = defaultSampleData;
             defItem.SampleMode = SettingSampleMode.StartAndValue;
             defItem.SampleSelectionStart = 80;
@@ -550,6 +558,62 @@ namespace SAD806x
             defItem.SampleSelectionStart = 42;
             slDefaultSettings.Add(defItem.UniqueId, defItem);
 
+            defItem = new SettingItem("COMMENTS_PREFIX", "00300", "Comments prefix", SettingType.Text);
+            defItem.Category = "Comments";
+            defItem.Information = defItem.Label + ".";
+            defItem.DefaultValue = "//";
+            defItem.Value = defItem.DefaultValue;
+            defItem.Sample = defaultSampleOps;
+            defItem.SampleMode = SettingSampleMode.StartAndValue;
+            defItem.SampleSelectionStart = 104;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+
+            defItem = new SettingItem("COMMENTS_SUFFIX_HEADER", "00301", "Comments suffix in header", SettingType.Text);
+            defItem.Category = "Comments";
+            defItem.Information = defItem.Label + ".";
+            defItem.DefaultValue = "\\\\";
+            defItem.Value = defItem.DefaultValue;
+            defItem.Sample = defaultSampleCommentsHeader;
+            defItem.SampleMode = SettingSampleMode.StartAndValue;
+            defItem.SampleSelectionStart = 106;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+
+            defItem = new SettingItem("COMMENTS_PREFIX_MARGIN", "00302", "Comments prefix margin", SettingType.Number);
+            defItem.Category = "Comments";
+            defItem.Information = defItem.Label + ".";
+            defItem.DefaultValue = "2";
+            defItem.Value = defItem.DefaultValue;
+            defItem.MinValue = "0";
+            defItem.MaxValue = "20";
+            defItem.Sample = defaultSampleOps;
+            defItem.SampleMode = SettingSampleMode.StartAndValue;
+            defItem.SampleSelectionStart = 106;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+
+            defItem = new SettingItem("COMMENTS_SUFFIX_MARGIN_HEADER", "00303", "Comments suffix margin in header", SettingType.Number);
+            defItem.Category = "Comments";
+            defItem.Information = defItem.Label + ".";
+            defItem.DefaultValue = "2";
+            defItem.Value = defItem.DefaultValue;
+            defItem.MinValue = "0";
+            defItem.MaxValue = "20";
+            defItem.Sample = defaultSampleCommentsHeader;
+            defItem.SampleMode = SettingSampleMode.StartAndValue;
+            defItem.SampleSelectionStart = 104;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+
+            defItem = new SettingItem("COMMENTS_HEADER_MIN_WIDTH", "00304", "Comments header minimum width", SettingType.Number);
+            defItem.Category = "Comments";
+            defItem.Information = defItem.Label + ".";
+            defItem.DefaultValue = "100";
+            defItem.Value = defItem.DefaultValue;
+            defItem.MinValue = "50";
+            defItem.MaxValue = "400";
+            defItem.Sample = defaultSampleCommentsHeader;
+            defItem.SampleMode = SettingSampleMode.StartAndValue;
+            defItem.SampleSelectionStart = 4;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+            
             SortedList slProvidedSettings = new SortedList();
             foreach (SettingItem sItem in setSettings.Items)
             {
@@ -577,7 +641,107 @@ namespace SAD806x
                 foreach (SettingItem sItem in slProvidedSettings.Values) setSettings.Items.Add(sItem);
             }
 
-            setSettings.version = "0.2";
+            setSettings.version = "0.22";
+        }
+
+        private static void UpdateSADImpExp(ref SettingsLst setSettings)
+        {
+            SortedList slDefaultSettings = new SortedList();
+            SettingItem defItem = null;
+
+            defItem = new SettingItem("COMMENTS_ADDRESS_SHORTCUT", "00300", "Comments Address Shortcut", SettingType.Text);
+            defItem.Category = "Comments";
+            defItem.Information = defItem.Label + ".";
+            defItem.DefaultValue = "1";
+            defItem.Value = defItem.DefaultValue;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+
+            defItem = new SettingItem("COMMENTS_NEW_LINE_CHAR", "00310", "Comments New Line Character", SettingType.Text);
+            defItem.Category = "Comments";
+            defItem.Information = defItem.Label + ".";
+            defItem.DefaultValue = "|";
+            defItem.Value = defItem.DefaultValue;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+
+            defItem = new SettingItem("COMMENTS_INLINE_NEW_LINE_CHAR", "00320", "Comments In Line New Line Character", SettingType.Text);
+            defItem.Category = "Comments";
+            defItem.Information = defItem.Label + ".";
+            defItem.DefaultValue = "^";
+            defItem.Value = defItem.DefaultValue;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+
+            defItem = new SettingItem("COMMENTS_START_STRING", "00330", "Comments Start String", SettingType.Text);
+            defItem.Category = "Comments";
+            defItem.Information = defItem.Label + "\r\n\r\n";
+            defItem.Information += "It will be removed and/or replaced on import.";
+            defItem.DefaultValue = "# ";
+            defItem.Value = defItem.DefaultValue;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+
+            defItem = new SettingItem("COMMENTS_START_STRING_ALT", "00340", "Comments Start String Alt.", SettingType.Text);
+            defItem.Category = "Comments";
+            defItem.Information = defItem.Label + "\r\n\r\n";
+            defItem.Information += "It will be removed and/or replaced on import.";
+            defItem.DefaultValue = "// ";
+            defItem.Value = defItem.DefaultValue;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+
+            defItem = new SettingItem("COMMENTS_IMPORT_HEADER_CHAR_TO_REPLACE", "00350", "Comments Import Header Character to replace", SettingType.Text);
+            defItem.Category = "Comments";
+            defItem.Information = defItem.Label + ".";
+            defItem.DefaultValue = "#";
+            defItem.Value = defItem.DefaultValue;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+
+            defItem = new SettingItem("COMMENTS_IMPORT_HEADER_CHAR_REPLACEMENT", "00360", "Comments Import Header Character replacement", SettingType.Text);
+            defItem.Category = "Comments";
+            defItem.Information = defItem.Label + ".";
+            defItem.DefaultValue = " ";
+            defItem.Value = defItem.DefaultValue;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+
+            defItem = new SettingItem("COMMENTS_EXPORT_HEADER_CHAR_TO_REPLACE", "00370", "Comments Export Header Character to replace", SettingType.Text);
+            defItem.Category = "Comments";
+            defItem.Information = defItem.Label + ".";
+            defItem.DefaultValue = " ";
+            defItem.Value = defItem.DefaultValue;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+
+            defItem = new SettingItem("COMMENTS_EXPORT_HEADER_CHAR_REPLACEMENT", "00380", "Comments Export Header Character replacement", SettingType.Text);
+            defItem.Category = "Comments";
+            defItem.Information = defItem.Label + ".";
+            defItem.DefaultValue = "#";
+            defItem.Value = defItem.DefaultValue;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+
+            SortedList slProvidedSettings = new SortedList();
+            foreach (SettingItem sItem in setSettings.Items)
+            {
+                try { slProvidedSettings.Add(sItem.UniqueId, sItem); }
+                catch { }
+            }
+
+            bool updateSettings = false;
+            foreach (string sKey in slDefaultSettings.Keys)
+            {
+                if (slProvidedSettings.ContainsKey(sKey))
+                {
+                    updateSettings |= ((SettingItem)slProvidedSettings[sKey]).Refresh((SettingItem)slDefaultSettings[sKey]);
+                }
+                else
+                {
+                    slProvidedSettings.Add(sKey, slDefaultSettings[sKey]);
+                    updateSettings = true;
+                }
+            }
+
+            if (updateSettings)
+            {
+                setSettings.Items.Clear();
+                foreach (SettingItem sItem in slProvidedSettings.Values) setSettings.Items.Add(sItem);
+            }
+
+            setSettings.version = "0.01";
         }
     }
 }

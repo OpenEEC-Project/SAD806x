@@ -14,6 +14,8 @@ namespace SAD806x
         public static int BorderedWidth = 120;
         public static int BorderedLeftMargin = 20;
         public static int BorderedRightMargin = 20;
+        public static int BorderedLeftMarginReduced = 4;
+        public static int BorderedRightMarginReduced = 4;
 
         public static char BorderTopBottom = '═';
         public static char BorderLeftRight = '║';
@@ -28,9 +30,59 @@ namespace SAD806x
             return BorderTopLeftCorner + new string(BorderTopBottom, BorderedWidth - 2) + BorderTopRightCorner;
         }
 
+        public static string BorderedHeader(int oversizedTextLength, bool reducedMargin)
+        {
+            int bdLeftMargin = BorderedLeftMargin;
+            int bdRightMargin = BorderedRightMargin;
+
+            if (reducedMargin)
+            {
+                bdLeftMargin = BorderedLeftMarginReduced;
+                bdRightMargin = BorderedRightMarginReduced;
+            }
+
+            int oversizedBorderWidth = oversizedTextLength + 2 + bdLeftMargin + bdRightMargin;
+            return BorderTopLeftCorner + new string(BorderTopBottom, oversizedBorderWidth - 2) + BorderTopRightCorner;
+        }
+
         public static string BorderedFooter()
         {
             return BorderBottomLeftCorner + new string(BorderTopBottom, BorderedWidth - 2) + BorderBottomRightCorner;
+        }
+
+        public static string BorderedFooter(int oversizedTextLength, bool reducedMargin)
+        {
+            int bdLeftMargin = BorderedLeftMargin;
+            int bdRightMargin = BorderedRightMargin;
+
+            if (reducedMargin)
+            {
+                bdLeftMargin = BorderedLeftMarginReduced;
+                bdRightMargin = BorderedRightMarginReduced;
+            }
+
+            int oversizedBorderWidth = oversizedTextLength + 2 + bdLeftMargin + bdRightMargin;
+            return BorderBottomLeftCorner + new string(BorderTopBottom, oversizedBorderWidth - 2) + BorderBottomRightCorner;
+        }
+
+        public static string BorderedEmpty()
+        {
+            return BorderLeftRight + new string(' ', BorderedWidth - 2) + BorderLeftRight;
+        }
+
+        public static string BorderedEmpty(int oversizedTextLength, bool reducedMargin)
+        {
+            int bdLeftMargin = BorderedLeftMargin;
+            int bdRightMargin = BorderedRightMargin;
+
+            if (reducedMargin)
+            {
+                bdLeftMargin = BorderedLeftMarginReduced;
+                bdRightMargin = BorderedRightMarginReduced;
+            }
+
+            int oversizedBorderWidth = oversizedTextLength + 2 + bdLeftMargin + bdRightMargin;
+            return BorderLeftRight + new string(' ', oversizedBorderWidth - 2) + BorderLeftRight;
         }
 
         public static string BorderedTitle(string text)
@@ -50,6 +102,25 @@ namespace SAD806x
             int leftMargin = BorderedLeftMargin;
             int rightMargin = BorderedWidth - leftMargin - text.Length;
             string format = "{0,1}{1,1}{2,1}{3,1}{4,1}";
+            return string.Format(format, BorderLeftRight, new string(' ', leftMargin - 1), text, new string(' ', rightMargin - 1), BorderLeftRight);
+        }
+
+        public static string BorderedText(string text, int oversizedTextLength, bool reducedMargin)
+        {
+            int bdLeftMargin = BorderedLeftMargin;
+            int bdRightMargin = BorderedRightMargin;
+
+            if (reducedMargin)
+            {
+                bdLeftMargin = BorderedLeftMarginReduced;
+                bdRightMargin = BorderedRightMarginReduced;
+            }
+
+            int oversizedBorderWidth = oversizedTextLength + 2 + bdLeftMargin + bdRightMargin;
+
+            int leftMargin = bdLeftMargin;
+            int rightMargin = oversizedBorderWidth - leftMargin - oversizedTextLength;
+            string format = "{0,1}{1,1}{2,-" + oversizedTextLength.ToString() + "}{3,1}{4,1}";
             return string.Format(format, BorderLeftRight, new string(' ', leftMargin - 1), text, new string(' ', rightMargin - 1), BorderLeftRight);
         }
 
@@ -81,11 +152,6 @@ namespace SAD806x
             }
 
             return BorderedText(string.Join(string.Empty, arrMarginedText));
-        }
-
-        public static string BorderedEmpty()
-        {
-            return BorderLeftRight + new string(' ', BorderedWidth - 2) + BorderLeftRight;
         }
 
         public static string GetSpacesCenteredString(string sValue, int iWidth)

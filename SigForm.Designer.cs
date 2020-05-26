@@ -29,25 +29,25 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.Windows.Forms.TreeNode treeNode11 = new System.Windows.Forms.TreeNode("Input Arguments");
-            System.Windows.Forms.TreeNode treeNode12 = new System.Windows.Forms.TreeNode("Input Structures");
-            System.Windows.Forms.TreeNode treeNode13 = new System.Windows.Forms.TreeNode("Input Tables");
-            System.Windows.Forms.TreeNode treeNode14 = new System.Windows.Forms.TreeNode("Input Functions");
-            System.Windows.Forms.TreeNode treeNode15 = new System.Windows.Forms.TreeNode("Input Scalars");
-            System.Windows.Forms.TreeNode treeNode16 = new System.Windows.Forms.TreeNode("Internal Structures");
-            System.Windows.Forms.TreeNode treeNode17 = new System.Windows.Forms.TreeNode("Internal Tables");
-            System.Windows.Forms.TreeNode treeNode18 = new System.Windows.Forms.TreeNode("Internal Functions");
-            System.Windows.Forms.TreeNode treeNode19 = new System.Windows.Forms.TreeNode("Internal Scalars");
-            System.Windows.Forms.TreeNode treeNode20 = new System.Windows.Forms.TreeNode("Signature Elements Detection", new System.Windows.Forms.TreeNode[] {
-            treeNode11,
-            treeNode12,
-            treeNode13,
-            treeNode14,
-            treeNode15,
-            treeNode16,
-            treeNode17,
-            treeNode18,
-            treeNode19});
+            System.Windows.Forms.TreeNode treeNode1 = new System.Windows.Forms.TreeNode("Input Arguments");
+            System.Windows.Forms.TreeNode treeNode2 = new System.Windows.Forms.TreeNode("Input Structures");
+            System.Windows.Forms.TreeNode treeNode3 = new System.Windows.Forms.TreeNode("Input Tables");
+            System.Windows.Forms.TreeNode treeNode4 = new System.Windows.Forms.TreeNode("Input Functions");
+            System.Windows.Forms.TreeNode treeNode5 = new System.Windows.Forms.TreeNode("Input Scalars");
+            System.Windows.Forms.TreeNode treeNode6 = new System.Windows.Forms.TreeNode("Internal Structures");
+            System.Windows.Forms.TreeNode treeNode7 = new System.Windows.Forms.TreeNode("Internal Tables");
+            System.Windows.Forms.TreeNode treeNode8 = new System.Windows.Forms.TreeNode("Internal Functions");
+            System.Windows.Forms.TreeNode treeNode9 = new System.Windows.Forms.TreeNode("Internal Scalars");
+            System.Windows.Forms.TreeNode treeNode10 = new System.Windows.Forms.TreeNode("Signature Elements Detection", new System.Windows.Forms.TreeNode[] {
+            treeNode1,
+            treeNode2,
+            treeNode3,
+            treeNode4,
+            treeNode5,
+            treeNode6,
+            treeNode7,
+            treeNode8,
+            treeNode9});
             this.advHeaderPanel = new System.Windows.Forms.Panel();
             this.advSLabelTextBox = new System.Windows.Forms.TextBox();
             this.advLabelTextBox = new System.Windows.Forms.TextBox();
@@ -57,10 +57,17 @@
             this.advElemsContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.newElementToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.delElementToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.elemFooterPanel = new System.Windows.Forms.Panel();
-            this.mainTipPictureBox = new System.Windows.Forms.PictureBox();
-            this.elemUpdateButton = new System.Windows.Forms.Button();
             this.elemTabControl = new System.Windows.Forms.TabControl();
+            this.routineTabPage = new System.Windows.Forms.TabPage();
+            this.signatureFor806xComboBox = new System.Windows.Forms.ComboBox();
+            this.signatureForBankComboBox = new System.Windows.Forms.ComboBox();
+            this.label67 = new System.Windows.Forms.Label();
+            this.routineOutputCommentsCheckBox = new System.Windows.Forms.CheckBox();
+            this.label65 = new System.Windows.Forms.Label();
+            this.routineSLabelTextBox = new System.Windows.Forms.TextBox();
+            this.routineCommentsTextBox = new System.Windows.Forms.TextBox();
+            this.label66 = new System.Windows.Forms.Label();
+            this.routineLabelTextBox = new System.Windows.Forms.TextBox();
             this.inputArgumentTabPage = new System.Windows.Forms.TabPage();
             this.inputArgEncryptionComboBox = new System.Windows.Forms.ComboBox();
             this.label60 = new System.Windows.Forms.Label();
@@ -185,6 +192,8 @@
             this.internalTableLabelTextBox = new System.Windows.Forms.TextBox();
             this.internalTableSignedCheckBox = new System.Windows.Forms.CheckBox();
             this.internalFunctionTabPage = new System.Windows.Forms.TabPage();
+            this.internalFunctionScalePrecOutputNumericUpDown = new System.Windows.Forms.NumericUpDown();
+            this.internalFunctionScalePrecInputNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.label63 = new System.Windows.Forms.Label();
             this.internalFunctionBankTextBox = new System.Windows.Forms.TextBox();
             this.internalFunctionOutputCommentsCheckBox = new System.Windows.Forms.CheckBox();
@@ -210,6 +219,8 @@
             this.label43 = new System.Windows.Forms.Label();
             this.internalFunctionAddrTextBox = new System.Windows.Forms.TextBox();
             this.internalScalarTabPage = new System.Windows.Forms.TabPage();
+            this.internalScalarInlineCommentsCheckBox = new System.Windows.Forms.CheckBox();
+            this.internalScalarScalePrecNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.internalScalarBitFlagsButton = new System.Windows.Forms.Button();
             this.internalScalarBitFlagsCheckBox = new System.Windows.Forms.CheckBox();
             this.label64 = new System.Windows.Forms.Label();
@@ -231,23 +242,22 @@
             this.internalScalarAddrTextBox = new System.Windows.Forms.TextBox();
             this.advSigPanel = new System.Windows.Forms.Panel();
             this.advSigTextBox = new System.Windows.Forms.TextBox();
+            this.advFooterPanel = new System.Windows.Forms.Panel();
+            this.mainTipPictureBox = new System.Windows.Forms.PictureBox();
+            this.elemUpdateButton = new System.Windows.Forms.Button();
             this.mainToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.repoContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.repoToolStripTextBox = new System.Windows.Forms.ToolStripTextBox();
             this.repoToolStripSeparator = new System.Windows.Forms.ToolStripSeparator();
             this.repoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.internalFunctionScalePrecInputNumericUpDown = new System.Windows.Forms.NumericUpDown();
-            this.internalFunctionScalePrecOutputNumericUpDown = new System.Windows.Forms.NumericUpDown();
-            this.internalScalarScalePrecNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.advHeaderPanel.SuspendLayout();
             this.advMainPanel.SuspendLayout();
             this.advMainSplitContainer.Panel1.SuspendLayout();
             this.advMainSplitContainer.Panel2.SuspendLayout();
             this.advMainSplitContainer.SuspendLayout();
             this.advElemsContextMenuStrip.SuspendLayout();
-            this.elemFooterPanel.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.mainTipPictureBox)).BeginInit();
             this.elemTabControl.SuspendLayout();
+            this.routineTabPage.SuspendLayout();
             this.inputArgumentTabPage.SuspendLayout();
             this.inputStructureTabPage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.inputStructureTipPictureBox)).BeginInit();
@@ -263,12 +273,14 @@
             this.internalTableTabPage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.internalTableScalePrecNumericUpDown)).BeginInit();
             this.internalFunctionTabPage.SuspendLayout();
-            this.internalScalarTabPage.SuspendLayout();
-            this.advSigPanel.SuspendLayout();
-            this.repoContextMenuStrip.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.internalFunctionScalePrecInputNumericUpDown)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.internalFunctionScalePrecOutputNumericUpDown)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.internalFunctionScalePrecInputNumericUpDown)).BeginInit();
+            this.internalScalarTabPage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.internalScalarScalePrecNumericUpDown)).BeginInit();
+            this.advSigPanel.SuspendLayout();
+            this.advFooterPanel.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.mainTipPictureBox)).BeginInit();
+            this.repoContextMenuStrip.SuspendLayout();
             this.SuspendLayout();
             // 
             // advHeaderPanel
@@ -306,16 +318,17 @@
             this.advMainPanel.BackColor = System.Drawing.SystemColors.Window;
             this.advMainPanel.Controls.Add(this.advMainSplitContainer);
             this.advMainPanel.Controls.Add(this.advSigPanel);
+            this.advMainPanel.Controls.Add(this.advFooterPanel);
             this.advMainPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.advMainPanel.Location = new System.Drawing.Point(0, 29);
             this.advMainPanel.Name = "advMainPanel";
-            this.advMainPanel.Size = new System.Drawing.Size(984, 532);
+            this.advMainPanel.Size = new System.Drawing.Size(984, 471);
             this.advMainPanel.TabIndex = 1;
             // 
             // advMainSplitContainer
             // 
             this.advMainSplitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.advMainSplitContainer.Location = new System.Drawing.Point(0, 174);
+            this.advMainSplitContainer.Location = new System.Drawing.Point(0, 155);
             this.advMainSplitContainer.Name = "advMainSplitContainer";
             // 
             // advMainSplitContainer.Panel1
@@ -324,9 +337,8 @@
             // 
             // advMainSplitContainer.Panel2
             // 
-            this.advMainSplitContainer.Panel2.Controls.Add(this.elemFooterPanel);
             this.advMainSplitContainer.Panel2.Controls.Add(this.elemTabControl);
-            this.advMainSplitContainer.Size = new System.Drawing.Size(984, 358);
+            this.advMainSplitContainer.Size = new System.Drawing.Size(984, 289);
             this.advMainSplitContainer.SplitterDistance = 327;
             this.advMainSplitContainer.TabIndex = 5;
             // 
@@ -336,29 +348,29 @@
             this.advElemsTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.advElemsTreeView.Location = new System.Drawing.Point(0, 0);
             this.advElemsTreeView.Name = "advElemsTreeView";
-            treeNode11.Name = "INPARGUMENTS";
-            treeNode11.Text = "Input Arguments";
-            treeNode12.Name = "INPSTRUCTURES";
-            treeNode12.Text = "Input Structures";
-            treeNode13.Name = "INPTABLES";
-            treeNode13.Text = "Input Tables";
-            treeNode14.Name = "INPFUNCTIONS";
-            treeNode14.Text = "Input Functions";
-            treeNode15.Name = "INPSCALARS";
-            treeNode15.Text = "Input Scalars";
-            treeNode16.Name = "INTSTRUCTURES";
-            treeNode16.Text = "Internal Structures";
-            treeNode17.Name = "INTTABLES";
-            treeNode17.Text = "Internal Tables";
-            treeNode18.Name = "INTFUNCTIONS";
-            treeNode18.Text = "Internal Functions";
-            treeNode19.Name = "INTSCALARS";
-            treeNode19.Text = "Internal Scalars";
-            treeNode20.Name = "SIGNATURE";
-            treeNode20.Text = "Signature Elements Detection";
+            treeNode1.Name = "INPARGUMENTS";
+            treeNode1.Text = "Input Arguments";
+            treeNode2.Name = "INPSTRUCTURES";
+            treeNode2.Text = "Input Structures";
+            treeNode3.Name = "INPTABLES";
+            treeNode3.Text = "Input Tables";
+            treeNode4.Name = "INPFUNCTIONS";
+            treeNode4.Text = "Input Functions";
+            treeNode5.Name = "INPSCALARS";
+            treeNode5.Text = "Input Scalars";
+            treeNode6.Name = "INTSTRUCTURES";
+            treeNode6.Text = "Internal Structures";
+            treeNode7.Name = "INTTABLES";
+            treeNode7.Text = "Internal Tables";
+            treeNode8.Name = "INTFUNCTIONS";
+            treeNode8.Text = "Internal Functions";
+            treeNode9.Name = "INTSCALARS";
+            treeNode9.Text = "Internal Scalars";
+            treeNode10.Name = "SIGNATURE";
+            treeNode10.Text = "Signature Elements Detection";
             this.advElemsTreeView.Nodes.AddRange(new System.Windows.Forms.TreeNode[] {
-            treeNode20});
-            this.advElemsTreeView.Size = new System.Drawing.Size(327, 358);
+            treeNode10});
+            this.advElemsTreeView.Size = new System.Drawing.Size(327, 289);
             this.advElemsTreeView.TabIndex = 1;
             // 
             // advElemsContextMenuStrip
@@ -383,42 +395,9 @@
             this.delElementToolStripMenuItem.Text = "Remove";
             this.delElementToolStripMenuItem.Click += new System.EventHandler(this.delElementToolStripMenuItem_Click);
             // 
-            // elemFooterPanel
-            // 
-            this.elemFooterPanel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.elemFooterPanel.Controls.Add(this.mainTipPictureBox);
-            this.elemFooterPanel.Controls.Add(this.elemUpdateButton);
-            this.elemFooterPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.elemFooterPanel.Location = new System.Drawing.Point(0, 331);
-            this.elemFooterPanel.Name = "elemFooterPanel";
-            this.elemFooterPanel.Size = new System.Drawing.Size(653, 27);
-            this.elemFooterPanel.TabIndex = 3;
-            // 
-            // mainTipPictureBox
-            // 
-            this.mainTipPictureBox.Dock = System.Windows.Forms.DockStyle.Left;
-            this.mainTipPictureBox.Image = global::SAD806x.Properties.Resources.question;
-            this.mainTipPictureBox.Location = new System.Drawing.Point(0, 0);
-            this.mainTipPictureBox.Name = "mainTipPictureBox";
-            this.mainTipPictureBox.Size = new System.Drawing.Size(29, 27);
-            this.mainTipPictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
-            this.mainTipPictureBox.TabIndex = 2;
-            this.mainTipPictureBox.TabStop = false;
-            // 
-            // elemUpdateButton
-            // 
-            this.elemUpdateButton.AutoSize = true;
-            this.elemUpdateButton.Dock = System.Windows.Forms.DockStyle.Right;
-            this.elemUpdateButton.Location = new System.Drawing.Point(571, 0);
-            this.elemUpdateButton.Name = "elemUpdateButton";
-            this.elemUpdateButton.Size = new System.Drawing.Size(82, 27);
-            this.elemUpdateButton.TabIndex = 20;
-            this.elemUpdateButton.Text = "Add / Update";
-            this.elemUpdateButton.UseVisualStyleBackColor = true;
-            this.elemUpdateButton.Click += new System.EventHandler(this.elemUpdateButton_Click);
-            // 
             // elemTabControl
             // 
+            this.elemTabControl.Controls.Add(this.routineTabPage);
             this.elemTabControl.Controls.Add(this.inputArgumentTabPage);
             this.elemTabControl.Controls.Add(this.inputStructureTabPage);
             this.elemTabControl.Controls.Add(this.inputTableTabPage);
@@ -432,11 +411,120 @@
             this.elemTabControl.Location = new System.Drawing.Point(0, 0);
             this.elemTabControl.Name = "elemTabControl";
             this.elemTabControl.SelectedIndex = 0;
-            this.elemTabControl.Size = new System.Drawing.Size(653, 358);
+            this.elemTabControl.Size = new System.Drawing.Size(653, 289);
             this.elemTabControl.TabIndex = 2;
+            // 
+            // routineTabPage
+            // 
+            this.routineTabPage.AutoScroll = true;
+            this.routineTabPage.Controls.Add(this.signatureFor806xComboBox);
+            this.routineTabPage.Controls.Add(this.signatureForBankComboBox);
+            this.routineTabPage.Controls.Add(this.label67);
+            this.routineTabPage.Controls.Add(this.routineOutputCommentsCheckBox);
+            this.routineTabPage.Controls.Add(this.label65);
+            this.routineTabPage.Controls.Add(this.routineSLabelTextBox);
+            this.routineTabPage.Controls.Add(this.routineCommentsTextBox);
+            this.routineTabPage.Controls.Add(this.label66);
+            this.routineTabPage.Controls.Add(this.routineLabelTextBox);
+            this.routineTabPage.Location = new System.Drawing.Point(4, 22);
+            this.routineTabPage.Name = "routineTabPage";
+            this.routineTabPage.Size = new System.Drawing.Size(645, 263);
+            this.routineTabPage.TabIndex = 14;
+            this.routineTabPage.Text = "Routine Creation";
+            this.routineTabPage.UseVisualStyleBackColor = true;
+            // 
+            // signatureFor806xComboBox
+            // 
+            this.signatureFor806xComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.signatureFor806xComboBox.FormattingEnabled = true;
+            this.signatureFor806xComboBox.Items.AddRange(new object[] {
+            "",
+            "8061 only",
+            "8065 only"});
+            this.signatureFor806xComboBox.Location = new System.Drawing.Point(3, 65);
+            this.signatureFor806xComboBox.Name = "signatureFor806xComboBox";
+            this.signatureFor806xComboBox.Size = new System.Drawing.Size(188, 21);
+            this.signatureFor806xComboBox.TabIndex = 80;
+            // 
+            // signatureForBankComboBox
+            // 
+            this.signatureForBankComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.signatureForBankComboBox.FormattingEnabled = true;
+            this.signatureForBankComboBox.Items.AddRange(new object[] {
+            "",
+            "Bank 8 only",
+            "Bank 1 only",
+            "Bank 9 only",
+            "Bank 0 only"});
+            this.signatureForBankComboBox.Location = new System.Drawing.Point(327, 65);
+            this.signatureForBankComboBox.Name = "signatureForBankComboBox";
+            this.signatureForBankComboBox.Size = new System.Drawing.Size(188, 21);
+            this.signatureForBankComboBox.TabIndex = 81;
+            // 
+            // label67
+            // 
+            this.label67.AutoSize = true;
+            this.label67.Location = new System.Drawing.Point(3, 145);
+            this.label67.Name = "label67";
+            this.label67.Size = new System.Drawing.Size(56, 13);
+            this.label67.TabIndex = 79;
+            this.label67.Text = "Comments";
+            // 
+            // routineOutputCommentsCheckBox
+            // 
+            this.routineOutputCommentsCheckBox.AutoSize = true;
+            this.routineOutputCommentsCheckBox.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.routineOutputCommentsCheckBox.Location = new System.Drawing.Point(405, 144);
+            this.routineOutputCommentsCheckBox.Name = "routineOutputCommentsCheckBox";
+            this.routineOutputCommentsCheckBox.Size = new System.Drawing.Size(110, 17);
+            this.routineOutputCommentsCheckBox.TabIndex = 76;
+            this.routineOutputCommentsCheckBox.Text = "Output Comments";
+            this.routineOutputCommentsCheckBox.UseVisualStyleBackColor = true;
+            // 
+            // label65
+            // 
+            this.label65.AutoSize = true;
+            this.label65.Location = new System.Drawing.Point(454, 14);
+            this.label65.Name = "label65";
+            this.label65.Size = new System.Drawing.Size(61, 13);
+            this.label65.TabIndex = 78;
+            this.label65.Text = "Short Label";
+            // 
+            // routineSLabelTextBox
+            // 
+            this.routineSLabelTextBox.Location = new System.Drawing.Point(327, 30);
+            this.routineSLabelTextBox.Name = "routineSLabelTextBox";
+            this.routineSLabelTextBox.Size = new System.Drawing.Size(188, 20);
+            this.routineSLabelTextBox.TabIndex = 74;
+            // 
+            // routineCommentsTextBox
+            // 
+            this.routineCommentsTextBox.Location = new System.Drawing.Point(3, 161);
+            this.routineCommentsTextBox.Multiline = true;
+            this.routineCommentsTextBox.Name = "routineCommentsTextBox";
+            this.routineCommentsTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.routineCommentsTextBox.Size = new System.Drawing.Size(512, 42);
+            this.routineCommentsTextBox.TabIndex = 75;
+            // 
+            // label66
+            // 
+            this.label66.AutoSize = true;
+            this.label66.Location = new System.Drawing.Point(3, 14);
+            this.label66.Name = "label66";
+            this.label66.Size = new System.Drawing.Size(33, 13);
+            this.label66.TabIndex = 77;
+            this.label66.Text = "Label";
+            // 
+            // routineLabelTextBox
+            // 
+            this.routineLabelTextBox.Location = new System.Drawing.Point(3, 30);
+            this.routineLabelTextBox.Name = "routineLabelTextBox";
+            this.routineLabelTextBox.Size = new System.Drawing.Size(188, 20);
+            this.routineLabelTextBox.TabIndex = 73;
             // 
             // inputArgumentTabPage
             // 
+            this.inputArgumentTabPage.AutoScroll = true;
             this.inputArgumentTabPage.Controls.Add(this.inputArgEncryptionComboBox);
             this.inputArgumentTabPage.Controls.Add(this.label60);
             this.inputArgumentTabPage.Controls.Add(this.inputArgPointerCheckBox);
@@ -447,7 +535,7 @@
             this.inputArgumentTabPage.Controls.Add(this.inputArgCodeTextBox);
             this.inputArgumentTabPage.Location = new System.Drawing.Point(4, 22);
             this.inputArgumentTabPage.Name = "inputArgumentTabPage";
-            this.inputArgumentTabPage.Size = new System.Drawing.Size(645, 332);
+            this.inputArgumentTabPage.Size = new System.Drawing.Size(645, 263);
             this.inputArgumentTabPage.TabIndex = 13;
             this.inputArgumentTabPage.Text = "Input Argument";
             this.inputArgumentTabPage.UseVisualStyleBackColor = true;
@@ -526,6 +614,7 @@
             // 
             // inputStructureTabPage
             // 
+            this.inputStructureTabPage.AutoScroll = true;
             this.inputStructureTabPage.Controls.Add(this.inputStructureTipPictureBox);
             this.inputStructureTabPage.Controls.Add(this.label19);
             this.inputStructureTabPage.Controls.Add(this.inputStructureNumFixTextBox);
@@ -537,7 +626,7 @@
             this.inputStructureTabPage.Controls.Add(this.inputStructureAddrTextBox);
             this.inputStructureTabPage.Location = new System.Drawing.Point(4, 22);
             this.inputStructureTabPage.Name = "inputStructureTabPage";
-            this.inputStructureTabPage.Size = new System.Drawing.Size(645, 332);
+            this.inputStructureTabPage.Size = new System.Drawing.Size(645, 263);
             this.inputStructureTabPage.TabIndex = 8;
             this.inputStructureTabPage.Text = "Input Structure";
             this.inputStructureTabPage.UseVisualStyleBackColor = true;
@@ -620,6 +709,7 @@
             // 
             // inputTableTabPage
             // 
+            this.inputTableTabPage.AutoScroll = true;
             this.inputTableTabPage.Controls.Add(this.inputTableScalePrecNumericUpDown);
             this.inputTableTabPage.Controls.Add(this.label25);
             this.inputTableTabPage.Controls.Add(this.inputTableOutputTextBox);
@@ -647,7 +737,7 @@
             this.inputTableTabPage.Controls.Add(this.inputTableSignedCheckBox);
             this.inputTableTabPage.Location = new System.Drawing.Point(4, 22);
             this.inputTableTabPage.Name = "inputTableTabPage";
-            this.inputTableTabPage.Size = new System.Drawing.Size(645, 332);
+            this.inputTableTabPage.Size = new System.Drawing.Size(645, 263);
             this.inputTableTabPage.TabIndex = 3;
             this.inputTableTabPage.Text = "Input Table";
             this.inputTableTabPage.UseVisualStyleBackColor = true;
@@ -867,6 +957,7 @@
             // 
             // inputFunctionTabPage
             // 
+            this.inputFunctionTabPage.AutoScroll = true;
             this.inputFunctionTabPage.Controls.Add(this.inputFunctionScalePrecOutputNumericUpDown);
             this.inputFunctionTabPage.Controls.Add(this.inputFunctionScalePrecInputNumericUpDown);
             this.inputFunctionTabPage.Controls.Add(this.label5);
@@ -890,7 +981,7 @@
             this.inputFunctionTabPage.Controls.Add(this.inputFunctionSignedInputCheckBox);
             this.inputFunctionTabPage.Location = new System.Drawing.Point(4, 22);
             this.inputFunctionTabPage.Name = "inputFunctionTabPage";
-            this.inputFunctionTabPage.Size = new System.Drawing.Size(645, 332);
+            this.inputFunctionTabPage.Size = new System.Drawing.Size(645, 263);
             this.inputFunctionTabPage.TabIndex = 2;
             this.inputFunctionTabPage.Text = "Input Function";
             this.inputFunctionTabPage.UseVisualStyleBackColor = true;
@@ -1104,7 +1195,7 @@
             this.inputScalarTabPage.Location = new System.Drawing.Point(4, 22);
             this.inputScalarTabPage.Name = "inputScalarTabPage";
             this.inputScalarTabPage.Padding = new System.Windows.Forms.Padding(3);
-            this.inputScalarTabPage.Size = new System.Drawing.Size(645, 332);
+            this.inputScalarTabPage.Size = new System.Drawing.Size(645, 263);
             this.inputScalarTabPage.TabIndex = 0;
             this.inputScalarTabPage.Text = "Input Scalar";
             this.inputScalarTabPage.UseVisualStyleBackColor = true;
@@ -1217,6 +1308,7 @@
             // 
             // internalStructureTabPage
             // 
+            this.internalStructureTabPage.AutoScroll = true;
             this.internalStructureTabPage.Controls.Add(this.internalStructureTipPictureBox);
             this.internalStructureTabPage.Controls.Add(this.label61);
             this.internalStructureTabPage.Controls.Add(this.internalStructureBankTextBox);
@@ -1235,7 +1327,7 @@
             this.internalStructureTabPage.Controls.Add(this.internalStructureLabelTextBox);
             this.internalStructureTabPage.Location = new System.Drawing.Point(4, 22);
             this.internalStructureTabPage.Name = "internalStructureTabPage";
-            this.internalStructureTabPage.Size = new System.Drawing.Size(645, 332);
+            this.internalStructureTabPage.Size = new System.Drawing.Size(645, 263);
             this.internalStructureTabPage.TabIndex = 9;
             this.internalStructureTabPage.Text = "Internal Structure";
             this.internalStructureTabPage.UseVisualStyleBackColor = true;
@@ -1380,6 +1472,7 @@
             // 
             // internalTableTabPage
             // 
+            this.internalTableTabPage.AutoScroll = true;
             this.internalTableTabPage.Controls.Add(this.internalTableScalePrecNumericUpDown);
             this.internalTableTabPage.Controls.Add(this.label62);
             this.internalTableTabPage.Controls.Add(this.internalTableBankTextBox);
@@ -1408,7 +1501,7 @@
             this.internalTableTabPage.Controls.Add(this.internalTableSignedCheckBox);
             this.internalTableTabPage.Location = new System.Drawing.Point(4, 22);
             this.internalTableTabPage.Name = "internalTableTabPage";
-            this.internalTableTabPage.Size = new System.Drawing.Size(645, 332);
+            this.internalTableTabPage.Size = new System.Drawing.Size(645, 263);
             this.internalTableTabPage.TabIndex = 10;
             this.internalTableTabPage.Text = "Internal Table";
             this.internalTableTabPage.UseVisualStyleBackColor = true;
@@ -1643,6 +1736,7 @@
             // 
             // internalFunctionTabPage
             // 
+            this.internalFunctionTabPage.AutoScroll = true;
             this.internalFunctionTabPage.Controls.Add(this.internalFunctionScalePrecOutputNumericUpDown);
             this.internalFunctionTabPage.Controls.Add(this.internalFunctionScalePrecInputNumericUpDown);
             this.internalFunctionTabPage.Controls.Add(this.label63);
@@ -1671,10 +1765,44 @@
             this.internalFunctionTabPage.Controls.Add(this.internalFunctionAddrTextBox);
             this.internalFunctionTabPage.Location = new System.Drawing.Point(4, 22);
             this.internalFunctionTabPage.Name = "internalFunctionTabPage";
-            this.internalFunctionTabPage.Size = new System.Drawing.Size(645, 332);
+            this.internalFunctionTabPage.Size = new System.Drawing.Size(645, 263);
             this.internalFunctionTabPage.TabIndex = 11;
             this.internalFunctionTabPage.Text = "Internal Function";
             this.internalFunctionTabPage.UseVisualStyleBackColor = true;
+            // 
+            // internalFunctionScalePrecOutputNumericUpDown
+            // 
+            this.internalFunctionScalePrecOutputNumericUpDown.Location = new System.Drawing.Point(490, 116);
+            this.internalFunctionScalePrecOutputNumericUpDown.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.internalFunctionScalePrecOutputNumericUpDown.Name = "internalFunctionScalePrecOutputNumericUpDown";
+            this.internalFunctionScalePrecOutputNumericUpDown.Size = new System.Drawing.Size(31, 20);
+            this.internalFunctionScalePrecOutputNumericUpDown.TabIndex = 12;
+            this.internalFunctionScalePrecOutputNumericUpDown.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
+            // 
+            // internalFunctionScalePrecInputNumericUpDown
+            // 
+            this.internalFunctionScalePrecInputNumericUpDown.Location = new System.Drawing.Point(160, 116);
+            this.internalFunctionScalePrecInputNumericUpDown.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.internalFunctionScalePrecInputNumericUpDown.Name = "internalFunctionScalePrecInputNumericUpDown";
+            this.internalFunctionScalePrecInputNumericUpDown.Size = new System.Drawing.Size(31, 20);
+            this.internalFunctionScalePrecInputNumericUpDown.TabIndex = 8;
+            this.internalFunctionScalePrecInputNumericUpDown.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
             // 
             // label63
             // 
@@ -1884,6 +2012,8 @@
             // 
             // internalScalarTabPage
             // 
+            this.internalScalarTabPage.AutoScroll = true;
+            this.internalScalarTabPage.Controls.Add(this.internalScalarInlineCommentsCheckBox);
             this.internalScalarTabPage.Controls.Add(this.internalScalarScalePrecNumericUpDown);
             this.internalScalarTabPage.Controls.Add(this.internalScalarBitFlagsButton);
             this.internalScalarTabPage.Controls.Add(this.internalScalarBitFlagsCheckBox);
@@ -1906,10 +2036,38 @@
             this.internalScalarTabPage.Controls.Add(this.internalScalarAddrTextBox);
             this.internalScalarTabPage.Location = new System.Drawing.Point(4, 22);
             this.internalScalarTabPage.Name = "internalScalarTabPage";
-            this.internalScalarTabPage.Size = new System.Drawing.Size(645, 332);
+            this.internalScalarTabPage.Size = new System.Drawing.Size(645, 263);
             this.internalScalarTabPage.TabIndex = 12;
             this.internalScalarTabPage.Text = "Internal Scalar";
             this.internalScalarTabPage.UseVisualStyleBackColor = true;
+            // 
+            // internalScalarInlineCommentsCheckBox
+            // 
+            this.internalScalarInlineCommentsCheckBox.AutoSize = true;
+            this.internalScalarInlineCommentsCheckBox.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.internalScalarInlineCommentsCheckBox.Location = new System.Drawing.Point(296, 144);
+            this.internalScalarInlineCommentsCheckBox.Name = "internalScalarInlineCommentsCheckBox";
+            this.internalScalarInlineCommentsCheckBox.Size = new System.Drawing.Size(103, 17);
+            this.internalScalarInlineCommentsCheckBox.TabIndex = 108;
+            this.internalScalarInlineCommentsCheckBox.Text = "Inline Comments";
+            this.internalScalarInlineCommentsCheckBox.UseVisualStyleBackColor = true;
+            // 
+            // internalScalarScalePrecNumericUpDown
+            // 
+            this.internalScalarScalePrecNumericUpDown.Location = new System.Drawing.Point(484, 115);
+            this.internalScalarScalePrecNumericUpDown.Maximum = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            this.internalScalarScalePrecNumericUpDown.Name = "internalScalarScalePrecNumericUpDown";
+            this.internalScalarScalePrecNumericUpDown.Size = new System.Drawing.Size(31, 20);
+            this.internalScalarScalePrecNumericUpDown.TabIndex = 9;
+            this.internalScalarScalePrecNumericUpDown.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
             // 
             // internalScalarBitFlagsButton
             // 
@@ -2085,7 +2243,7 @@
             this.advSigPanel.Dock = System.Windows.Forms.DockStyle.Top;
             this.advSigPanel.Location = new System.Drawing.Point(0, 0);
             this.advSigPanel.Name = "advSigPanel";
-            this.advSigPanel.Size = new System.Drawing.Size(984, 174);
+            this.advSigPanel.Size = new System.Drawing.Size(984, 155);
             this.advSigPanel.TabIndex = 3;
             // 
             // advSigTextBox
@@ -2095,8 +2253,42 @@
             this.advSigTextBox.Multiline = true;
             this.advSigTextBox.Name = "advSigTextBox";
             this.advSigTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.advSigTextBox.Size = new System.Drawing.Size(984, 174);
+            this.advSigTextBox.Size = new System.Drawing.Size(984, 155);
             this.advSigTextBox.TabIndex = 0;
+            // 
+            // advFooterPanel
+            // 
+            this.advFooterPanel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.advFooterPanel.Controls.Add(this.mainTipPictureBox);
+            this.advFooterPanel.Controls.Add(this.elemUpdateButton);
+            this.advFooterPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.advFooterPanel.Location = new System.Drawing.Point(0, 444);
+            this.advFooterPanel.Name = "advFooterPanel";
+            this.advFooterPanel.Size = new System.Drawing.Size(984, 27);
+            this.advFooterPanel.TabIndex = 7;
+            // 
+            // mainTipPictureBox
+            // 
+            this.mainTipPictureBox.Dock = System.Windows.Forms.DockStyle.Left;
+            this.mainTipPictureBox.Image = global::SAD806x.Properties.Resources.question;
+            this.mainTipPictureBox.Location = new System.Drawing.Point(0, 0);
+            this.mainTipPictureBox.Name = "mainTipPictureBox";
+            this.mainTipPictureBox.Size = new System.Drawing.Size(29, 27);
+            this.mainTipPictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.mainTipPictureBox.TabIndex = 2;
+            this.mainTipPictureBox.TabStop = false;
+            // 
+            // elemUpdateButton
+            // 
+            this.elemUpdateButton.AutoSize = true;
+            this.elemUpdateButton.Dock = System.Windows.Forms.DockStyle.Right;
+            this.elemUpdateButton.Location = new System.Drawing.Point(902, 0);
+            this.elemUpdateButton.Name = "elemUpdateButton";
+            this.elemUpdateButton.Size = new System.Drawing.Size(82, 27);
+            this.elemUpdateButton.TabIndex = 20;
+            this.elemUpdateButton.Text = "Add / Update";
+            this.elemUpdateButton.UseVisualStyleBackColor = true;
+            this.elemUpdateButton.Click += new System.EventHandler(this.elemUpdateButton_Click);
             // 
             // mainToolTip
             // 
@@ -2133,62 +2325,11 @@
             this.repoToolStripMenuItem.Text = "Related Repository";
             this.repoToolStripMenuItem.ToolTipText = "Results";
             // 
-            // internalFunctionScalePrecInputNumericUpDown
-            // 
-            this.internalFunctionScalePrecInputNumericUpDown.Location = new System.Drawing.Point(160, 116);
-            this.internalFunctionScalePrecInputNumericUpDown.Maximum = new decimal(new int[] {
-            5,
-            0,
-            0,
-            0});
-            this.internalFunctionScalePrecInputNumericUpDown.Name = "internalFunctionScalePrecInputNumericUpDown";
-            this.internalFunctionScalePrecInputNumericUpDown.Size = new System.Drawing.Size(31, 20);
-            this.internalFunctionScalePrecInputNumericUpDown.TabIndex = 8;
-            this.internalFunctionScalePrecInputNumericUpDown.Value = new decimal(new int[] {
-            2,
-            0,
-            0,
-            0});
-            // 
-            // internalFunctionScalePrecOutputNumericUpDown
-            // 
-            this.internalFunctionScalePrecOutputNumericUpDown.Location = new System.Drawing.Point(490, 116);
-            this.internalFunctionScalePrecOutputNumericUpDown.Maximum = new decimal(new int[] {
-            5,
-            0,
-            0,
-            0});
-            this.internalFunctionScalePrecOutputNumericUpDown.Name = "internalFunctionScalePrecOutputNumericUpDown";
-            this.internalFunctionScalePrecOutputNumericUpDown.Size = new System.Drawing.Size(31, 20);
-            this.internalFunctionScalePrecOutputNumericUpDown.TabIndex = 12;
-            this.internalFunctionScalePrecOutputNumericUpDown.Value = new decimal(new int[] {
-            2,
-            0,
-            0,
-            0});
-            // 
-            // internalScalarScalePrecNumericUpDown
-            // 
-            this.internalScalarScalePrecNumericUpDown.Location = new System.Drawing.Point(484, 115);
-            this.internalScalarScalePrecNumericUpDown.Maximum = new decimal(new int[] {
-            5,
-            0,
-            0,
-            0});
-            this.internalScalarScalePrecNumericUpDown.Name = "internalScalarScalePrecNumericUpDown";
-            this.internalScalarScalePrecNumericUpDown.Size = new System.Drawing.Size(31, 20);
-            this.internalScalarScalePrecNumericUpDown.TabIndex = 9;
-            this.internalScalarScalePrecNumericUpDown.Value = new decimal(new int[] {
-            2,
-            0,
-            0,
-            0});
-            // 
             // SigForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(984, 561);
+            this.ClientSize = new System.Drawing.Size(984, 500);
             this.Controls.Add(this.advMainPanel);
             this.Controls.Add(this.advHeaderPanel);
             this.Name = "SigForm";
@@ -2202,10 +2343,9 @@
             this.advMainSplitContainer.Panel2.ResumeLayout(false);
             this.advMainSplitContainer.ResumeLayout(false);
             this.advElemsContextMenuStrip.ResumeLayout(false);
-            this.elemFooterPanel.ResumeLayout(false);
-            this.elemFooterPanel.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.mainTipPictureBox)).EndInit();
             this.elemTabControl.ResumeLayout(false);
+            this.routineTabPage.ResumeLayout(false);
+            this.routineTabPage.PerformLayout();
             this.inputArgumentTabPage.ResumeLayout(false);
             this.inputArgumentTabPage.PerformLayout();
             this.inputStructureTabPage.ResumeLayout(false);
@@ -2229,15 +2369,18 @@
             ((System.ComponentModel.ISupportInitialize)(this.internalTableScalePrecNumericUpDown)).EndInit();
             this.internalFunctionTabPage.ResumeLayout(false);
             this.internalFunctionTabPage.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.internalFunctionScalePrecOutputNumericUpDown)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.internalFunctionScalePrecInputNumericUpDown)).EndInit();
             this.internalScalarTabPage.ResumeLayout(false);
             this.internalScalarTabPage.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.internalScalarScalePrecNumericUpDown)).EndInit();
             this.advSigPanel.ResumeLayout(false);
             this.advSigPanel.PerformLayout();
+            this.advFooterPanel.ResumeLayout(false);
+            this.advFooterPanel.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.mainTipPictureBox)).EndInit();
             this.repoContextMenuStrip.ResumeLayout(false);
             this.repoContextMenuStrip.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.internalFunctionScalePrecInputNumericUpDown)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.internalFunctionScalePrecOutputNumericUpDown)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.internalScalarScalePrecNumericUpDown)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -2301,8 +2444,6 @@
         private System.Windows.Forms.TextBox inputStructureAddrTextBox;
         private System.Windows.Forms.TextBox inputScalarUnitsTextBox;
         private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.Panel elemFooterPanel;
-        private System.Windows.Forms.Button elemUpdateButton;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.TextBox inputFunctionOutputTextBox;
         private System.Windows.Forms.Label label3;
@@ -2382,7 +2523,6 @@
         private System.Windows.Forms.CheckBox internalFunctionSignedInputCheckBox;
         private System.Windows.Forms.Label label52;
         private System.Windows.Forms.TextBox internalScalarAddrTextBox;
-        private System.Windows.Forms.CheckBox internalScalarOutputCommentsCheckBox;
         private System.Windows.Forms.Label label53;
         private System.Windows.Forms.TextBox internalScalarSLabelTextBox;
         private System.Windows.Forms.CheckBox internalScalarByteCheckBox;
@@ -2415,7 +2555,6 @@
         private System.Windows.Forms.TextBox internalFunctionBankTextBox;
         private System.Windows.Forms.Label label64;
         private System.Windows.Forms.TextBox internalScalarBankTextBox;
-        private System.Windows.Forms.PictureBox mainTipPictureBox;
         private System.Windows.Forms.PictureBox inputStructureTipPictureBox;
         private System.Windows.Forms.PictureBox internalStructureTipPictureBox;
         private System.Windows.Forms.ToolTip mainToolTip;
@@ -2435,5 +2574,20 @@
         private System.Windows.Forms.NumericUpDown internalFunctionScalePrecInputNumericUpDown;
         private System.Windows.Forms.NumericUpDown internalFunctionScalePrecOutputNumericUpDown;
         private System.Windows.Forms.NumericUpDown internalScalarScalePrecNumericUpDown;
+        private System.Windows.Forms.CheckBox internalScalarInlineCommentsCheckBox;
+        private System.Windows.Forms.CheckBox internalScalarOutputCommentsCheckBox;
+        private System.Windows.Forms.Panel advFooterPanel;
+        private System.Windows.Forms.PictureBox mainTipPictureBox;
+        private System.Windows.Forms.Button elemUpdateButton;
+        private System.Windows.Forms.TabPage routineTabPage;
+        private System.Windows.Forms.Label label67;
+        private System.Windows.Forms.CheckBox routineOutputCommentsCheckBox;
+        private System.Windows.Forms.Label label65;
+        private System.Windows.Forms.TextBox routineSLabelTextBox;
+        private System.Windows.Forms.TextBox routineCommentsTextBox;
+        private System.Windows.Forms.Label label66;
+        private System.Windows.Forms.TextBox routineLabelTextBox;
+        private System.Windows.Forms.ComboBox signatureFor806xComboBox;
+        private System.Windows.Forms.ComboBox signatureForBankComboBox;
     }
 }

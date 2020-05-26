@@ -28,6 +28,7 @@ namespace SAD806x
 
         public SortedList slRbases = null;
         public SortedList slRconst = null;
+        public SortedList slRegisters = null;
         public SortedList slCalibrationElements = null;
         public SortedList slExtTables = null;
         public SortedList slExtFunctions = null;
@@ -83,6 +84,7 @@ namespace SAD806x
         public SADCalib()
         {
             slRconst = new SortedList();
+            slRegisters = new SortedList();
             slCalibrationElements = new SortedList();
             slExtTables = new SortedList();
             slExtFunctions = new SortedList();
@@ -277,8 +279,8 @@ namespace SAD806x
 
         public void processCalibrationElementsRegisters(ref SADS6x S6x)
         {
-            SortedList slOrderedRegisters = new SortedList();
-            
+            SortedList slUpdatedRegisters = new SortedList();
+
             // Tables Scalers Creation and Registers Creation
             foreach (CalibrationElement calElem in slCalibrationElements.Values)
             {
@@ -288,7 +290,7 @@ namespace SAD806x
                     {
                         int tScalerIndex = -1;
                         TableScaler tScaler = null;
-                        S6xRegister reg = null;
+                        Register rReg = null;
                         if (ciCi.ColsScalerRegister != string.Empty || ciCi.ColsScalerFunctionUniqueAddress != string.Empty)
                         {
                             tScalerIndex = getTablesScalersIndex(ciCi.ColsScalerRegister, ciCi.ColsScalerFunctionUniqueAddress);
@@ -298,7 +300,6 @@ namespace SAD806x
                                 tScaler.addRegister(ciCi.ColsScalerRegister);
                                 tScaler.addFunction(ciCi.ColsScalerFunctionUniqueAddress);
                                 tScaler.addColsScaledTable(calElem.TableElem.UniqueAddress);
-                                alTablesScalers[tScalerIndex] = tScaler;
                             }
                             else
                             {
@@ -319,7 +320,6 @@ namespace SAD806x
                                 tScaler.addRegister(ciCi.RowsScalerRegister);
                                 tScaler.addFunction(ciCi.RowsScalerFunctionUniqueAddress);
                                 tScaler.addRowsScaledTable(calElem.TableElem.UniqueAddress);
-                                alTablesScalers[tScalerIndex] = tScaler;
                             }
                             else
                             {
@@ -333,95 +333,55 @@ namespace SAD806x
                         }
                         if (ciCi.ColsScalerRegister != string.Empty)
                         {
-                            try
+                            rReg = (Register)slRegisters[Tools.RegisterUniqueAddress(ciCi.ColsScalerRegister)];
+                            if (rReg == null)
                             {
-                                reg = (S6xRegister)slOrderedRegisters[Tools.RegisterUniqueAddressInt(ciCi.ColsScalerRegister)];
-                                if (reg == null)
-                                {
-                                    reg = new S6xRegister(ciCi.ColsScalerRegister);
-                                    reg.Label = Tools.RegisterInstruction(reg.Address);
-                                    if (reg.Information == null) reg.Information = string.Empty;
-                                    reg.Information += "Columns Scaler for Table " + calElem.TableElem.Address + "\r\n";
-                                    slOrderedRegisters.Add(reg.UniqueAddressInt, reg);
-                                }
-                                else
-                                {
-                                    if (reg.Information == null) reg.Information = string.Empty;
-                                    reg.Information += "Columns Scaler for Table " + calElem.TableElem.Address + "\r\n";
-                                    slOrderedRegisters[reg.UniqueAddressInt] = reg;
-                                }
-                                reg = null;
+                                rReg = new Register(ciCi.ColsScalerRegister);
+                                slRegisters.Add(rReg.UniqueAddress, rReg);
                             }
-                            catch { }
+                            if (rReg.Links == null) rReg.Links = new RegisterLinks();
+                            rReg.Links.addTableLink(calElem.TableElem.UniqueAddress, true, false, false, false);
+                            if (!slUpdatedRegisters.ContainsKey(rReg.UniqueAddress)) slUpdatedRegisters.Add(rReg.UniqueAddress, rReg);
+                            rReg = null;
                         }
                         if (ciCi.RowsScalerRegister != string.Empty)
                         {
-                            try
+                            rReg = (Register)slRegisters[Tools.RegisterUniqueAddress(ciCi.RowsScalerRegister)];
+                            if (rReg == null)
                             {
-                                reg = (S6xRegister)slOrderedRegisters[Tools.RegisterUniqueAddressInt(ciCi.RowsScalerRegister)];
-                                if (reg == null)
-                                {
-                                    reg = new S6xRegister(ciCi.RowsScalerRegister);
-                                    reg.Label = Tools.RegisterInstruction(reg.Address);
-                                    if (reg.Information == null) reg.Information = string.Empty;
-                                    reg.Information += "Rows Scaler for Table " + calElem.TableElem.Address + "\r\n";
-                                    slOrderedRegisters.Add(reg.AddressInt, reg);
-                                }
-                                else
-                                {
-                                    if (reg.Information == null) reg.Information = string.Empty;
-                                    reg.Information += "Rows Scaler for Table " + calElem.TableElem.Address + "\r\n";
-                                    slOrderedRegisters[reg.AddressInt] = reg;
-                                }
-                                reg = null;
+                                rReg = new Register(ciCi.RowsScalerRegister);
+                                slRegisters.Add(rReg.UniqueAddress, rReg);
                             }
-                            catch { }
+                            if (rReg.Links == null) rReg.Links = new RegisterLinks();
+                            rReg.Links.addTableLink(calElem.TableElem.UniqueAddress, false, true, false, false);
+                            if (!slUpdatedRegisters.ContainsKey(rReg.UniqueAddress)) slUpdatedRegisters.Add(rReg.UniqueAddress, rReg);
+                            rReg = null;
                         }
                         if (ciCi.OutputRegister != string.Empty)
                         {
-                            try
+                            rReg = (Register)slRegisters[Tools.RegisterUniqueAddress(ciCi.OutputRegister)];
+                            if (rReg == null)
                             {
-                                reg = (S6xRegister)slOrderedRegisters[Tools.RegisterUniqueAddressInt(ciCi.OutputRegister)];
-                                if (reg == null)
-                                {
-                                    reg = new S6xRegister(ciCi.OutputRegister);
-                                    reg.Label = Tools.RegisterInstruction(reg.Address);
-                                    if (reg.Information == null) reg.Information = string.Empty;
-                                    reg.Information += "Output for Table " + calElem.TableElem.Address + "\r\n";
-                                    slOrderedRegisters.Add(reg.AddressInt, reg);
-                                }
-                                else
-                                {
-                                    if (reg.Information == null) reg.Information = string.Empty;
-                                    reg.Information += "Output for Table " + calElem.TableElem.Address + "\r\n";
-                                    slOrderedRegisters[reg.AddressInt] = reg;
-                                }
-                                reg = null;
+                                rReg = new Register(ciCi.OutputRegister);
+                                slRegisters.Add(rReg.UniqueAddress, rReg);
                             }
-                            catch { }
+                            if (rReg.Links == null) rReg.Links = new RegisterLinks();
+                            rReg.Links.addTableLink(calElem.TableElem.UniqueAddress, false, false, true, false);
+                            if (!slUpdatedRegisters.ContainsKey(rReg.UniqueAddress)) slUpdatedRegisters.Add(rReg.UniqueAddress, rReg);
+                            rReg = null;
                         }
                         if (ciCi.OutputRegisterByte != string.Empty)
                         {
-                            try
+                            rReg = (Register)slRegisters[Tools.RegisterUniqueAddress(ciCi.OutputRegisterByte)];
+                            if (rReg == null)
                             {
-                                reg = (S6xRegister)slOrderedRegisters[Tools.RegisterUniqueAddressInt(ciCi.OutputRegisterByte)];
-                                if (reg == null)
-                                {
-                                    reg = new S6xRegister(ciCi.OutputRegisterByte);
-                                    reg.Label = Tools.RegisterInstruction(reg.Address);
-                                    if (reg.Information == null) reg.Information = string.Empty;
-                                    reg.Information += "Output Byte for Table " + calElem.TableElem.Address + "\r\n";
-                                    slOrderedRegisters.Add(reg.AddressInt, reg);
-                                }
-                                else
-                                {
-                                    if (reg.Information == null) reg.Information = string.Empty;
-                                    reg.Information += "Output Byte for Table " + calElem.TableElem.Address + "\r\n";
-                                    slOrderedRegisters[reg.AddressInt] = reg;
-                                }
-                                reg = null;
+                                rReg = new Register(ciCi.OutputRegisterByte);
+                                slRegisters.Add(rReg.UniqueAddress, rReg);
                             }
-                            catch { }
+                            if (rReg.Links == null) rReg.Links = new RegisterLinks();
+                            rReg.Links.addTableLink(calElem.TableElem.UniqueAddress, false, false, false, true);
+                            if (!slUpdatedRegisters.ContainsKey(rReg.UniqueAddress)) slUpdatedRegisters.Add(rReg.UniqueAddress, rReg);
+                            rReg = null;
                         }
                     }
                 }
@@ -436,7 +396,7 @@ namespace SAD806x
                     {
                         int tScalerIndex = -1;
                         TableScaler tScaler = null;
-                        S6xRegister reg = null;
+                        Register rReg = null;
                         if (ciCi.OutputRegister != string.Empty)
                         {
                             tScalerIndex = getTablesScalersIndex(ciCi.OutputRegister, string.Empty);
@@ -444,32 +404,22 @@ namespace SAD806x
                             {
                                 tScaler = (TableScaler)alTablesScalers[tScalerIndex];
                                 tScaler.addFunction(calElem.FunctionElem.UniqueAddress);
-                                alTablesScalers[tScalerIndex] = tScaler;
                                 tScaler = null;
                             }
-                            else
+                            rReg = (Register)slRegisters[Tools.RegisterUniqueAddress(ciCi.OutputRegister)];
+                            if (rReg == null)
                             {
-                                try
-                                {
-                                    reg = (S6xRegister)slOrderedRegisters[Tools.RegisterUniqueAddressInt(ciCi.OutputRegister)];
-                                    if (reg == null)
-                                    {
-                                        reg = new S6xRegister(ciCi.OutputRegister);
-                                        reg.Label = Tools.RegisterInstruction(reg.Address);
-                                        if (reg.Information == null) reg.Information = string.Empty;
-                                        reg.Information = "Output for function " + calElem.FunctionElem.Address + "\r\n";
-                                        slOrderedRegisters.Add(reg.AddressInt, reg);
-                                    }
-                                    else
-                                    {
-                                        if (reg.Information == null) reg.Information = string.Empty;
-                                        reg.Information += "Output for function " + calElem.FunctionElem.Address + "\r\n";
-                                        slOrderedRegisters[reg.AddressInt] = reg;
-                                    }
-                                    reg = null;
-                                }
-                                catch { }
+                                rReg = new Register(ciCi.OutputRegister);
+                                slRegisters.Add(rReg.UniqueAddress, rReg);
                             }
+                            // Unit part
+                            if (rReg.S6xRegister != null) calElem.FunctionElem.OutputUnits = rReg.S6xRegister.Units;
+                            if (tScalerIndex >= 0 && calElem.FunctionElem.OutputUnits == string.Empty) calElem.FunctionElem.OutputUnits = SADFixedRegisters.GetFixedRegisterTemplate(SADFixedRegisters.FixedRegisters.SCALER_SAMPLE).Units;
+                            // Links part
+                            if (rReg.Links == null) rReg.Links = new RegisterLinks();
+                            rReg.Links.addFunctionLink(calElem.FunctionElem.UniqueAddress, false, true, false);
+                            if (!slUpdatedRegisters.ContainsKey(rReg.UniqueAddress)) slUpdatedRegisters.Add(rReg.UniqueAddress, rReg);
+                            rReg = null;
                         }
                         if (ciCi.OutputRegisterByte != string.Empty)
                         {
@@ -478,80 +428,133 @@ namespace SAD806x
                             {
                                 tScaler = (TableScaler)alTablesScalers[tScalerIndex];
                                 tScaler.addFunction(calElem.FunctionElem.UniqueAddress);
-                                alTablesScalers[tScalerIndex] = tScaler;
                                 tScaler = null;
                             }
-                            else
+                            rReg = (Register)slRegisters[Tools.RegisterUniqueAddress(ciCi.OutputRegisterByte)];
+                            if (rReg == null)
                             {
-                                try
-                                {
-                                    reg = (S6xRegister)slOrderedRegisters[Tools.RegisterUniqueAddressInt(ciCi.OutputRegisterByte)];
-                                    if (reg == null)
-                                    {
-                                        reg = new S6xRegister(ciCi.OutputRegisterByte);
-                                        reg.Label = Tools.RegisterInstruction(reg.Address);
-                                        if (reg.Information == null) reg.Information = string.Empty;
-                                        reg.Information = "Output Byte for function " + calElem.FunctionElem.Address + "\r\n";
-                                        slOrderedRegisters.Add(reg.AddressInt, reg);
-                                    }
-                                    else
-                                    {
-                                        if (reg.Information == null) reg.Information = string.Empty;
-                                        reg.Information += "Output Byte for function " + calElem.FunctionElem.Address + "\r\n";
-                                        slOrderedRegisters[reg.AddressInt] = reg;
-                                    }
-                                    reg = null;
-                                }
-                                catch { }
+                                rReg = new Register(ciCi.OutputRegisterByte);
+                                slRegisters.Add(rReg.UniqueAddress, rReg);
                             }
+                            // Unit part
+                            if (rReg.S6xRegister != null) calElem.FunctionElem.OutputUnits = rReg.S6xRegister.Units;
+                            if (tScalerIndex >= 0 && calElem.FunctionElem.OutputUnits == string.Empty) calElem.FunctionElem.OutputUnits = SADFixedRegisters.GetFixedRegisterTemplate(SADFixedRegisters.FixedRegisters.SCALER_SAMPLE).Units;
+                            // Links part
+                            if (rReg.Links == null) rReg.Links = new RegisterLinks();
+                            rReg.Links.addFunctionLink(calElem.FunctionElem.UniqueAddress, false, false, true);
+                            if (!slUpdatedRegisters.ContainsKey(rReg.UniqueAddress)) slUpdatedRegisters.Add(rReg.UniqueAddress, rReg);
+                            rReg = null;
                         }
                         if (ciCi.InputRegister != string.Empty)
                         {
-                            try
+                            rReg = (Register)slRegisters[Tools.RegisterUniqueAddress(ciCi.InputRegister)];
+                            if (rReg == null)
                             {
-                                reg = (S6xRegister)slOrderedRegisters[Tools.RegisterUniqueAddressInt(ciCi.InputRegister)];
-                                if (reg == null)
-                                {
-                                    reg = new S6xRegister(ciCi.InputRegister);
-                                    reg.Label = Tools.RegisterInstruction(reg.Address);
-                                    if (reg.Information == null) reg.Information = string.Empty;
-                                    reg.Information = "Input for function " + calElem.FunctionElem.Address + "\r\n";
-                                    slOrderedRegisters.Add(reg.AddressInt, reg);
-                                }
-                                else
-                                {
-                                    if (reg.Information == null) reg.Information = string.Empty;
-                                    reg.Information += "Input for function " + calElem.FunctionElem.Address + "\r\n";
-                                    slOrderedRegisters[reg.AddressInt] = reg;
-                                }
-                                reg = null;
+                                rReg = new Register(ciCi.InputRegister);
+                                slRegisters.Add(rReg.UniqueAddress, rReg);
                             }
-                            catch { }
+                            // Unit part
+                            if (rReg.S6xRegister != null) calElem.FunctionElem.InputUnits = rReg.S6xRegister.Units;
+                            // Links part
+                            if (rReg.Links == null) rReg.Links = new RegisterLinks();
+                            rReg.Links.addFunctionLink(calElem.FunctionElem.UniqueAddress, true, false, false);
+                            if (!slUpdatedRegisters.ContainsKey(rReg.UniqueAddress)) slUpdatedRegisters.Add(rReg.UniqueAddress, rReg);
+                            rReg = null;
                         }
                     }
                 }
             }
 
-            // Ordered S6x Registers Creation or Information Update
-            foreach (S6xRegister reg in slOrderedRegisters.Values)
+            // S6x Registers Creation, Information Update and Registers Links creation
+            foreach (Register rReg in slUpdatedRegisters.Values)
             {
-                S6xRegister s6xReg = (S6xRegister)S6x.slRegisters[reg.UniqueAddress];
-                if (s6xReg == null)
+                if (rReg.S6xRegister == null) rReg.S6xRegister = (S6xRegister)S6x.slProcessRegisters[rReg.UniqueAddress];
+                if (rReg.S6xRegister == null)
                 {
-                    s6xReg = reg;
-                    if (s6xReg.Information == null) s6xReg.Information = string.Empty;
-                    S6x.slRegisters.Add(s6xReg.UniqueAddress, s6xReg);
+                    rReg.S6xRegister = new S6xRegister(rReg.Address);
+                    rReg.S6xRegister.isRBase = false;
+                    rReg.S6xRegister.isRConst = false;
+                    rReg.S6xRegister.AutoConstValue = false;
+                    rReg.S6xRegister.ConstValue = null;
+                    rReg.S6xRegister.Label = Tools.RegisterInstruction(rReg.Address);
+                    S6x.slProcessRegisters.Add(rReg.UniqueAddress, rReg.S6xRegister);
+                    if (S6x.slRegisters.ContainsKey(rReg.UniqueAddress)) S6x.slRegisters[rReg.UniqueAddress] = rReg.S6xRegister;
+                    else S6x.slRegisters.Add(rReg.UniqueAddress, rReg.S6xRegister);
                 }
-                else
+                if (rReg.RBase != null)
                 {
-                    s6xReg.Information = reg.Information;
-                    if (s6xReg.Information == null) s6xReg.Information = string.Empty;
-                    S6x.slRegisters[s6xReg.UniqueAddress] = s6xReg;
+                    rReg.S6xRegister.isRBase = true;
+                    rReg.S6xRegister.ConstValue = Convert.ToString(SADDef.EecBankStartAddress + rReg.RBase.AddressBankInt, 16);
+                    rReg.S6xRegister.AutoConstValue = true;
                 }
-                s6xReg = null;
-            }
+                else if (rReg.RConst != null)
+                {
+                    rReg.S6xRegister.isRConst = true;
+                    rReg.S6xRegister.ConstValue = rReg.RConst.Value;
+                    rReg.S6xRegister.AutoConstValue = true;
+                }
+                // Creating Registers Links
+                // Links are already initialized
+                foreach (RegisterFunctionLink rfLink in rReg.Links.FunctionsLinks.Values)
+                {
+                    CalibrationElement calElem = (CalibrationElement)slCalibrationElements[rfLink.FunctionUniqueAddress];
+                    if (calElem == null) continue;
+                    if (!calElem.isFunction) continue;
+                    if (calElem.FunctionElem.RoutinesCallsInfos == null) continue;
+                    foreach (RoutineCallInfoFunction ciCI in calElem.FunctionElem.RoutinesCallsInfos)
+                    {
+                        int tScalerIndex = -1;
+                        Register lReg = null;
 
-            slOrderedRegisters = null;
+                        if (rfLink.isInputRegister && ciCI.InputRegister == rReg.Address)
+                        {
+                            if (ciCI.OutputRegister != string.Empty)
+                            {
+                                tScalerIndex = getTablesScalersIndex(ciCI.OutputRegister, string.Empty);
+                                lReg = (Register)slRegisters[Tools.RegisterUniqueAddress(ciCI.OutputRegister)];
+                                if (lReg != null) rReg.Links.addRegisterLink(lReg.UniqueAddress, false, true, calElem.UniqueAddress, tScalerIndex >= 0);
+                                lReg = null;
+                            }
+                            if (ciCI.OutputRegisterByte != string.Empty)
+                            {
+                                tScalerIndex = getTablesScalersIndex(ciCI.OutputRegisterByte, string.Empty);
+                                lReg = (Register)slRegisters[Tools.RegisterUniqueAddress(ciCI.OutputRegisterByte)];
+                                if (lReg != null) rReg.Links.addRegisterLink(lReg.UniqueAddress, false, true, calElem.UniqueAddress, tScalerIndex >= 0);
+                                lReg = null;
+                            }
+                        }
+                        if (rfLink.isOutputRegister && ciCI.OutputRegister == rReg.Address)
+                        {
+                            if (ciCI.InputRegister != string.Empty)
+                            {
+                                tScalerIndex = getTablesScalersIndex(ciCI.OutputRegister, string.Empty);
+                                lReg = (Register)slRegisters[Tools.RegisterUniqueAddress(ciCI.InputRegister)];
+                                if (lReg != null) rReg.Links.addRegisterLink(lReg.UniqueAddress, true, false, calElem.UniqueAddress, tScalerIndex >= 0);
+                                lReg = null;
+                            }
+                        }
+                        if (rfLink.isOutputRegisterByte && ciCI.OutputRegisterByte == rReg.Address)
+                        {
+                            if (ciCI.InputRegister != string.Empty)
+                            {
+                                tScalerIndex = getTablesScalersIndex(ciCI.OutputRegisterByte, string.Empty);
+                                lReg = (Register)slRegisters[Tools.RegisterUniqueAddress(ciCI.InputRegister)];
+                                if (lReg != null) rReg.Links.addRegisterLink(lReg.UniqueAddress, true, false, calElem.UniqueAddress, tScalerIndex >= 0);
+                                lReg = null;
+                            }
+                        }
+                    }
+
+                    if (rReg.S6xRegister.Units == null || rReg.S6xRegister.Units == string.Empty)
+                    {
+                        foreach (RegisterRegisterLink rrLink in rReg.Links.RegistersLinks.Values)
+                        {
+                            if (rrLink.isSourceScaler) rReg.S6xRegister.Units = SADFixedRegisters.GetFixedRegisterTemplate(SADFixedRegisters.FixedRegisters.SCALER_SAMPLE).Units;
+                        }
+                    }
+                }
+            }
+            slUpdatedRegisters = null;
 
             // Applying Scalers on Tables
             foreach (TableScaler tScaler in alTablesScalers)
@@ -596,7 +599,6 @@ namespace SAD806x
             string currentRbaseCode = string.Empty;
             int currentRbaseEndAddress = -1;
             int tScalerIndex = -1;
-            bool bStore = false;
 
             // S6x Elements Added to Calibration Element or Overwrite them
             foreach (S6xTable s6xTable in S6x.slProcessTables.Values)
@@ -605,79 +607,74 @@ namespace SAD806x
                 if (s6xTable.BankNum != BankNum) continue;
 
                 calElem = (CalibrationElement)slCalibrationElements[s6xTable.UniqueAddress];
-                if (calElem != null)
-                // Calibration Element exists
+                if (calElem == null) calElem = new CalibrationElement(BankNum, s6xTable.UniqueAddressHex);
+                
+                // No Conflict => Update with S6x Information, will be managed at read
+                if (calElem.isTable)
                 {
-                    if (calElem.isTable)
-                    // No Conflict => Update with S6x Information, will be managed at read
+                    calElem.TableElem.S6xTable = s6xTable;
+                    continue;
+                }
+
+                // Conflict Mngt
+                calElem.ScalarElem = null;
+                calElem.FunctionElem = null;
+                calElem.StructureElem = null;
+                calElem.TableElem = null;
+
+                calElem.RBaseCalc = s6xTable.UniqueAddressHex;
+                calElem.AddressInt = s6xTable.AddressInt - BankAddressInt;
+                calElem.AddressBinInt = calElem.AddressInt + BankAddressBinInt;
+                calElem.TableElem = new Table();
+                calElem.TableElem.S6xTable = s6xTable;
+                calElem.TableElem.BankNum = calElem.BankNum;
+                calElem.TableElem.AddressInt = calElem.AddressInt;
+                calElem.TableElem.AddressBinInt = calElem.AddressBinInt;
+                calElem.TableElem.RBase = calElem.RBase;
+                calElem.TableElem.RBaseCalc = calElem.RBaseCalc;
+                calElem.TableElem.WordOutput = s6xTable.WordOutput;
+                // S6x Information will be managed at read
+
+                if (!slCalibrationElements.ContainsKey(calElem.UniqueAddress)) slCalibrationElements.Add(calElem.UniqueAddress, calElem);
+
+                // Table Scalers Mngt
+                if (s6xTable.ColsScalerAddress != null && s6xTable.ColsScalerAddress != string.Empty)
+                {
+                    tScalerIndex = getTablesScalersIndex(string.Empty, s6xTable.ColsScalerAddress);
+                    if (tScalerIndex >= 0)
                     {
-                        calElem.TableElem.S6xTable = s6xTable;
+                        tScaler = (TableScaler)alTablesScalers[tScalerIndex];
+                        tScaler.addFunction(s6xTable.ColsScalerAddress);
+                        tScaler.addColsScaledTable(s6xTable.UniqueAddress);
+                        alTablesScalers[tScalerIndex] = tScaler;
                     }
                     else
-                    // Type Conflict
                     {
-                        calElem = null;
+                        tScaler = new TableScaler();
+                        tScaler.addFunction(s6xTable.ColsScalerAddress);
+                        tScaler.addColsScaledTable(s6xTable.UniqueAddress);
+                        alTablesScalers.Add(tScaler);
                     }
+                    tScaler = null;
                 }
-                if (calElem == null)
-                // Calibration Element does not exist or has been removed on conflict
+                if (s6xTable.RowsScalerAddress != null && s6xTable.RowsScalerAddress != string.Empty)
                 {
-                    calElem = new CalibrationElement(BankNum, s6xTable.UniqueAddressHex);
-                    calElem.RBaseCalc = s6xTable.UniqueAddressHex;
-                    calElem.AddressInt = s6xTable.AddressInt - BankAddressInt;
-                    calElem.AddressBinInt = calElem.AddressInt + BankAddressBinInt;
-                    calElem.TableElem = new Table();
-                    calElem.TableElem.S6xTable = s6xTable;
-                    calElem.TableElem.BankNum = calElem.BankNum;
-                    calElem.TableElem.AddressInt = calElem.AddressInt;
-                    calElem.TableElem.AddressBinInt = calElem.AddressBinInt;
-                    calElem.TableElem.RBase = calElem.RBase;
-                    calElem.TableElem.RBaseCalc = calElem.RBaseCalc;
-                    calElem.TableElem.WordOutput = s6xTable.WordOutput;
-                    // S6x Information will be managed at read
-
-                    if (slCalibrationElements.ContainsKey(calElem.UniqueAddress)) slCalibrationElements[calElem.UniqueAddress] = calElem;
-                    else slCalibrationElements.Add(calElem.UniqueAddress, calElem);
-
-                    // Table Scalers Mngt
-                    if (s6xTable.ColsScalerAddress != null && s6xTable.ColsScalerAddress != string.Empty)
+                    tScalerIndex = getTablesScalersIndex(string.Empty, s6xTable.RowsScalerAddress);
+                    if (tScalerIndex >= 0)
                     {
-                        tScalerIndex = getTablesScalersIndex(string.Empty, s6xTable.ColsScalerAddress);
-                        if (tScalerIndex >= 0)
-                        {
-                            tScaler = (TableScaler)alTablesScalers[tScalerIndex];
-                            tScaler.addFunction(s6xTable.ColsScalerAddress);
-                            tScaler.addColsScaledTable(s6xTable.UniqueAddress);
-                            alTablesScalers[tScalerIndex] = tScaler;
-                        }
-                        else
-                        {
-                            tScaler = new TableScaler();
-                            tScaler.addFunction(s6xTable.ColsScalerAddress);
-                            tScaler.addColsScaledTable(s6xTable.UniqueAddress);
-                            alTablesScalers.Add(tScaler);
-                        }
-                        tScaler = null;
+                        tScaler = (TableScaler)alTablesScalers[tScalerIndex];
+                        tScaler.addFunction(s6xTable.RowsScalerAddress);
+                        tScaler.addRowsScaledTable(s6xTable.UniqueAddress);
+                        alTablesScalers[tScalerIndex] = tScaler;
                     }
-                    if (s6xTable.RowsScalerAddress != null && s6xTable.RowsScalerAddress != string.Empty)
+                    else
                     {
-                        tScalerIndex = getTablesScalersIndex(string.Empty, s6xTable.RowsScalerAddress);
-                        if (tScalerIndex >= 0)
-                        {
-                            tScaler = (TableScaler)alTablesScalers[tScalerIndex];
-                            tScaler.addFunction(s6xTable.RowsScalerAddress);
-                            tScaler.addRowsScaledTable(s6xTable.UniqueAddress);
-                            alTablesScalers[tScalerIndex] = tScaler;
-                        }
-                        else
-                        {
-                            tScaler = new TableScaler();
-                            tScaler.addFunction(s6xTable.RowsScalerAddress);
-                            tScaler.addRowsScaledTable(s6xTable.UniqueAddress);
-                            alTablesScalers.Add(tScaler);
-                        }
-                        tScaler = null;
+                        tScaler = new TableScaler();
+                        tScaler.addFunction(s6xTable.RowsScalerAddress);
+                        tScaler.addRowsScaledTable(s6xTable.UniqueAddress);
+                        alTablesScalers.Add(tScaler);
                     }
+                    tScaler = null;
                 }
                 calElem = null;
             }
@@ -688,39 +685,35 @@ namespace SAD806x
                 if (s6xFunction.BankNum != BankNum) continue;
 
                 calElem = (CalibrationElement)slCalibrationElements[s6xFunction.UniqueAddress];
-                if (calElem != null)
-                // Calibration Element exists
-                {
-                    if (calElem.isFunction)
-                    // No Conflict => Update with S6x Information, will be managed at read
-                    {
-                        calElem.FunctionElem.S6xFunction = s6xFunction;
-                    }
-                    else
-                    // Type Conflict
-                    {
-                        calElem = null;
-                    }
-                }
-                if (calElem == null)
-                // Calibration Element does not exist or has been removed on conflict
-                {
-                    calElem = new CalibrationElement(BankNum, s6xFunction.UniqueAddressHex);
-                    calElem.RBaseCalc = s6xFunction.UniqueAddressHex;
-                    calElem.AddressInt = s6xFunction.AddressInt - BankAddressInt;
-                    calElem.AddressBinInt = calElem.AddressInt + BankAddressBinInt;
-                    calElem.FunctionElem = new Function();
-                    calElem.FunctionElem.S6xFunction = s6xFunction;
-                    calElem.FunctionElem.BankNum = calElem.BankNum;
-                    calElem.FunctionElem.AddressInt = calElem.AddressInt;
-                    calElem.FunctionElem.AddressBinInt = calElem.AddressBinInt;
-                    calElem.FunctionElem.RBase = calElem.RBase;
-                    calElem.FunctionElem.RBaseCalc = calElem.RBaseCalc;
-                    // S6x Information will be managed at read
+                if (calElem == null) calElem = new CalibrationElement(BankNum, s6xFunction.UniqueAddressHex);
 
-                    if (slCalibrationElements.ContainsKey(calElem.UniqueAddress)) slCalibrationElements[calElem.UniqueAddress] = calElem;
-                    else slCalibrationElements.Add(calElem.UniqueAddress, calElem);
+                // No Conflict => Update with S6x Information, will be managed at read
+                if (calElem.isFunction)
+                {
+                    calElem.FunctionElem.S6xFunction = s6xFunction;
+                    continue;
                 }
+
+                // Conflict Mngt
+                calElem.ScalarElem = null;
+                calElem.FunctionElem = null;
+                calElem.StructureElem = null;
+                calElem.TableElem = null;
+
+                calElem.RBaseCalc = s6xFunction.UniqueAddressHex;
+                calElem.AddressInt = s6xFunction.AddressInt - BankAddressInt;
+                calElem.AddressBinInt = calElem.AddressInt + BankAddressBinInt;
+                calElem.FunctionElem = new Function();
+                calElem.FunctionElem.S6xFunction = s6xFunction;
+                calElem.FunctionElem.BankNum = calElem.BankNum;
+                calElem.FunctionElem.AddressInt = calElem.AddressInt;
+                calElem.FunctionElem.AddressBinInt = calElem.AddressBinInt;
+                calElem.FunctionElem.RBase = calElem.RBase;
+                calElem.FunctionElem.RBaseCalc = calElem.RBaseCalc;
+                // S6x Information will be managed at read
+
+                if (!slCalibrationElements.ContainsKey(calElem.UniqueAddress)) slCalibrationElements.Add(calElem.UniqueAddress, calElem);
+
                 calElem = null;
             }
 
@@ -730,39 +723,35 @@ namespace SAD806x
                 if (s6xScalar.BankNum != BankNum) continue;
 
                 calElem = (CalibrationElement)slCalibrationElements[s6xScalar.UniqueAddress];
-                if (calElem != null)
-                // Calibration Element exists
-                {
-                    if (calElem.isScalar)
-                    // No Conflict => Update with S6x Information, will be managed at read
-                    {
-                        calElem.ScalarElem.S6xScalar = s6xScalar;
-                    }
-                    else
-                    // Type Conflict
-                    {
-                        calElem = null;
-                    }
-                }
-                if (calElem == null)
-                // Calibration Element does not exist or has been removed on conflict
-                {
-                    calElem = new CalibrationElement(BankNum, s6xScalar.UniqueAddressHex);
-                    calElem.RBaseCalc = s6xScalar.UniqueAddressHex;
-                    calElem.AddressInt = s6xScalar.AddressInt - BankAddressInt;
-                    calElem.AddressBinInt = calElem.AddressInt + BankAddressBinInt;
-                    calElem.ScalarElem = new Scalar();
-                    calElem.ScalarElem.S6xScalar = s6xScalar;
-                    calElem.ScalarElem.BankNum = calElem.BankNum;
-                    calElem.ScalarElem.AddressInt = calElem.AddressInt;
-                    calElem.ScalarElem.AddressBinInt = calElem.AddressBinInt;
-                    calElem.ScalarElem.RBase = calElem.RBase;
-                    calElem.ScalarElem.RBaseCalc = calElem.RBaseCalc;
-                    // S6x Information will be managed at read
+                if (calElem == null) calElem = new CalibrationElement(BankNum, s6xScalar.UniqueAddressHex);
 
-                    if (slCalibrationElements.ContainsKey(calElem.UniqueAddress)) slCalibrationElements[calElem.UniqueAddress] = calElem;
-                    else slCalibrationElements.Add(calElem.UniqueAddress, calElem);
+                // No Conflict => Update with S6x Information, will be managed at read
+                if (calElem.isScalar)
+                {
+                    calElem.ScalarElem.S6xScalar = s6xScalar;
+                    continue;
                 }
+
+                // Conflict Mngt
+                calElem.ScalarElem = null;
+                calElem.FunctionElem = null;
+                calElem.StructureElem = null;
+                calElem.TableElem = null;
+                
+                calElem.RBaseCalc = s6xScalar.UniqueAddressHex;
+                calElem.AddressInt = s6xScalar.AddressInt - BankAddressInt;
+                calElem.AddressBinInt = calElem.AddressInt + BankAddressBinInt;
+                calElem.ScalarElem = new Scalar();
+                calElem.ScalarElem.S6xScalar = s6xScalar;
+                calElem.ScalarElem.BankNum = calElem.BankNum;
+                calElem.ScalarElem.AddressInt = calElem.AddressInt;
+                calElem.ScalarElem.AddressBinInt = calElem.AddressBinInt;
+                calElem.ScalarElem.RBase = calElem.RBase;
+                calElem.ScalarElem.RBaseCalc = calElem.RBaseCalc;
+                // S6x Information will be managed at read
+
+                if (!slCalibrationElements.ContainsKey(calElem.UniqueAddress)) slCalibrationElements.Add(calElem.UniqueAddress, calElem);
+
                 calElem = null;
             }
 
@@ -772,39 +761,35 @@ namespace SAD806x
                 if (s6xStructure.BankNum != BankNum) continue;
 
                 calElem = (CalibrationElement)slCalibrationElements[s6xStructure.UniqueAddress];
-                if (calElem != null)
-                // Calibration Element exists
-                {
-                    if (calElem.isStructure)
-                    // No Conflict => Update with S6x Information, will be managed at read
-                    {
-                        calElem.StructureElem.S6xStructure = s6xStructure;
-                    }
-                    else
-                    // Type Conflict
-                    {
-                        calElem = null;
-                    }
-                }
-                if (calElem == null)
-                // Calibration Element does not exist or has been removed on conflict
-                {
-                    calElem = new CalibrationElement(BankNum, s6xStructure.UniqueAddressHex);
-                    calElem.RBaseCalc = s6xStructure.UniqueAddressHex;
-                    calElem.AddressInt = s6xStructure.AddressInt - BankAddressInt;
-                    calElem.AddressBinInt = calElem.AddressInt + BankAddressBinInt;
-                    calElem.StructureElem = new Structure();
-                    calElem.StructureElem.S6xStructure = s6xStructure;
-                    calElem.StructureElem.BankNum = calElem.BankNum;
-                    calElem.StructureElem.AddressInt = calElem.AddressInt;
-                    calElem.StructureElem.AddressBinInt = calElem.AddressBinInt;
-                    calElem.StructureElem.RBase = calElem.RBase;
-                    calElem.StructureElem.RBaseCalc = calElem.RBaseCalc;
-                    // S6x Information will be managed at read
+                if (calElem == null) calElem = new CalibrationElement(BankNum, s6xStructure.UniqueAddressHex);
 
-                    if (slCalibrationElements.ContainsKey(calElem.UniqueAddress)) slCalibrationElements[calElem.UniqueAddress] = calElem;
-                    else slCalibrationElements.Add(calElem.UniqueAddress, calElem);
+                // No Conflict => Update with S6x Information, will be managed at read
+                if (calElem.isStructure)
+                {
+                    calElem.StructureElem.S6xStructure = s6xStructure;
+                    continue;
                 }
+
+                // Conflict Mngt
+                calElem.ScalarElem = null;
+                calElem.FunctionElem = null;
+                calElem.StructureElem = null;
+                calElem.TableElem = null;
+                
+                calElem.RBaseCalc = s6xStructure.UniqueAddressHex;
+                calElem.AddressInt = s6xStructure.AddressInt - BankAddressInt;
+                calElem.AddressBinInt = calElem.AddressInt + BankAddressBinInt;
+                calElem.StructureElem = new Structure();
+                calElem.StructureElem.S6xStructure = s6xStructure;
+                calElem.StructureElem.BankNum = calElem.BankNum;
+                calElem.StructureElem.AddressInt = calElem.AddressInt;
+                calElem.StructureElem.AddressBinInt = calElem.AddressBinInt;
+                calElem.StructureElem.RBase = calElem.RBase;
+                calElem.StructureElem.RBaseCalc = calElem.RBaseCalc;
+                // S6x Information will be managed at read
+
+                if (!slCalibrationElements.ContainsKey(calElem.UniqueAddress)) slCalibrationElements.Add(calElem.UniqueAddress, calElem);
+
                 calElem = null;
             }
 
@@ -864,11 +849,12 @@ namespace SAD806x
                 S6xOtherAddress s6xOther = (S6xOtherAddress)S6x.slProcessOtherAddresses[cElem.UniqueAddress];
                 if (s6xOther != null)
                 {
-                    otherAddressLabel = s6xOther.Label;
+                    if (s6xOther.OutputLabel && !s6xOther.hasDefaultLabel) otherAddressLabel = s6xOther.Label;
                     
-                    // S6x CleanUp
+                    // S6x Process CleanUp
                     S6x.slProcessOtherAddresses.Remove(s6xOther.UniqueAddress);
-                    S6x.slOtherAddresses.Remove(s6xOther.UniqueAddress);
+                    // 20200308 - PYM - It stays in S6x definition, other addresses are no more in conflict on addresses
+                    //S6x.slOtherAddresses.Remove(s6xOther.UniqueAddress);
 
                     s6xOther = null;
                 }
@@ -1068,7 +1054,6 @@ namespace SAD806x
             {
                 foreach (string functionUniqueAddress in tsTs.InputFunctionsUniqueAddresses)
                 {
-                    bStore = false;
                     calElem = (CalibrationElement)slCalibrationElements[functionUniqueAddress];
                     if (calElem != null)
                     {
@@ -1083,14 +1068,9 @@ namespace SAD806x
                                     break;
                                 }
                             }
-                            if (!calElem.FunctionElem.HasValues)
-                            {
-                                readFunction(ref calElem.FunctionElem, currentRbaseEndAddress, true);
-                                bStore = true;
-                            }
+                            if (!calElem.FunctionElem.HasValues) readFunction(ref calElem.FunctionElem, currentRbaseEndAddress, true);
                         }
                     }
-                    if (bStore) slCalibrationElements[functionUniqueAddress] = calElem;
                     calElem = null;
                 }
             }
@@ -1099,8 +1079,6 @@ namespace SAD806x
             for (int iCalElem = 0; iCalElem < slCalibrationElements.Count; iCalElem++)
             {
                 calElem = (CalibrationElement)slCalibrationElements.GetByIndex(iCalElem);
-
-                bStore = false;
 
                 if (currentRbaseCode != calElem.RBase)
                 {
@@ -1111,38 +1089,20 @@ namespace SAD806x
 
                 if (calElem.isTable)
                 {
-                    if (!calElem.TableElem.HasValues)
-                    {
-                        readTable(ref calElem.TableElem, currentRbaseEndAddress);
-                        bStore = true;
-                    }
+                    if (!calElem.TableElem.HasValues) readTable(ref calElem.TableElem, currentRbaseEndAddress);
                 }
                 else if (calElem.isFunction)
                 {
-                    if (!calElem.FunctionElem.HasValues)
-                    {
-                        readFunction(ref calElem.FunctionElem, currentRbaseEndAddress, false);
-                        bStore = true;
-                    }
+                    if (!calElem.FunctionElem.HasValues) readFunction(ref calElem.FunctionElem, currentRbaseEndAddress, false);
                 }
                 else if (calElem.isScalar)
                 {
-                    if (!calElem.ScalarElem.HasValue)
-                    {
-                        readScalar(ref calElem.ScalarElem);
-                        bStore = true;
-                    }
+                    if (!calElem.ScalarElem.HasValue) readScalar(ref calElem.ScalarElem);
                 }
                 else if (calElem.isStructure)
                 {
-                    if (!calElem.StructureElem.HasValues)
-                    {
-                        readStructure(ref calElem.StructureElem);
-                        bStore = true;
-                    }
+                    if (!calElem.StructureElem.HasValues) readStructure(ref calElem.StructureElem);
                 }
-
-                if (bStore) slCalibrationElements[calElem.UniqueAddress] = calElem;
             }
         }
 
@@ -1371,7 +1331,7 @@ namespace SAD806x
                     }
                 }
 
-                if (function.S6xFunction == null || forcedRowsNum <= 0)
+                if (function.S6xFunction == null && forcedRowsNum <= 0)
                 {
                     // Specific Exit Conditions - Removed by S6x or Forced Rows Number (from S6x too)
                     //      - First Column can not contain its top value
@@ -1433,6 +1393,61 @@ namespace SAD806x
                     }
                 }
                 if (foundInputScale && foundOutputScale) break;
+            }
+
+            // Otherwise or in addition based on identified registers
+            Register rInputKnownReg = null;
+            Register rOutputKnownReg = null;
+            foreach (RoutineCallInfoFunction ciCI in function.RoutinesCallsInfos)
+            {
+                if (rInputKnownReg == null)
+                {
+                    if (ciCI.InputRegister != string.Empty)
+                    {
+                        rInputKnownReg = (Register)slRegisters[(new S6xRegister(ciCI.InputRegister)).UniqueAddress];
+                        if (rInputKnownReg != null)
+                        {
+                            if (rInputKnownReg.S6xRegister != null)
+                            {
+                                if (rInputKnownReg.S6xRegister.ScaleExpression != null && rInputKnownReg.S6xRegister.ScaleExpression != string.Empty)
+                                {
+                                    if (rInputKnownReg.S6xRegister.ScaleExpression.Trim().ToLower() != "x" && (function.InputScaleExpression.Trim().ToLower() == "x" || function.InputScaleExpression == string.Empty))
+                                    {
+                                        function.InputScaleExpression = rInputKnownReg.S6xRegister.ScaleExpression;
+                                        function.InputScalePrecision = rInputKnownReg.S6xRegister.ScalePrecision;
+                                        if (function.InputScalePrecision < SADDef.DefaultScaleMinPrecision) function.InputScalePrecision = SADDef.DefaultScaleMinPrecision;
+                                        if (function.InputScalePrecision > SADDef.DefaultScaleMaxPrecision) function.InputScalePrecision = SADDef.DefaultScaleMaxPrecision;
+                                        foundInputScale = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (ciCI.OutputRegister != string.Empty)
+                {
+                    rOutputKnownReg = (Register)slRegisters[(new S6xRegister(ciCI.OutputRegister)).UniqueAddress];
+                    if (rOutputKnownReg != null)
+                    {
+                        if (rOutputKnownReg.S6xRegister != null)
+                        {
+                            if (rOutputKnownReg.S6xRegister.ScaleExpression != null && rOutputKnownReg.S6xRegister.ScaleExpression != string.Empty)
+                            {
+                                if (rOutputKnownReg.S6xRegister.ScaleExpression.Trim().ToLower() != "x" && (function.OutputScaleExpression.Trim().ToLower() == "x" || function.OutputScaleExpression == string.Empty))
+                                {
+                                    function.OutputScaleExpression = rOutputKnownReg.S6xRegister.ScaleExpression;
+                                    function.OutputScalePrecision = rOutputKnownReg.S6xRegister.ScalePrecision;
+                                    if (function.OutputScalePrecision < SADDef.DefaultScaleMinPrecision) function.OutputScalePrecision = SADDef.DefaultScaleMinPrecision;
+                                    if (function.OutputScalePrecision > SADDef.DefaultScaleMaxPrecision) function.OutputScalePrecision = SADDef.DefaultScaleMaxPrecision;
+                                    foundOutputScale = true;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (rInputKnownReg != null && rOutputKnownReg != null) break;
             }
 
             // S6x Scale Expression Overrides previous values
@@ -2060,12 +2075,16 @@ namespace SAD806x
                 }
                 else if (S6x.slProcessOtherAddresses.ContainsKey(cCall.UniqueAddress))
                 {
-                    cCall.Label = ((S6xOtherAddress)S6x.slProcessOtherAddresses[cCall.UniqueAddress]).Label;
-                    cCall.ShortLabel = cCall.Label;
+                    if (((S6xOtherAddress)S6x.slProcessOtherAddresses[cCall.UniqueAddress]).OutputLabel && !((S6xOtherAddress)S6x.slProcessOtherAddresses[cCall.UniqueAddress]).hasDefaultLabel)
+                    {
+                        cCall.Label = ((S6xOtherAddress)S6x.slProcessOtherAddresses[cCall.UniqueAddress]).Label;
+                        cCall.ShortLabel = cCall.Label;
+                    }
 
                     // S6x CleanUp
                     S6x.slProcessOtherAddresses.Remove(cCall.UniqueAddress);
-                    S6x.slOtherAddresses.Remove(cCall.UniqueAddress);
+                    // 20200308 - PYM - It stays in S6x definition, other addresses are no more in conflict on addresses
+                    //S6x.slOtherAddresses.Remove(cCall.UniqueAddress);
                 }
 
                 if (bUpdate) slCalls[cCall.UniqueAddress] = cCall;
@@ -2163,6 +2182,15 @@ namespace SAD806x
             foreach (RBase rBase in slRbases.Values)
             {
                 if (rBase.AddressBank == sAddress) return rBase;
+            }
+            return null;
+        }
+
+        public RBase getRbaseByAddress(int addressInBank)
+        {
+            foreach (RBase rBase in slRbases.Values)
+            {
+                if (addressInBank >= rBase.AddressBankInt && addressInBank <= rBase.AddressBankEndInt) return rBase;
             }
             return null;
         }

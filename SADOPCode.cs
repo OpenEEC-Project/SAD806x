@@ -37,18 +37,6 @@ namespace SAD806x
 
         private int shortJumpAdder = 0;
 
-        private enum CarryModes
-        {
-            Default,        // DEFAULT
-            Carry,          // CY
-            Comparison,     // CMP
-            Substract,      // -
-            AddWords,       // +W
-            AddBytes,       // +B
-            MultiplyWords,  // *W
-            MultiplyBytes   // *B
-        }
-
         private SortedList CarryTranslations = null;
 
         public SADOPCode(int iOPCode, bool bIs8061)
@@ -262,32 +250,32 @@ namespace SAD806x
                 CarryTranslations = new SortedList();
                 foreach (string[] sTrans in defTranslations)
                 {
-                    CarryModes carryMode = CarryModes.Default;
+                    CarryMode carryMode = CarryMode.Default;
                     switch (sTrans[0].ToLower())
                     {
                         case "default":
-                            carryMode = CarryModes.Default; 
+                            carryMode = CarryMode.Default; 
                             break;
                         case "cy":
-                            carryMode = CarryModes.Carry;
+                            carryMode = CarryMode.Carry;
                             break;
                         case "cmp":
-                            carryMode = CarryModes.Comparison;
+                            carryMode = CarryMode.Comparison;
                             break;
                         case "-":
-                            carryMode = CarryModes.Substract;
+                            carryMode = CarryMode.Substract;
                             break;
                         case "+w":
-                            carryMode = CarryModes.AddWords;
+                            carryMode = CarryMode.AddWords;
                             break;
                         case "+b":
-                            carryMode = CarryModes.AddBytes;
+                            carryMode = CarryMode.AddBytes;
                             break;
                         case "*w":
-                            carryMode = CarryModes.MultiplyWords;
+                            carryMode = CarryMode.MultiplyWords;
                             break;
                         case "*b":
-                            carryMode = CarryModes.MultiplyBytes;
+                            carryMode = CarryMode.MultiplyBytes;
                             break;
                     }
                     CarryTranslations.Add(carryMode, sTrans[1]);
@@ -296,7 +284,7 @@ namespace SAD806x
             }
         }
 
-        public Operation processOP(int opAddress, int callBankNum, int callAddress, string[] arrOP, ref SADCalib Calibration, bool applySignedAlt, ref Operation opPrevResult, ref string[] gopParams, ref SADS6x S6x)
+        public Operation processOP(int opAddress, int callBankNum, int callAddress, string[] arrOP, ref SADCalib Calibration, bool applySignedAlt, ref Operation opPrevResult, ref GotoOpParams gopParams, ref SADS6x S6x)
         {
             Operation ope = null;
             int opParams = 0;
@@ -315,6 +303,12 @@ namespace SAD806x
             ope.SetBankNum = callBankNum;
             ope.ReadDataBankNum = Calibration.BankNum;
             ope.InitialCallAddressInt = callAddress;
+
+            // 20200409 - PYM - Creation Parameters to get a backup and to be able to reprocess operation entirely
+            ope.OPCode = this;
+            ope.ApplySignedAlt = applySignedAlt;
+            ope.initialOpPrevResult = opPrevResult;
+            ope.initialGotoOpParams = gopParams == null ? null : gopParams.Clone();
 
             // External Bank Call or Jump Management
             // 20171110 Move from applyJumps to be applied on all Ops especially the one using pointers and the jump ones
@@ -354,20 +348,26 @@ namespace SAD806x
             ope.OriginalOpArr = new string[ope.BytesNumber];
             for (int iOp = 0; iOp < ope.OriginalOpArr.Length; iOp++) ope.OriginalOpArr[iOp] = arrOP[iOp];
 
-            ope.InstructedParams = new string[opParams];
-            for (int iParam = 0; iParam < ope.InstructedParams.Length; iParam++) ope.InstructedParams[iParam] = arrOP[iParam + ope.BytesNumber - opParams];
+            ope.OperationParams = new OperationParam[opParams];
+            for (int iParam = 0; iParam < ope.OperationParams.Length; iParam++)
+            {
+                ope.OperationParams[iParam] = new OperationParam();
+                ope.OperationParams[iParam].InstructedParam = arrOP[iParam + ope.BytesNumber - opParams];
+            }
 
             // Specific cases when no provided parameters
             switch (OPCode.ToLower())
             {
                 // Skip
                 case "00":
-                    ope.InstructedParams = new string[] {"01"};
+                    ope.OperationParams = new OperationParam[1];
+                    ope.OperationParams[0] = new OperationParam();
+                    ope.OperationParams[0].InstructedParam = "01";
                     break;
             }
 
             bParamPartsProcessed = false;
-            for (int iParam = 0; iParam < ope.InstructedParams.Length; iParam++)
+            for (int iParam = 0; iParam < ope.OperationParams.Length; iParam++)
             {
                 // Predefined Parameters for OP Code are not in line for variable parameters (should be 1 less), the last value is used in this case.
                 iParamForParameters = iParam;
@@ -375,17 +375,17 @@ namespace SAD806x
                 switch (parameters[iParamForParameters].Type)
                 {
                     case OPCodeParamsTypes.Bank:
-                        ope.SetBankNum = Convert.ToInt32(ope.InstructedParams[iParam], 16);
-                        ope.InstructedParams[iParam] = ope.SetBankNum.ToString();
+                        ope.SetBankNum = Convert.ToInt32(ope.OperationParams[iParam].InstructedParam, 16);
+                        ope.OperationParams[iParam].InstructedParam = ope.SetBankNum.ToString();
                         break;
                     case OPCodeParamsTypes.AddressRelativePosition:
-                        if (parameters[iParamForParameters].isPointer) ope.InstructedParams[iParam] = Tools.PointerTranslation(ope.InstructedParams[iParam]);
+                        if (parameters[iParamForParameters].isPointer) ope.OperationParams[iParam].InstructedParam = Tools.PointerTranslation(ope.OperationParams[iParam].InstructedParam);
                         break;
                     case OPCodeParamsTypes.RegisterByte:
                     case OPCodeParamsTypes.RegisterWord:
-                        if (ope.InstructedParams[iParam] == "00")
+                        if (ope.OperationParams[iParam].InstructedParam == "00")
                         {
-                            ope.InstructedParams[iParam] = "0";
+                            ope.OperationParams[iParam].InstructedParam = "0";
                         }
                         else
                         {
@@ -394,19 +394,19 @@ namespace SAD806x
                             //                (B0 = 1), 1 has to be removed from this register, increment is applied.
                             if (parameters[iParamForParameters].isPointer)
                             {
-                                if (Convert.ToByte(ope.InstructedParams[iParam], 16) % 2 != 0)
+                                if (Convert.ToByte(ope.OperationParams[iParam].InstructedParam, 16) % 2 != 0)
                                 {
-                                    ope.InstructedParams[iParam] = string.Format("{0:x2}" + SADDef.IncrementSuffix, Convert.ToInt32(ope.InstructedParams[iParam], 16) - 1);
+                                    ope.OperationParams[iParam].InstructedParam = string.Format("{0:x2}" + SADDef.IncrementSuffix, Convert.ToInt32(ope.OperationParams[iParam].InstructedParam, 16) - 1);
                                 }
                             }
-                            ope.InstructedParams[iParam] = SADDef.ShortRegisterPrefix + ope.InstructedParams[iParam];
-                            if (parameters[iParamForParameters].isPointer) ope.InstructedParams[iParam] = Tools.PointerTranslation(ope.InstructedParams[iParam]);
+                            ope.OperationParams[iParam].InstructedParam = SADDef.ShortRegisterPrefix + ope.OperationParams[iParam].InstructedParam;
+                            if (parameters[iParamForParameters].isPointer) ope.OperationParams[iParam].InstructedParam = Tools.PointerTranslation(ope.OperationParams[iParam].InstructedParam);
                         }
                         break;
                     case OPCodeParamsTypes.ValueByte:
                         // 20171118 - Remove Leading 0
-                        ope.InstructedParams[iParam] = Convert.ToString(Convert.ToInt32(ope.InstructedParams[iParam], 16), 16);
-                        if (parameters[iParamForParameters].isPointer) ope.InstructedParams[iParam] = Tools.PointerTranslation(ope.InstructedParams[iParam]);
+                        ope.OperationParams[iParam].InstructedParam = Convert.ToString(Convert.ToInt32(ope.OperationParams[iParam].InstructedParam, 16), 16);
+                        if (parameters[iParamForParameters].isPointer) ope.OperationParams[iParam].InstructedParam = Tools.PointerTranslation(ope.OperationParams[iParam].InstructedParam);
                         break;
                     case OPCodeParamsTypes.ValueWordPart:
                     case OPCodeParamsTypes.AddressPartRelativePosition:
@@ -415,39 +415,39 @@ namespace SAD806x
                         {
                             if (hasVariableParams && bVariableParamsEnabled)
                             {
-                                sReg = string.Format("{0:x2}", Convert.ToInt32(ope.InstructedParams[iParam], 16) - 1);
+                                sReg = string.Format("{0:x2}", Convert.ToInt32(ope.OperationParams[iParam].InstructedParam, 16) - 1);
                                 if (sReg == "00") sReg = string.Empty;
                                 else sReg = Tools.RegisterInstruction(sReg);
-                                iValue = Convert.ToInt32(ope.InstructedParams[iParam + 2] + ope.InstructedParams[iParam + 1], 16);
-                                if (sReg == string.Empty && iValue == 0) ope.InstructedParams[iParam] = "0";
-                                else if (sReg == string.Empty) ope.InstructedParams[iParam] = Convert.ToString(iValue, 16);
-                                else if (iValue == 0) ope.InstructedParams[iParam] = sReg;
-                                else ope.InstructedParams[iParam] = sReg + SADDef.AdditionSeparator + Convert.ToString(iValue, 16);
-                                if (parameters[iParamForParameters].isPointer) ope.InstructedParams[iParam] = Tools.PointerTranslation(ope.InstructedParams[iParam]);
-                                ope.InstructedParams[iParam + 1] = string.Empty;
-                                ope.InstructedParams[iParam + 2] = string.Empty;
+                                iValue = Convert.ToInt32(ope.OperationParams[iParam + 2].InstructedParam + ope.OperationParams[iParam + 1].InstructedParam, 16);
+                                if (sReg == string.Empty && iValue == 0) ope.OperationParams[iParam].InstructedParam = "0";
+                                else if (sReg == string.Empty) ope.OperationParams[iParam].InstructedParam = Convert.ToString(iValue, 16);
+                                else if (iValue == 0) ope.OperationParams[iParam].InstructedParam = sReg;
+                                else ope.OperationParams[iParam].InstructedParam = sReg + SADDef.AdditionSeparator + Convert.ToString(iValue, 16);
+                                if (parameters[iParamForParameters].isPointer) ope.OperationParams[iParam].InstructedParam = Tools.PointerTranslation(ope.OperationParams[iParam].InstructedParam);
+                                ope.OperationParams[iParam + 1].InstructedParam = string.Empty;
+                                ope.OperationParams[iParam + 2].InstructedParam = string.Empty;
                                 iParam += 2;
                             }
                             else if (hasVariableParams)
                             // First Instructed Param is a register, the other one a value to be added
                             {
-                                sReg = ope.InstructedParams[iParam];
+                                sReg = ope.OperationParams[iParam].InstructedParam;
                                 if (sReg == "00") sReg = string.Empty;
                                 else sReg = Tools.RegisterInstruction(sReg);
-                                iValue = Convert.ToInt32(ope.InstructedParams[iParam + 1], 16);
-                                if (sReg == string.Empty && iValue == 0) ope.InstructedParams[iParam] = "0";
-                                else if (sReg == string.Empty) ope.InstructedParams[iParam] = Convert.ToString(iValue, 16);
-                                else if (iValue == 0) ope.InstructedParams[iParam] = sReg;
-                                else ope.InstructedParams[iParam] = sReg + SADDef.AdditionSeparator + Convert.ToString(iValue, 16);
-                                if (parameters[iParamForParameters].isPointer) ope.InstructedParams[iParam] = Tools.PointerTranslation(ope.InstructedParams[iParam]);
-                                ope.InstructedParams[iParam + 1] = string.Empty;
+                                iValue = Convert.ToInt32(ope.OperationParams[iParam + 1].InstructedParam, 16);
+                                if (sReg == string.Empty && iValue == 0) ope.OperationParams[iParam].InstructedParam = "0";
+                                else if (sReg == string.Empty) ope.OperationParams[iParam].InstructedParam = Convert.ToString(iValue, 16);
+                                else if (iValue == 0) ope.OperationParams[iParam].InstructedParam = sReg;
+                                else ope.OperationParams[iParam].InstructedParam = sReg + SADDef.AdditionSeparator + Convert.ToString(iValue, 16);
+                                if (parameters[iParamForParameters].isPointer) ope.OperationParams[iParam].InstructedParam = Tools.PointerTranslation(ope.OperationParams[iParam].InstructedParam);
+                                ope.OperationParams[iParam + 1].InstructedParam = string.Empty;
                                 iParam++;
                             }
                             else
                             {
-                                ope.InstructedParams[iParam] = Convert.ToString(Convert.ToInt32(ope.InstructedParams[iParam + 1] + ope.InstructedParams[iParam], 16), 16);
-                                if (parameters[iParamForParameters].isPointer) ope.InstructedParams[iParam] = Tools.PointerTranslation(ope.InstructedParams[iParam]);
-                                ope.InstructedParams[iParam + 1] = string.Empty;
+                                ope.OperationParams[iParam].InstructedParam = Convert.ToString(Convert.ToInt32(ope.OperationParams[iParam + 1].InstructedParam + ope.OperationParams[iParam].InstructedParam, 16), 16);
+                                if (parameters[iParamForParameters].isPointer) ope.OperationParams[iParam].InstructedParam = Tools.PointerTranslation(ope.OperationParams[iParam].InstructedParam);
+                                ope.OperationParams[iParam + 1].InstructedParam = string.Empty;
                                 iParam++;
                             }
                         }
@@ -457,30 +457,27 @@ namespace SAD806x
             }
 
             arrCleanedParams = new ArrayList();
-            foreach (string sParam in ope.InstructedParams)
+            foreach (OperationParam opeParam in ope.OperationParams)
             {
-                if (sParam != string.Empty) arrCleanedParams.Add(sParam);
+                if (opeParam.InstructedParam != string.Empty) arrCleanedParams.Add(opeParam);
             }
-            ope.InstructedParams = (string[])arrCleanedParams.ToArray(typeof(string));
+            ope.OperationParams = (OperationParam[])arrCleanedParams.ToArray(typeof(OperationParam));
             arrCleanedParams = null;
 
             applyJumps(ref ope, ref gopParams, ref Calibration);
 
-            ope.CalculatedParams = (string[])ope.InstructedParams.Clone();
-            ope.TranslatedParams = (string[])ope.InstructedParams.Clone();
+            foreach (OperationParam opeParam in ope.OperationParams)
+            {
+                opeParam.CalculatedParam = opeParam.InstructedParam;
+                opeParam.DefaultTranslatedParam = opeParam.InstructedParam;
+            }
+            
             ope.IgnoredTranslatedParam = -1;
 
             applyRbaseRconst(ref ope, ref Calibration, ref S6x, applySignedAlt);
-            applyRegisters(ref ope, ref Calibration.slEecRegisters, ref S6x);
-            applyShifting(ref ope);
+            applyRegisters(ref ope, ref Calibration, ref S6x);
+            applyShifting(ref ope, ref Calibration);
             applyGotoOpParams(ref ope, ref gopParams);
-
-            ope.Instruction = getInstructionTranslation(InstructionTrans, ref ope);
-            ope.Translation1 = getTranslation(Translation1, ref ope, ref opPrevResult, ref S6x);
-            ope.Translation2 = getTranslation(Translation2, ref ope, ref opPrevResult, ref S6x);
-            ope.Translation3 = getTranslation(Translation3, ref ope, ref opPrevResult, ref S6x);
-
-            //applyKnownTranslation(ref ope, ref S6x, true);
 
             if (applySignedAlt)
             {
@@ -491,10 +488,6 @@ namespace SAD806x
                 for (int iOp = 0; iOp < ope.OriginalOpArr.Length; iOp++) tmpOpArr[iOp + 1] = ope.OriginalOpArr[iOp];
                 ope.OriginalOpArr = new string[tmpOpArr.Length];
                 for (int iOp = 0; iOp < ope.OriginalOpArr.Length; iOp++) ope.OriginalOpArr[iOp] = tmpOpArr[iOp];
-                if (ope.Instruction != string.Empty) ope.Instruction = SADDef.OPCSigndAltInstructionPrefix + ope.Instruction.Substring(0, ope.Instruction.Length - SADDef.OPCSigndAltInstructionPrefix.Length);
-                ope.Translation1 = ope.Translation1.Replace("= ", "= " + SADDef.OPCSigndAltTranslationAdder);
-                ope.Translation2 = ope.Translation2.Replace("= ", "= " + SADDef.OPCSigndAltTranslationAdder);
-                ope.Translation3 = ope.Translation3.Replace("= ", "= " + SADDef.OPCSigndAltTranslationAdder);
             }
 
             ope.isReturn = false;
@@ -505,8 +498,8 @@ namespace SAD806x
                     ope.isReturn = true;
                     // Goto Op Params coming from last compatible Op
                     // Trace stored on Return instruction to provide params to multiple call/scall
-                    if (gopParams == null) ope.GotoOpParams = new string[] { ope.UniqueAddress, string.Empty, "0", "0", string.Empty, CarryModes.Default.ToString(), "0", "0" };
-                    else ope.GotoOpParams = (string[])gopParams.Clone();
+                    if (gopParams == null) ope.GotoOpParams = new GotoOpParams(ope.BankNum, ope.AddressInt);
+                    else ope.GotoOpParams = gopParams.Clone();
                     break;
             }
             
@@ -526,16 +519,8 @@ namespace SAD806x
                     if (ope.OriginalOpArr[iPos] == rConst.Code)
                     {
                         applyRbaseRconst(ref ope, ref Calibration, ref S6x, false);
-                        applyRegisters(ref ope, ref Calibration.slEecRegisters, ref S6x);
-                        applyShifting(ref ope);
-
-                        Operation opPrevResult = null;
-
-                        ope.Instruction = getInstructionTranslation(InstructionTrans, ref ope);
-                        ope.Translation1 = getTranslation(Translation1, ref ope, ref opPrevResult, ref S6x);
-                        ope.Translation2 = getTranslation(Translation2, ref ope, ref opPrevResult, ref S6x);
-                        ope.Translation3 = getTranslation(Translation3, ref ope, ref opPrevResult, ref S6x);
-
+                        applyRegisters(ref ope, ref Calibration, ref S6x);
+                        applyShifting(ref ope, ref Calibration);
                         return;
                     }
                 }
@@ -545,8 +530,8 @@ namespace SAD806x
         // Post Process Op Call Args with translation
         public void postProcessOpCallArgs(ref Operation ope, ref SADCalib Calibration, ref SADBank Bank0, ref SADBank Bank1, ref SADBank Bank8, ref SADBank Bank9, ref SADS6x S6x)
         {
-            ArrayList alCallArgsTranslated = null;
-            Operation nullOpe = null;
+            ArrayList alCallArgsParams = null;
+            CallArgsParam cArgsParam = null;
             RBase rBase = null;
             SADBank readDataBank = null;
             CalibrationElement opeCalElem = null;
@@ -556,6 +541,7 @@ namespace SAD806x
             int structArgAddress = -1;
             int structRegAddress = -1;
             string translatedArg = string.Empty;
+            string defaultTranslation = string.Empty;
 
             // Calls and Short Calls only
             switch (ope.CallType)
@@ -569,7 +555,7 @@ namespace SAD806x
             if (ope.CallArgsNum == 0) return;
             if (ope.CallArguments == null) return;
 
-            alCallArgsTranslated = new ArrayList();
+            alCallArgsParams = new ArrayList();
 
             // Args Mode decoding to product Elements & Structures
             usedArgs = 0;
@@ -591,38 +577,49 @@ namespace SAD806x
 
                             if (Calibration.BankNum == ope.ReadDataBankNum && Calibration.isCalibrationAddress(cArg.InputValueInt) && !(Calibration.Info.is8061 && Calibration.Info.isEarly))
                             {
+                                opeCalElem = (CalibrationElement)Calibration.slCalibrationElements[Tools.UniqueAddress(ope.ReadDataBankNum, cArg.InputValueInt)];
+                                if (opeCalElem == null)
+                                {
+                                    opeCalElem = new CalibrationElement(ope.ReadDataBankNum, string.Empty);
+                                    opeCalElem.AddressInt = cArg.InputValueInt;
+                                    opeCalElem.RBaseCalc = opeCalElem.Address;
+                                    switch (opeCalElem.BankNum)
+                                    {
+                                        case 8:
+                                            opeCalElem.AddressBinInt = opeCalElem.AddressInt + Bank8.AddressBinInt;
+                                            break;
+                                        case 1:
+                                            opeCalElem.AddressBinInt = opeCalElem.AddressInt + Bank1.AddressBinInt;
+                                            break;
+                                        case 9:
+                                            opeCalElem.AddressBinInt = opeCalElem.AddressInt + Bank9.AddressBinInt;
+                                            break;
+                                        case 0:
+                                            opeCalElem.AddressBinInt = opeCalElem.AddressInt + Bank0.AddressBinInt;
+                                            break;
+                                    }
+                                    Calibration.slCalibrationElements.Add(opeCalElem.UniqueAddress, opeCalElem);
+                                }
+
                                 if (ope.alCalibrationElems == null) ope.alCalibrationElems = new ArrayList();
-                                opeCalElem = new CalibrationElement(ope.ReadDataBankNum, string.Empty);
                                 ope.alCalibrationElems.Add(opeCalElem);
-                                opeCalElem.AddressInt = cArg.InputValueInt;
-                                opeCalElem.RBaseCalc = opeCalElem.Address;
-                                switch (opeCalElem.BankNum)
-                                {
-                                    case 8:
-                                        opeCalElem.AddressBinInt = opeCalElem.AddressInt + Bank8.AddressBinInt;
-                                        break;
-                                    case 1:
-                                        opeCalElem.AddressBinInt = opeCalElem.AddressInt + Bank1.AddressBinInt;
-                                        break;
-                                    case 9:
-                                        opeCalElem.AddressBinInt = opeCalElem.AddressInt + Bank9.AddressBinInt;
-                                        break;
-                                    case 0:
-                                        opeCalElem.AddressBinInt = opeCalElem.AddressInt + Bank0.AddressBinInt;
-                                        break;
-                                }
-                                if (!opeCalElem.RelatedOpsUniqueAddresses.Contains(ope.UniqueAddress))
-                                {
-                                    opeCalElem.RelatedOpsUniqueAddresses.Add(ope.UniqueAddress);
-                                }
-                                alCallArgsTranslated.Add(opeCalElem.Address);
+                                if (!opeCalElem.RelatedOpsUniqueAddresses.Contains(ope.UniqueAddress)) opeCalElem.RelatedOpsUniqueAddresses.Add(ope.UniqueAddress);
+                                cArgsParam = new CallArgsParam();
+                                cArgsParam.EmbeddedParam = opeCalElem;
+                                cArgsParam.DefaultTranslatedParam = opeCalElem.Address;
+                                alCallArgsParams.Add(cArgsParam);
+                                cArgsParam = null;
                                 opeCalElem = null;
                             }
                             else
                             {
                                 ope.OtherElemAddress = cArg.DecryptedValue;
                                 ope.KnownElemAddress = cArg.DecryptedValue;
-                                alCallArgsTranslated.Add(ope.OtherElemAddress);
+                                cArgsParam = new CallArgsParam();
+                                cArgsParam.EmbeddedParam = ope.OtherElemAddress;
+                                cArgsParam.DefaultTranslatedParam = ope.OtherElemAddress;
+                                alCallArgsParams.Add(cArgsParam);
+                                cArgsParam = null;
                             }
                             break;
                         case CallArgsMode.Mode1:
@@ -630,14 +627,24 @@ namespace SAD806x
                             cArg.InputValueInt = Convert.ToInt32(ope.CallArgsArr[usedArgs + 1] + ope.CallArgsArr[usedArgs], 16);
                             cArg.DecryptedValueInt = cArg.InputValueInt;
 
-                            alCallArgsTranslated.Add(outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue);
+                            cArgsParam = new CallArgsParam();
+                            if (outputAsPointer) cArgsParam.EmbeddedParam= Calibration.slRegisters[Tools.RegisterUniqueAddress(cArg.DecryptedValueInt)];
+                            else cArgsParam.EmbeddedParam = cArg.DecryptedValueInt;
+                            cArgsParam.DefaultTranslatedParam = outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue;
+                            alCallArgsParams.Add(cArgsParam);
+                            cArgsParam = null;
                             break;
                         case CallArgsMode.Mode2:
                             // To be managed - Temporary managed as Standard
                             cArg.InputValueInt = Convert.ToInt32(ope.CallArgsArr[usedArgs + 1] + ope.CallArgsArr[usedArgs], 16);
                             cArg.DecryptedValueInt = cArg.InputValueInt;
 
-                            alCallArgsTranslated.Add(outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue);
+                            cArgsParam = new CallArgsParam();
+                            if (outputAsPointer) cArgsParam.EmbeddedParam = Calibration.slRegisters[Tools.RegisterUniqueAddress(cArg.DecryptedValueInt)];
+                            else cArgsParam.EmbeddedParam = cArg.DecryptedValueInt;
+                            cArgsParam.DefaultTranslatedParam = outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue;
+                            alCallArgsParams.Add(cArgsParam);
+                            cArgsParam = null;
                             break;
                         case CallArgsMode.Mode3:
                             cArg.InputValueInt = Convert.ToInt32(ope.CallArgsArr[usedArgs + 1] + ope.CallArgsArr[usedArgs], 16);
@@ -649,8 +656,20 @@ namespace SAD806x
                             if (rBaseNum < 8)
                             // Not Compatible Expression, this is a register
                             {
-                                alCallArgsTranslated.Add(getRegisterTranslation(outputAsPointer ? Tools.RegisterInstruction(cArg.DecryptedValue) : cArg.DecryptedValue, false, ref Calibration.slEecRegisters, ref S6x));
-                                //alCallArgsTranslated.Add(outputAsPointer ? Tools.RegisterInstruction(cArg.DecryptedValue) : cArg.DecryptedValue);
+                                cArgsParam = new CallArgsParam();
+                                if (outputAsPointer)
+                                {
+                                    Register rReg = (Register)Calibration.slRegisters[Tools.RegisterUniqueAddress(cArg.DecryptedValueInt)];
+                                    cArgsParam.EmbeddedParam = rReg;
+                                    cArgsParam.DefaultTranslatedParam = getParamTranslation(rReg, Tools.RegisterInstruction(cArg.DecryptedValue), false);
+                                }
+                                else
+                                {
+                                    cArgsParam.EmbeddedParam = cArg.DecryptedValueInt;
+                                    cArgsParam.DefaultTranslatedParam = cArg.DecryptedValue;
+                                }
+                                alCallArgsParams.Add(cArgsParam);
+                                cArgsParam = null;
                             }
                             else
                             // Compatible Expression, this is a Calibration Element
@@ -660,26 +679,37 @@ namespace SAD806x
                                 if (rBaseNum < Calibration.slRbases.Count)
                                 {
                                     rBase = ((RBase)Calibration.slRbases.GetByIndex(rBaseNum));
-                                    if (ope.alCalibrationElems == null) ope.alCalibrationElems = new ArrayList();
-                                    opeCalElem = new CalibrationElement(rBase.BankNum, rBase.Code);
-                                    ope.alCalibrationElems.Add(opeCalElem);
-                                    opeCalElem.RBaseCalc = SADDef.ShortRegisterPrefix + rBase.Code + SADDef.AdditionSeparator + Convert.ToString(rBaseAdder, 16);
-                                    opeCalElem.AddressInt = rBase.AddressBankInt + rBaseAdder;
-                                    opeCalElem.AddressBinInt = opeCalElem.AddressInt + Calibration.BankAddressBinInt;
-                                    if (!opeCalElem.RelatedOpsUniqueAddresses.Contains(ope.UniqueAddress))
+                                    opeCalElem = (CalibrationElement)Calibration.slCalibrationElements[Tools.UniqueAddress(rBase.BankNum, rBase.AddressBankInt + rBaseAdder)];
+                                    if (opeCalElem == null)
                                     {
-                                        opeCalElem.RelatedOpsUniqueAddresses.Add(ope.UniqueAddress);
+                                        opeCalElem = new CalibrationElement(rBase.BankNum, rBase.Code);
+                                        opeCalElem.RBaseCalc = SADDef.ShortRegisterPrefix + rBase.Code + SADDef.AdditionSeparator + Convert.ToString(rBaseAdder, 16);
+                                        opeCalElem.AddressInt = rBase.AddressBankInt + rBaseAdder;
+                                        opeCalElem.AddressBinInt = opeCalElem.AddressInt + Calibration.BankAddressBinInt;
+                                        Calibration.slCalibrationElements.Add(opeCalElem.UniqueAddress, opeCalElem);
                                     }
+                                    
+                                    if (ope.alCalibrationElems == null) ope.alCalibrationElems = new ArrayList();
+                                    ope.alCalibrationElems.Add(opeCalElem);
+                                    if (!opeCalElem.RelatedOpsUniqueAddresses.Contains(ope.UniqueAddress)) opeCalElem.RelatedOpsUniqueAddresses.Add(ope.UniqueAddress);
                                     rBase = null;
 
                                     cArg.DecryptedValueInt = opeCalElem.AddressInt + SADDef.EecBankStartAddress;
 
-                                    alCallArgsTranslated.Add(opeCalElem.Address);
+                                    cArgsParam = new CallArgsParam();
+                                    cArgsParam.EmbeddedParam = opeCalElem;
+                                    cArgsParam.DefaultTranslatedParam = opeCalElem.Address;
+                                    alCallArgsParams.Add(cArgsParam);
+                                    cArgsParam = null;
                                     opeCalElem = null;
                                 }
                                 else
                                 {
-                                    alCallArgsTranslated.Add(outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue);
+                                    cArgsParam = new CallArgsParam();
+                                    cArgsParam.EmbeddedParam = Calibration.slRegisters[Tools.RegisterUniqueAddress(cArg.DecryptedValueInt)];
+                                    cArgsParam.DefaultTranslatedParam = outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue;
+                                    alCallArgsParams.Add(cArgsParam);
+                                    cArgsParam = null;
                                 }
                             }
                             break;
@@ -696,26 +726,37 @@ namespace SAD806x
                             if (rBaseNum < Calibration.slRbases.Count)
                             {
                                 rBase = ((RBase)Calibration.slRbases.GetByIndex(rBaseNum));
-                                if (ope.alCalibrationElems == null) ope.alCalibrationElems = new ArrayList();
-                                opeCalElem = new CalibrationElement(rBase.BankNum, rBase.Code);
-                                ope.alCalibrationElems.Add(opeCalElem);
-                                opeCalElem.RBaseCalc = SADDef.ShortRegisterPrefix + rBase.Code + SADDef.AdditionSeparator + Convert.ToString(rBaseAdder, 16);
-                                opeCalElem.AddressInt = rBase.AddressBankInt + rBaseAdder;
-                                opeCalElem.AddressBinInt = opeCalElem.AddressInt + Calibration.BankAddressBinInt;
-                                if (!opeCalElem.RelatedOpsUniqueAddresses.Contains(ope.UniqueAddress))
+                                opeCalElem = (CalibrationElement)Calibration.slCalibrationElements[Tools.UniqueAddress(rBase.BankNum, rBase.AddressBankInt + rBaseAdder)];
+                                if (opeCalElem == null)
                                 {
-                                    opeCalElem.RelatedOpsUniqueAddresses.Add(ope.UniqueAddress);
+                                    opeCalElem = new CalibrationElement(rBase.BankNum, rBase.Code);
+                                    opeCalElem.RBaseCalc = SADDef.ShortRegisterPrefix + rBase.Code + SADDef.AdditionSeparator + Convert.ToString(rBaseAdder, 16);
+                                    opeCalElem.AddressInt = rBase.AddressBankInt + rBaseAdder;
+                                    opeCalElem.AddressBinInt = opeCalElem.AddressInt + Calibration.BankAddressBinInt;
+                                    Calibration.slCalibrationElements.Add(opeCalElem.UniqueAddress, opeCalElem);
                                 }
+
+                                if (ope.alCalibrationElems == null) ope.alCalibrationElems = new ArrayList();
+                                ope.alCalibrationElems.Add(opeCalElem);
+                                if (!opeCalElem.RelatedOpsUniqueAddresses.Contains(ope.UniqueAddress)) opeCalElem.RelatedOpsUniqueAddresses.Add(ope.UniqueAddress);
                                 rBase = null;
 
                                 cArg.DecryptedValueInt = opeCalElem.AddressInt + SADDef.EecBankStartAddress;
 
-                                alCallArgsTranslated.Add(opeCalElem.Address);
+                                cArgsParam = new CallArgsParam();
+                                cArgsParam.EmbeddedParam = opeCalElem;
+                                cArgsParam.DefaultTranslatedParam = opeCalElem.Address;
+                                alCallArgsParams.Add(cArgsParam);
+                                cArgsParam = null;
                                 opeCalElem = null;
                             }
                             else
                             {
-                                alCallArgsTranslated.Add(outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue);
+                                cArgsParam = new CallArgsParam();
+                                cArgsParam.EmbeddedParam = Calibration.slRegisters[Tools.RegisterUniqueAddress(cArg.DecryptedValueInt)];
+                                cArgsParam.DefaultTranslatedParam = outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue;
+                                alCallArgsParams.Add(cArgsParam);
+                                cArgsParam = null;
                             }
                             break;
                         case CallArgsMode.Mode4Struct:
@@ -754,21 +795,34 @@ namespace SAD806x
                                 if (rBaseNum < Calibration.slRbases.Count)
                                 {
                                     rBase = ((RBase)Calibration.slRbases.GetByIndex(rBaseNum));
-                                    if (ope.alCalibrationElems == null) ope.alCalibrationElems = new ArrayList();
-                                    opeCalElem = new CalibrationElement(rBase.BankNum, rBase.Code);
-                                    ope.alCalibrationElems.Add(opeCalElem);
-                                    opeCalElem.RBaseCalc = SADDef.ShortRegisterPrefix + rBase.Code + SADDef.AdditionSeparator + Convert.ToString(rBaseAdder, 16);
-                                    opeCalElem.AddressInt = rBase.AddressBankInt + rBaseAdder;
-                                    opeCalElem.AddressBinInt = opeCalElem.AddressInt + Calibration.BankAddressBinInt;
-                                    if (!opeCalElem.RelatedOpsUniqueAddresses.Contains(ope.UniqueAddress))
+                                    opeCalElem = (CalibrationElement)Calibration.slCalibrationElements[Tools.UniqueAddress(rBase.BankNum, rBase.AddressBankInt + rBaseAdder)];
+                                    if (opeCalElem == null)
                                     {
-                                        opeCalElem.RelatedOpsUniqueAddresses.Add(ope.UniqueAddress);
+                                        opeCalElem = new CalibrationElement(rBase.BankNum, rBase.Code);
+                                        opeCalElem.RBaseCalc = SADDef.ShortRegisterPrefix + rBase.Code + SADDef.AdditionSeparator + Convert.ToString(rBaseAdder, 16);
+                                        opeCalElem.AddressInt = rBase.AddressBankInt + rBaseAdder;
+                                        opeCalElem.AddressBinInt = opeCalElem.AddressInt + Calibration.BankAddressBinInt;
+                                        Calibration.slCalibrationElements.Add(opeCalElem.UniqueAddress, opeCalElem);
                                     }
+                                    
+                                    if (ope.alCalibrationElems == null) ope.alCalibrationElems = new ArrayList();
+                                    ope.alCalibrationElems.Add(opeCalElem);
+                                    if (!opeCalElem.RelatedOpsUniqueAddresses.Contains(ope.UniqueAddress)) opeCalElem.RelatedOpsUniqueAddresses.Add(ope.UniqueAddress);
                                     rBase = null;
+
                                     ope.CallArgsStructRegister = Tools.RegisterInstruction(translatedArg);
 
-                                    alCallArgsTranslated.Add(opeCalElem.Address);
-                                    alCallArgsTranslated.Add(ope.CallArgsStructRegister);
+                                    cArgsParam = new CallArgsParam();
+                                    cArgsParam.EmbeddedParam = opeCalElem;
+                                    cArgsParam.DefaultTranslatedParam = opeCalElem.Address;
+                                    alCallArgsParams.Add(cArgsParam);
+                                    cArgsParam = null;
+
+                                    cArgsParam = new CallArgsParam();
+                                    cArgsParam.EmbeddedParam = Calibration.slRegisters[Tools.RegisterUniqueAddress(translatedArg)];
+                                    cArgsParam.DefaultTranslatedParam = ope.CallArgsStructRegister;
+                                    alCallArgsParams.Add(cArgsParam);
+                                    cArgsParam = null;
 
                                     cArg.DecryptedValueInt = opeCalElem.AddressInt + SADDef.EecBankStartAddress;
 
@@ -776,12 +830,20 @@ namespace SAD806x
                                 }
                                 else
                                 {
-                                    alCallArgsTranslated.Add(outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue);
+                                    cArgsParam = new CallArgsParam();
+                                    cArgsParam.EmbeddedParam = cArg.DecryptedValue;
+                                    cArgsParam.DefaultTranslatedParam = outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue;
+                                    alCallArgsParams.Add(cArgsParam);
+                                    cArgsParam = null;
                                 }
                             }
                             else
                             {
-                                alCallArgsTranslated.Add(outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue);
+                                cArgsParam = new CallArgsParam();
+                                cArgsParam.EmbeddedParam = cArg.DecryptedValue;
+                                cArgsParam.DefaultTranslatedParam = outputAsPointer ? Tools.PointerTranslation(cArg.DecryptedValue) : cArg.DecryptedValue;
+                                alCallArgsParams.Add(cArgsParam);
+                                cArgsParam = null;
                             }
                             readDataBank = null;
                             break;
@@ -789,7 +851,22 @@ namespace SAD806x
                             cArg.InputValueInt = Convert.ToInt32(ope.CallArgsArr[usedArgs + 1] + ope.CallArgsArr[usedArgs], 16);
                             cArg.DecryptedValueInt = cArg.InputValueInt;
 
-                            alCallArgsTranslated.Add(getRegisterTranslation(outputAsPointer ? Tools.RegisterInstruction(cArg.DecryptedValue) : cArg.DecryptedValue, false, ref Calibration.slEecRegisters, ref S6x));
+                            if (outputAsPointer)
+                            {
+                                cArgsParam = new CallArgsParam();
+                                cArgsParam.EmbeddedParam = Calibration.slRegisters[Tools.RegisterUniqueAddress(cArg.DecryptedValueInt)];
+                                cArgsParam.DefaultTranslatedParam = getParamTranslation(cArgsParam.EmbeddedParam, Tools.RegisterInstruction(cArg.DecryptedValue), false);
+                                alCallArgsParams.Add(cArgsParam);
+                                cArgsParam = null;
+                            }
+                            else
+                            {
+                                cArgsParam = new CallArgsParam();
+                                cArgsParam.EmbeddedParam = cArg.DecryptedValueInt;
+                                cArgsParam.DefaultTranslatedParam = cArg.DecryptedValue;
+                                alCallArgsParams.Add(cArgsParam);
+                                cArgsParam = null;
+                            }
                             break;
                     }
                 }
@@ -798,60 +875,20 @@ namespace SAD806x
                 {
                     cArg.InputValueInt = Convert.ToInt32(ope.CallArgsArr[usedArgs], 16);
                     cArg.DecryptedValueInt = cArg.InputValueInt;
-                    alCallArgsTranslated.Add(cArg.DecryptedValue);
+                    cArgsParam = new CallArgsParam();
+                    cArgsParam.EmbeddedParam = cArg.DecryptedValueInt;
+                    cArgsParam.DefaultTranslatedParam = cArg.DecryptedValue;
+                    alCallArgsParams.Add(cArgsParam);
+                    cArgsParam = null;
                 }
                 usedArgs += cArg.ByteSize;
             }
 
-            ope.CallArgsTranslatedArr = (string[])alCallArgsTranslated.ToArray(typeof(string));
-            alCallArgsTranslated = null;
-
-            ope.Translation1 = getTranslation(Translation1, ref ope, ref nullOpe, ref S6x);
-            ope.Translation2 = getTranslation(Translation2, ref ope, ref nullOpe, ref S6x);
-            ope.Translation3 = getTranslation(Translation3, ref ope, ref nullOpe, ref S6x);
+            ope.CallArgsParams = (CallArgsParam[])alCallArgsParams.ToArray(typeof(CallArgsParam));
+            alCallArgsParams = null;
         }
 
-        public void postProcessOpSkipTranslation(ref Operation ope)
-        {
-            string skipGoto = string.Empty;
-            
-            if (ope.CallType != CallType.Skip) return;
-
-            ope.Instruction = ope.Instruction.Replace("%JA%", ope.AddressJump);
-            ope.Translation1 = ope.Translation1.Replace("%JA%", ope.AddressJump);
-            ope.Translation2 = ope.Translation2.Replace("%JA%", ope.AddressJump);
-            ope.Translation3 = ope.Translation3.Replace("%JA%", ope.AddressJump);
-        }
-
-        // Post Process Op for Element Translation
-        public void postProcessOpElemTranslation(ref Operation ope, string elemAddress, string shortLabel)
-        {
-            if (ope == null) return;
-            if (shortLabel == string.Empty) return;
-
-            ope.Translation1 = ope.Translation1.Replace(elemAddress, shortLabel);
-            ope.Translation2 = ope.Translation2.Replace(elemAddress, shortLabel);
-            ope.Translation3 = ope.Translation3.Replace(elemAddress, shortLabel);
-        }
-
-        public void postProcessOpCallTranslation(ref Operation ope, ref Call cCall)
-        {
-            switch (ope.CallType)
-            {
-                case CallType.Unknown:
-                case CallType.Skip:
-                    return;
-            }
-
-            if (cCall.ShortLabel != string.Empty)
-            {
-                ope.Translation1 = ope.Translation1.Replace(cCall.Address, cCall.ShortLabel);
-                ope.Translation2 = ope.Translation2.Replace(cCall.Address, cCall.ShortLabel);
-                ope.Translation3 = ope.Translation3.Replace(cCall.Address, cCall.ShortLabel);
-            }
-        }
-
-        private void applyJumps(ref Operation ope, ref string[] gopParams, ref SADCalib Calibration)
+        private void applyJumps(ref Operation ope, ref GotoOpParams gopParams, ref SADCalib Calibration)
         {
             ope.AddressJumpInt = -1;
 
@@ -884,53 +921,53 @@ namespace SAD806x
             // Goto Op Params coming from last compatible Op, will be used for translations
             if (ope.CallType == CallType.Goto && Type == OPCodeType.GotoOP)
             {
-                if (gopParams == null) ope.GotoOpParams = new string[] { ope.UniqueAddress, string.Empty, "0", "0", string.Empty, CarryModes.Default.ToString(), "0", "0" };
-                else ope.GotoOpParams = (string[])gopParams.Clone();
+                if (gopParams == null) ope.GotoOpParams = new GotoOpParams(ope.BankNum, ope.AddressInt);
+                else ope.GotoOpParams = gopParams.Clone();
             }
 
-            for (int iParam = 0; iParam < ope.InstructedParams.Length; iParam++)
+            for (int iParam = 0; iParam < ope.OperationParams.Length; iParam++)
             {
                 if (parameters[iParam].Type == OPCodeParamsTypes.AddressRelativePosition)
                 {
                     if (ope.CallType == CallType.ShortCall || ope.CallType == CallType.ShortJump)
                     {
-                        ope.AddressJumpInt = ope.AddressNextInt + Convert.ToInt32(ope.InstructedParams[iParam], 16) + shortJumpAdder;
+                        ope.AddressJumpInt = ope.AddressNextInt + Convert.ToInt32(ope.OperationParams[iParam].InstructedParam, 16) + shortJumpAdder;
                     }
                     else
                     {
                         // Signed Jump
-                        ope.AddressJumpInt = ope.AddressNextInt + Convert.ToSByte(ope.InstructedParams[iParam], 16) + shortJumpAdder;
+                        ope.AddressJumpInt = ope.AddressNextInt + Convert.ToSByte(ope.OperationParams[iParam].InstructedParam, 16) + shortJumpAdder;
                     }
-                    ope.InstructedParams[iParam] = ope.AddressJump;
+                    ope.OperationParams[iParam].InstructedParam = ope.AddressJump;
                     // Long Word Result happens
-                    if (ope.InstructedParams[iParam].Length > 4)
+                    if (ope.OperationParams[iParam].InstructedParam.Length > 4)
                     {
-                        ope.InstructedParams[iParam] = ope.InstructedParams[iParam].Substring(ope.InstructedParams[iParam].Length - 4, 4);
-                        ope.AddressJumpInt = Convert.ToInt32(ope.InstructedParams[iParam], 16) - SADDef.EecBankStartAddress;
+                        ope.OperationParams[iParam].InstructedParam = ope.OperationParams[iParam].InstructedParam.Substring(ope.OperationParams[iParam].InstructedParam.Length - 4, 4);
+                        ope.AddressJumpInt = Convert.ToInt32(ope.OperationParams[iParam].InstructedParam, 16) - SADDef.EecBankStartAddress;
                     }
                     break;
                 }
                 else if (parameters[iParam].Type == OPCodeParamsTypes.AddressPartRelativePosition)
                 {
-                    ope.AddressJumpInt = ope.AddressNextInt + Convert.ToInt32(ope.InstructedParams[iParam], 16);
-                    ope.InstructedParams[iParam] = ope.AddressJump;
+                    ope.AddressJumpInt = ope.AddressNextInt + Convert.ToInt32(ope.OperationParams[iParam].InstructedParam, 16);
+                    ope.OperationParams[iParam].InstructedParam = ope.AddressJump;
                     // Long Word Result happens
-                    if (ope.InstructedParams[iParam].Length > 4)
+                    if (ope.OperationParams[iParam].InstructedParam.Length > 4)
                     {
-                        ope.InstructedParams[iParam] = ope.InstructedParams[iParam].Substring(ope.InstructedParams[iParam].Length - 4, 4);
-                        ope.AddressJumpInt = Convert.ToInt32(ope.InstructedParams[iParam], 16) - SADDef.EecBankStartAddress;
+                        ope.OperationParams[iParam].InstructedParam = ope.OperationParams[iParam].InstructedParam.Substring(ope.OperationParams[iParam].InstructedParam.Length - 4, 4);
+                        ope.AddressJumpInt = Convert.ToInt32(ope.OperationParams[iParam].InstructedParam, 16) - SADDef.EecBankStartAddress;
                     }
                     break;
                 }
                 else if (parameters[iParam].Type == OPCodeParamsTypes.AddressPartAbsolutePosition)
                 {
-                    ope.AddressJumpInt = Convert.ToInt32(ope.InstructedParams[iParam], 16) - SADDef.EecBankStartAddress;
-                    ope.InstructedParams[iParam] = ope.AddressJump;
+                    ope.AddressJumpInt = Convert.ToInt32(ope.OperationParams[iParam].InstructedParam, 16) - SADDef.EecBankStartAddress;
+                    ope.OperationParams[iParam].InstructedParam = ope.AddressJump;
                     // Long Word Result happens
-                    if (ope.InstructedParams[iParam].Length > 4)
+                    if (ope.OperationParams[iParam].InstructedParam.Length > 4)
                     {
-                        ope.InstructedParams[iParam] = ope.InstructedParams[iParam].Substring(ope.InstructedParams[iParam].Length - 4, 4);
-                        ope.AddressJumpInt = Convert.ToInt32(ope.InstructedParams[iParam], 16) - SADDef.EecBankStartAddress;
+                        ope.OperationParams[iParam].InstructedParam = ope.OperationParams[iParam].InstructedParam.Substring(ope.OperationParams[iParam].InstructedParam.Length - 4, 4);
+                        ope.AddressJumpInt = Convert.ToInt32(ope.OperationParams[iParam].InstructedParam, 16) - SADDef.EecBankStartAddress;
                     }
                     break;
                 }
@@ -945,6 +982,7 @@ namespace SAD806x
             RBase rBase = null;
             RConst rConst = null;
             CalibrationElement opeCalElem = null;
+            int opeCalElemAddressInt = -1;
 
             //  Returns 0,1 - 0 Not Pointer, 1 Pointer - Int
             //          Pointer / Value 1   - String format
@@ -961,7 +999,7 @@ namespace SAD806x
                     //      for main part of Functions & Tables
                     //20140428
                     //arrPointersValues = Tools.InstructionPointersValues(ope.TranslatedParams[1]);
-                    arrPointersValues = Tools.InstructionPointersValues(ope.CalculatedParams[1]);
+                    arrPointersValues = Tools.InstructionPointersValues(ope.OperationParams[1].CalculatedParam);
 
                     // No Register to manage
                     if (!(bool)arrPointersValues[0]) break;
@@ -969,21 +1007,24 @@ namespace SAD806x
                     rBase = (RBase)Calibration.slRbases[arrPointersValues[1].ToString()];
                     if (rBase != null)
                     {
-                        if (ope.alCalibrationElems == null) ope.alCalibrationElems = new ArrayList();
-                        opeCalElem = new CalibrationElement(Calibration.BankNum, rBase.Code);
-                        ope.alCalibrationElems.Add(opeCalElem);
-                        opeCalElem.RBaseCalc = ope.TranslatedParams[1] + SADDef.AdditionSeparator + ope.TranslatedParams[0];
-                        //20140428
-                        //opeCalElem.AddressInt = rBase.AddressBankInt + Convert.ToInt32(ope.TranslatedParams[0], 16);
-                        opeCalElem.AddressInt = rBase.AddressBankInt + Convert.ToInt32(ope.CalculatedParams[0], 16);
-                        opeCalElem.AddressBinInt = opeCalElem.AddressInt + Calibration.BankAddressBinInt;
-                        if (!opeCalElem.RelatedOpsUniqueAddresses.Contains(ope.UniqueAddress))
+                        opeCalElemAddressInt = rBase.AddressBankInt + Convert.ToInt32(ope.OperationParams[0].CalculatedParam, 16);
+                        opeCalElem = (CalibrationElement)Calibration.slCalibrationElements[Tools.UniqueAddress(Calibration.BankNum, opeCalElemAddressInt)];
+                        if (opeCalElem == null)
                         {
-                            opeCalElem.RelatedOpsUniqueAddresses.Add(ope.UniqueAddress);
+                            opeCalElem = new CalibrationElement(Calibration.BankNum, rBase.Code);
+                            opeCalElem.RBaseCalc = ope.OperationParams[1].DefaultTranslatedParam + SADDef.AdditionSeparator + ope.OperationParams[0].DefaultTranslatedParam;
+                            opeCalElem.AddressInt = opeCalElemAddressInt;
+                            opeCalElem.AddressBinInt = opeCalElem.AddressInt + Calibration.BankAddressBinInt;
+                            Calibration.slCalibrationElements.Add(opeCalElem.UniqueAddress, opeCalElem);
                         }
 
-                        ope.CalculatedParams[1] = opeCalElem.Address;
-                        ope.TranslatedParams[1] = opeCalElem.Address;
+                        if (ope.alCalibrationElems == null) ope.alCalibrationElems = new ArrayList();
+                        ope.alCalibrationElems.Add(opeCalElem);
+                        if (!opeCalElem.RelatedOpsUniqueAddresses.Contains(ope.UniqueAddress)) opeCalElem.RelatedOpsUniqueAddresses.Add(ope.UniqueAddress);
+
+                        ope.OperationParams[1].EmbeddedParam = opeCalElem;
+                        ope.OperationParams[1].CalculatedParam = opeCalElem.Address;
+                        ope.OperationParams[1].DefaultTranslatedParam = opeCalElem.Address;
                         ope.IgnoredTranslatedParam = 0;
     
                         rBase = null;
@@ -996,8 +1037,9 @@ namespace SAD806x
                     {
                         if (rConst.isValue)
                         {
-                            ope.CalculatedParams[1] = rConst.Value;
-                            ope.TranslatedParams[1] = rConst.Value;
+                            ope.OperationParams[1].EmbeddedParam = rConst;
+                            ope.OperationParams[1].CalculatedParam = rConst.Value;
+                            ope.OperationParams[1].DefaultTranslatedParam = rConst.Value;
                             ope.IgnoredTranslatedParam = 0;
                         }
                         rConst = null;
@@ -1033,20 +1075,21 @@ namespace SAD806x
                     // a1,2c,41,30       ldw   R30,412c       R30 = 412c;
                     // 57,30,00,00,36    ad3b  R36,0,[R30+0]  R36 = [R30];
                     //      for main part of Structures
-                    ope.OtherElemAddress = ope.InstructedParams[0];
-                    ope.KnownElemAddress = ope.InstructedParams[0];
+                    ope.OtherElemAddress = ope.OperationParams[0].InstructedParam;
+                    ope.KnownElemAddress = ope.OperationParams[0].InstructedParam;
                     // Now manages Register Addresses between 0xf000 & 0xffff
                     if (Convert.ToInt32(ope.OtherElemAddress, 16) - SADDef.EecBankStartAddress < 0 || Convert.ToInt32(ope.OtherElemAddress, 16) >= 0xf000 && Convert.ToInt32(ope.OtherElemAddress, 16) <= 0xffff) ope.OtherElemAddress = string.Empty;
                     if (ope.KnownElemAddress.Length < 4) ope.KnownElemAddress = string.Empty;
+                    if (ope.OtherElemAddress != string.Empty) ope.OperationParams[0].EmbeddedParam = ope.OtherElemAddress;
                     break;
                 default:
                     //20180428
                     //for (int iParam = 0; iParam < ope.TranslatedParams.Length; iParam++)
-                    for (int iParam = 0; iParam < ope.CalculatedParams.Length; iParam++)
+                    for (int iParam = 0; iParam < ope.OperationParams.Length; iParam++)
                     {
                         //20180428
                         //sParamCalc = ope.TranslatedParams[iParam];
-                        sParamCalc = ope.CalculatedParams[iParam];
+                        sParamCalc = ope.OperationParams[iParam].CalculatedParam;
                         if (sParamCalc.StartsWith(SADDef.LongRegisterPointerPrefix) && !sParamCalc.Contains(SADDef.AdditionSeparator + SADDef.ShortRegisterPrefix) && !sParamCalc.Contains(SADDef.IncrementSuffix))
                         {
                             arrPointersValues = Tools.InstructionPointersValues(sParamCalc);
@@ -1060,12 +1103,19 @@ namespace SAD806x
                                 if (rBase != null)
                                 {
                                     // Pointer Calculation
+                                    opeCalElemAddressInt = rBase.AddressBankInt + (int)arrPointersValues[4];
+                                    opeCalElem = (CalibrationElement)Calibration.slCalibrationElements[Tools.UniqueAddress(Calibration.BankNum, opeCalElemAddressInt)];
+                                    if (opeCalElem == null)
+                                    {
+                                        opeCalElem = new CalibrationElement(Calibration.BankNum, rBase.Code);
+                                        opeCalElem.RBaseCalc = Tools.RegisterInstruction(rBase.Code) + SADDef.AdditionSeparator + arrPointersValues[3].ToString();
+                                        opeCalElem.AddressInt = opeCalElemAddressInt;
+                                        opeCalElem.AddressBinInt = opeCalElem.AddressInt + Calibration.BankAddressBinInt;
+                                        Calibration.slCalibrationElements.Add(opeCalElem.UniqueAddress, opeCalElem);
+                                    }
+
                                     if (ope.alCalibrationElems == null) ope.alCalibrationElems = new ArrayList();
-                                    opeCalElem = new CalibrationElement(Calibration.BankNum, rBase.Code);
                                     ope.alCalibrationElems.Add(opeCalElem);
-                                    opeCalElem.RBaseCalc = Tools.RegisterInstruction(rBase.Code) + SADDef.AdditionSeparator + arrPointersValues[3].ToString();
-                                    opeCalElem.AddressInt = rBase.AddressBankInt + (int)arrPointersValues[4];
-                                    opeCalElem.AddressBinInt = opeCalElem.AddressInt + Calibration.BankAddressBinInt;
 
                                     // Checking if Object is defined on this Type on S6x, if not its type will stay unidentifed until S6x Processing
                                     if (!S6x.isS6xProcessTypeConflict(opeCalElem.UniqueAddress, typeof(Scalar)))
@@ -1087,8 +1137,9 @@ namespace SAD806x
                                         else if (Instruction.ToLower().StartsWith("div")) opeCalElem.ScalarElem.UnSigned = true;
                                     }
 
-                                    ope.CalculatedParams[iParam] = Tools.PointerTranslation(opeCalElem.Address);
-                                    ope.TranslatedParams[iParam] = Tools.PointerTranslation(opeCalElem.Address);
+                                    ope.OperationParams[iParam].EmbeddedParam = opeCalElem;
+                                    ope.OperationParams[iParam].CalculatedParam = Tools.PointerTranslation(opeCalElem.Address);
+                                    ope.OperationParams[iParam].DefaultTranslatedParam = Tools.PointerTranslation(opeCalElem.Address);
 
                                     if (!opeCalElem.RelatedOpsUniqueAddresses.Contains(ope.UniqueAddress))
                                     {
@@ -1109,8 +1160,8 @@ namespace SAD806x
                                         if (arrPointersValues[3].ToString().Length > 2) sParamCalc = Convert.ToString(rConst.ValueInt + (int)arrPointersValues[4], 16);
                                         else sParamCalc = Convert.ToString(rConst.ValueInt + Convert.ToSByte(arrPointersValues[3].ToString(), 16), 16);
 
-                                        ope.CalculatedParams[iParam] = Tools.PointerTranslation(sParamCalc);
-                                        ope.TranslatedParams[iParam] = Tools.PointerTranslation(sParamCalc);
+                                        ope.OperationParams[iParam].CalculatedParam = Tools.PointerTranslation(sParamCalc);
+                                        ope.OperationParams[iParam].DefaultTranslatedParam = Tools.PointerTranslation(sParamCalc);
 
                                         // Possible Non Calibration Element
                                         switch (Instruction.ToLower())
@@ -1130,6 +1181,8 @@ namespace SAD806x
                                                 if (ope.KnownElemAddress.Length < 4) ope.KnownElemAddress = string.Empty;
                                                 break;
                                         }
+                                        if (ope.OtherElemAddress != string.Empty) ope.OperationParams[iParam].EmbeddedParam = ope.OtherElemAddress;
+                                        else ope.OperationParams[iParam].EmbeddedParam = Convert.ToInt32(sParamCalc, 16);
                                     }
                                     rConst = null;
                                     break;
@@ -1167,6 +1220,7 @@ namespace SAD806x
                                     }
                                     break;
                             }
+                            if (ope.OtherElemAddress != string.Empty) ope.OperationParams[iParam].EmbeddedParam = ope.OtherElemAddress;
                         }
                     }
                     break;
@@ -1174,19 +1228,67 @@ namespace SAD806x
         }
 
         // Registers Translation applied on Operation Translated Params
-        private void applyRegisters(ref Operation ope, ref SortedList slEecRegisters, ref SADS6x S6x)
+        private void applyRegisters(ref Operation ope, ref SADCalib Calibration, ref SADS6x S6x)
         {
-            for (int iParam = 0; iParam < ope.CalculatedParams.Length; iParam++)
+            for (int iParam = 0; iParam < ope.OperationParams.Length; iParam++)
             {
-                // 8061 KAM / CC / EC Additional Detection and Flags
-                if (is8061) set8061KamCcEc(ref ope, ope.CalculatedParams[iParam]);
+                object[] arrPointersValues = Tools.InstructionPointersValues(ope.OperationParams[iParam].CalculatedParam);
+                //  Returns 0,1 - 0 Not Pointer, 1 Pointer - Int
+                //          Pointer / Value 1   - String format
+                //          Pointer / Value 1   - Integer format
+                //          Pointer / Value 2   - String if exists
+                //          Pointer / Value 2   - Integer format if exists
 
-                ope.TranslatedParams[iParam] = getRegisterTranslation(ope.CalculatedParams[iParam], (iParam == ope.CalculatedParams.Length - 1), ref slEecRegisters, ref S6x);
+                // Pointer / Value 2 is not managed for registers
+
+                // No Register to manage
+                if (!(bool)arrPointersValues[0])
+                {
+                    ope.OperationParams[iParam].DefaultTranslatedParam = ope.OperationParams[iParam].CalculatedParam;
+                    continue;
+                }
+
+                // Embedded Params Register linking
+                if (arrPointersValues.Length == 3)
+                {
+                    ope.OperationParams[iParam].EmbeddedParam = Calibration.slRegisters[Tools.RegisterUniqueAddress((int)arrPointersValues[2])];
+                }
+                else
+                {
+                    ope.OperationParams[iParam].EmbeddedParam = Calibration.slRegisters[Tools.RegisterUniqueAddress((int)arrPointersValues[2]) + SADDef.AdditionSeparator + arrPointersValues[4].ToString()];
+                    if (ope.OperationParams[iParam].EmbeddedParam == null)
+                    {
+                        // 0x24 to 0x58 to keep only real adders
+                        // 0x100 to prevent basic registers to be calculated or shown for second part
+                        if ((int)arrPointersValues[2] >= 0x24 && (int)arrPointersValues[2] <= 0x58 && (int)arrPointersValues[4] >= 0x100)
+                        {
+                            ope.OperationParams[iParam].EmbeddedParam = new object[] { Calibration.slRegisters[Tools.RegisterUniqueAddress((int)arrPointersValues[2])], arrPointersValues[3] };
+                        }
+                    }
+                }
+                
+                // 8061 KAM / CC / EC Additional Detection and Flags
+                //if (is8061) set8061KamCcEc(ref ope, ope.OperationParams[iParam].CalculatedParam);
+                if (is8061)
+                {
+                    if (ope.OperationParams[iParam].EmbeddedParam != null)
+                    {
+                        if (ope.OperationParams[iParam].EmbeddedParam.GetType() == typeof(Register))
+                        {
+                            if (((Register)ope.OperationParams[iParam].EmbeddedParam).is8061KAMRegister) ope.isKamRelated = true;
+                            if (((Register)ope.OperationParams[iParam].EmbeddedParam).is8061CCRegister) ope.isCcRelated = true;
+                            if (((Register)ope.OperationParams[iParam].EmbeddedParam).is8061ECRegister) ope.isEcRelated = true;
+                        }
+                    }
+                }
+
+                // For initialization
+                ope.OperationParams[iParam].DefaultTranslatedParam = getParamTranslation(ope.OperationParams[iParam].EmbeddedParam, ope.OperationParams[iParam].CalculatedParam, (iParam == ope.OperationParams.Length - 1));
             }
         }
 
         // Byte shifting
-        private void applyShifting(ref Operation ope)
+        private void applyShifting(ref Operation ope, ref SADCalib Calibration)
         {
             switch (Instruction.ToLower())
             {
@@ -1205,25 +1307,29 @@ namespace SAD806x
             }
             
             // Value to use is always the first parameter
-            //20180428
-            //int byteValue = Convert.ToInt32(ope.TranslatedParams[0], 16);
-            int byteValue = Convert.ToInt32(ope.CalculatedParams[0], 16);
+            int byteValue = Convert.ToInt32(ope.OperationParams[0].CalculatedParam, 16);
             if (byteValue > 16)
             {
-                ope.TranslatedParams[0] = Tools.RegisterInstruction(Convert.ToString(byteValue, 16));
+                ope.OperationParams[0].EmbeddedParam = Calibration.slRegisters[Tools.RegisterUniqueAddress(byteValue)];
+                ope.OperationParams[0].DefaultTranslatedParam = Tools.RegisterInstruction(Convert.ToString(byteValue, 16));
             }
             else
             {
-                ope.TranslatedParams[0] = Convert.ToString((int)Math.Pow(2, byteValue), 16);
+                ope.OperationParams[0].EmbeddedParam = (int)Math.Pow(2, byteValue);
+                ope.OperationParams[0].DefaultTranslatedParam = Convert.ToString((int)ope.OperationParams[0].EmbeddedParam, 16);
             }
         }
 
         // Registers Translation applied on Operation Translated Params
-        private void applyGotoOpParams(ref Operation ope, ref string[] gopParams)
+        private void applyGotoOpParams(ref Operation ope, ref GotoOpParams gopParams)
         {
-            string elemAddress = string.Empty;
-            string cyOpeUniqueAddress = string.Empty;
-            CarryModes cyMode = CarryModes.Default;
+            int elemBankNum = -1;
+            int elemAddressInt = -1;
+            int cyOpeBankNum = -1;
+            int cyOpeAddressInt = -1;
+            CarryMode cyMode = CarryMode.Default;
+            object cyEP1 = null;
+            object cyEP2 = null;
             string cyP1 = string.Empty;
             string cyP2 = string.Empty;
 
@@ -1231,46 +1337,68 @@ namespace SAD806x
             {
                 foreach (CalibrationElement opeCalElem in ope.alCalibrationElems)
                 {
-                    elemAddress = opeCalElem.Address;
+                    elemBankNum = opeCalElem.BankNum;
+                    elemAddressInt = opeCalElem.AddressInt;
                     // First Calibration Element is enought for this process
                     break;
                 }
             }
-            if (elemAddress == string.Empty && ope.OtherElemAddress != string.Empty) elemAddress = ope.OtherElemAddress;
+            if (elemBankNum == -1 && ope.OtherElemAddress != string.Empty)
+            {
+                elemBankNum = ope.ApplyOnBankNum;
+                elemAddressInt = Convert.ToInt32(ope.OtherElemAddress, 16) - SADDef.EecBankStartAddress;
+            }
 
             // Goto Ops Params Mngt
             // GotoOpParams[Params Ope UniqueAddress, Params Ope Elem UniqueAddress, P1, P2, CY Ope UniqueAddress, CY Mode, CY P1, CY P2]
             switch (ope.CallType)
             {
                 case CallType.Unknown:
-                    if (gopParams == null) gopParams = new string[] { ope.UniqueAddress, elemAddress, "0", "0", cyOpeUniqueAddress, cyMode.ToString(), cyP1, cyP2 };
+                    if (gopParams == null) gopParams = new GotoOpParams(ope.BankNum, ope.AddressInt);
 
-                    gopParams[0] = ope.UniqueAddress;
-                    gopParams[1] = elemAddress;
-                    if (ope.TranslatedParams.Length >= 1) gopParams[2] = ope.TranslatedParams[0];
-                    if (ope.TranslatedParams.Length >= 2) gopParams[3] = ope.TranslatedParams[1];
+                    gopParams.OpeBankNum = ope.BankNum;
+                    gopParams.OpeAddressInt = ope.AddressInt;
+                    gopParams.ElemBankNum = elemBankNum;
+                    gopParams.ElemAddressInt = elemAddressInt;
+                    if (ope.OperationParams.Length >= 1)
+                    {
+                        gopParams.OpeDefaultParamTranslation1 = ope.OperationParams[0].DefaultTranslatedParam;
+                        gopParams.OpeEmbeddedParam1 = ope.OperationParams[0].EmbeddedParam;
+                    }
+                    if (ope.OperationParams.Length >= 2)
+                    {
+                        gopParams.OpeDefaultParamTranslation2 = ope.OperationParams[1].DefaultTranslatedParam;
+                        gopParams.OpeEmbeddedParam2 = ope.OperationParams[1].EmbeddedParam;
+                    }
 
-                    cyOpeUniqueAddress = gopParams[4];
-                    cyMode = (CarryModes)Enum.Parse(typeof(CarryModes), gopParams[5]);
-                    cyP1 = gopParams[6];
-                    cyP2 = gopParams[7];
+                    cyOpeBankNum = gopParams.CarryOpeBankNum;
+                    cyOpeAddressInt = gopParams.CarryOpeAddressInt;
+                    cyMode = gopParams.CarryOpeMode;
+                    cyEP1 = gopParams.CarryOpeEmbeddedParam1;
+                    cyEP1 = gopParams.CarryOpeEmbeddedParam2;
+                    cyP1 = gopParams.CarryOpeDefaultParamTranslation1;
+                    cyP2 = gopParams.CarryOpeDefaultParamTranslation2;
                     switch (Instruction.ToLower())
                     {
                         // Carry Flag operations
                         case "clc":
                         case "stc":
-                            cyOpeUniqueAddress = ope.UniqueAddress;
-                            cyMode = CarryModes.Carry;
+                            cyOpeBankNum = ope.BankNum;
+                            cyOpeAddressInt = ope.AddressInt;
+                            cyMode = CarryMode.Carry;
                             break;
                         // Comparison operations
                         case "cmpb":
                         case "cmpw":
-                            cyOpeUniqueAddress = ope.UniqueAddress;
-                            cyMode = CarryModes.Comparison;
-                            if (ope.TranslatedParams.Length >= 2)
+                            cyOpeBankNum = ope.BankNum;
+                            cyOpeAddressInt = ope.AddressInt;
+                            cyMode = CarryMode.Comparison;
+                            if (ope.OperationParams.Length >= 2)
                             {
-                                cyP1 = ope.TranslatedParams[0];
-                                cyP2 = ope.TranslatedParams[1];
+                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                                cyEP2 = ope.OperationParams[1].EmbeddedParam;
+                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                                cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
                             }
                             break;
                         // Arithmetic operations
@@ -1280,152 +1408,169 @@ namespace SAD806x
                         case "sbbw":
                         case "sb2w":
                         case "sb3w":
-                            cyOpeUniqueAddress = ope.UniqueAddress;
-                            cyMode = CarryModes.Substract;
-                            if (ope.TranslatedParams.Length >= 2)
+                            cyOpeBankNum = ope.BankNum;
+                            cyOpeAddressInt = ope.AddressInt;
+                            cyMode = CarryMode.Substract;
+                            if (ope.OperationParams.Length >= 2)
                             {
-                                cyP1 = ope.TranslatedParams[0];
-                                cyP2 = ope.TranslatedParams[1];
+                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                                cyEP2 = ope.OperationParams[1].EmbeddedParam;
+                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                                cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
                             }
                             break;
                         case "adcb":
                         case "ad2b":
                         case "ad3b":
-                            cyOpeUniqueAddress = ope.UniqueAddress;
-                            cyMode = CarryModes.AddBytes;
-                            if (ope.TranslatedParams.Length >= 2)
+                            cyOpeBankNum = ope.BankNum;
+                            cyOpeAddressInt = ope.AddressInt;
+                            cyMode = CarryMode.AddBytes;
+                            if (ope.OperationParams.Length >= 2)
                             {
-                                cyP1 = ope.TranslatedParams[0];
-                                cyP2 = ope.TranslatedParams[1];
+                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                                cyEP2 = ope.OperationParams[1].EmbeddedParam;
+                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                                cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
                             }
                             break;
                         case "adcw":
                         case "ad2w":
                         case "ad3w":
-                            cyOpeUniqueAddress = ope.UniqueAddress;
-                            cyMode = CarryModes.AddWords;
-                            if (ope.TranslatedParams.Length >= 2)
+                            cyOpeBankNum = ope.BankNum;
+                            cyOpeAddressInt = ope.AddressInt;
+                            cyMode = CarryMode.AddWords;
+                            if (ope.OperationParams.Length >= 2)
                             {
-                                cyP1 = ope.TranslatedParams[0];
-                                cyP2 = ope.TranslatedParams[1];
+                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                                cyEP2 = ope.OperationParams[1].EmbeddedParam;
+                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                                cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
                             }
                             break;
                         case "ml2b":
                         case "ml3b":
                         case "shlb":
-                            cyOpeUniqueAddress = ope.UniqueAddress;
-                            cyMode = CarryModes.MultiplyBytes;
-                            if (ope.TranslatedParams.Length >= 2)
+                            cyOpeBankNum = ope.BankNum;
+                            cyOpeAddressInt = ope.AddressInt;
+                            cyMode = CarryMode.MultiplyBytes;
+                            if (ope.OperationParams.Length >= 2)
                             {
-                                cyP1 = ope.TranslatedParams[0];
-                                cyP2 = ope.TranslatedParams[1];
+                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                                cyEP2 = ope.OperationParams[1].EmbeddedParam;
+                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                                cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
                             }
                             break;
                         case "ml2w":
                         case "ml3w":
                         case "shlw":
                         case "shldw":
-                            cyOpeUniqueAddress = ope.UniqueAddress;
-                            cyMode = CarryModes.MultiplyWords;
-                            if (ope.TranslatedParams.Length >= 2)
+                            cyOpeBankNum = ope.BankNum;
+                            cyOpeAddressInt = ope.AddressInt;
+                            cyMode = CarryMode.MultiplyWords;
+                            if (ope.OperationParams.Length >= 2)
                             {
-                                cyP1 = ope.TranslatedParams[0];
-                                cyP2 = ope.TranslatedParams[1];
+                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                                cyEP2 = ope.OperationParams[1].EmbeddedParam;
+                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                                cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
                             }
                             break;
                         case "decb":
                         case "decw":
-                            cyOpeUniqueAddress = ope.UniqueAddress;
-                            cyMode = CarryModes.Substract;
-                            if (ope.TranslatedParams.Length >= 1)
+                            cyOpeBankNum = ope.BankNum;
+                            cyOpeAddressInt = ope.AddressInt;
+                            cyMode = CarryMode.Substract;
+                            if (ope.OperationParams.Length >= 1)
                             {
-                                cyP1 = ope.TranslatedParams[0];
+                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                                cyEP2 = "1";
+                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
                                 cyP2 = "1";
                             }
                             break;
                         case "incb":
-                            cyOpeUniqueAddress = ope.UniqueAddress;
-                            cyMode = CarryModes.AddBytes;
-                            if (ope.TranslatedParams.Length >= 1)
+                            cyOpeBankNum = ope.BankNum;
+                            cyOpeAddressInt = ope.AddressInt;
+                            cyMode = CarryMode.AddBytes;
+                            if (ope.OperationParams.Length >= 1)
                             {
-                                cyP1 = ope.TranslatedParams[0];
+                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                                cyEP2 = "1";
+                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
                                 cyP2 = "1";
                             }
                             break;
                         case "incw":
-                            cyOpeUniqueAddress = ope.UniqueAddress;
-                            cyMode = CarryModes.AddWords;
-                            if (ope.TranslatedParams.Length >= 1)
+                            cyOpeBankNum = ope.BankNum;
+                            cyOpeAddressInt = ope.AddressInt;
+                            cyMode = CarryMode.AddWords;
+                            if (ope.OperationParams.Length >= 1)
                             {
-                                cyP1 = ope.TranslatedParams[0];
+                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                                cyEP2 = "1";
+                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
                                 cyP2 = "1";
                             }
                             break;
                     }
-                    gopParams[4] = cyOpeUniqueAddress;
-                    gopParams[5] = cyMode.ToString();
-                    gopParams[6] = cyP1;
-                    gopParams[7] = cyP2;
+                    gopParams.CarryOpeBankNum = cyOpeBankNum;
+                    gopParams.CarryOpeAddressInt = cyOpeAddressInt;
+                    gopParams.CarryOpeMode = cyMode;
+                    gopParams.CarryOpeEmbeddedParam1 = cyEP1;
+                    gopParams.CarryOpeEmbeddedParam2 = cyEP2;
+                    gopParams.CarryOpeDefaultParamTranslation1 = cyP1;
+                    gopParams.CarryOpeDefaultParamTranslation2 = cyP2;
                     break;
             }
         }
 
-        // Set KAM, CC and EC Flags on Operation for 8061
-        //  Should be executed in applyRegisters Function before Register Translation
-        private void set8061KamCcEc(ref Operation ope, string initialTranslatedParam)
+        public string TranslateInstruction(Operation ope)
         {
-            object[] arrPointersValues = null;
-            string sTranslation = string.Empty;
-
-            // 8061 dedicated
-            if (!is8061) return;
-
-            arrPointersValues = Tools.InstructionPointersValues(initialTranslatedParam);
-            //  Returns 0,1 - 0 Not Pointer, 1 Pointer - Int
-            //          Pointer / Value 1   - String format
-            //          Pointer / Value 1   - Integer format
-            //          Pointer / Value 2   - String if exists
-            //          Pointer / Value 2   - Integer format if exists
-
-            // Pointer / Value 2 is not managed for now
-
-            // No Register to manage
-            if (!(bool)arrPointersValues[0]) return;
-
-            // KAM / CC / EC Register ranges - 8061 only
-            //  Flag will be set
-            if ((int)arrPointersValues[2] >= SADDef.KAMRegisters8061MinAdress && (int)arrPointersValues[2] <= SADDef.KAMRegisters8061MaxAdress)
-            {
-                ope.isKamRelated = true;
-            }
-            else if ((int)arrPointersValues[2] >= SADDef.CCRegisters8061MinAdress && (int)arrPointersValues[2] <= SADDef.CCRegisters8061MaxAdress)
-            {
-                ope.isCcRelated = true;
-            }
-            else if ((int)arrPointersValues[2] >= SADDef.ECRegisters8061MinAdress && (int)arrPointersValues[2] <= SADDef.ECRegisters8061MaxAdress)
-            {
-                ope.isEcRelated = true;
-            }
+            return getInstructionTranslation(InstructionTrans, ope);
         }
         
-        private string getInstructionTranslation(string sTemplate, ref Operation ope)
+        private string getInstructionTranslation(string sTemplate, Operation ope)
         {
             string sTranslation = sTemplate;
 
             // Instruction Translation
             if (sTranslation != string.Empty)
             {
-                for (int iParam = 0; iParam < ope.InstructedParams.Length; iParam++)
+                for (int iParam = 0; iParam < ope.OperationParams.Length; iParam++)
                 {
-                    sTranslation = sTranslation.Replace("%" + (iParam + 1).ToString() + "%", ope.InstructedParams[iParam]);
+                    sTranslation = sTranslation.Replace("%" + (iParam + 1).ToString() + "%", ope.OperationParams[iParam].InstructedParam);
                 }
             }
-            return string.Format("{0,-6}{1,-15}", Instruction.ToLower(), sTranslation);
+
+            sTranslation = string.Format("{0,-6}{1,-15}", Instruction.ToLower(), sTranslation);
+
+            // ApplySignedAlt Operation
+            if (ope.ApplySignedAlt)
+            {
+                if (sTranslation != string.Empty) sTranslation = SADDef.OPCSigndAltInstructionPrefix + sTranslation.Substring(0, sTranslation.Length - SADDef.OPCSigndAltInstructionPrefix.Length);
+            }
+
+            // Skip Operation
+            if (ope.CallType == CallType.Skip)
+            {
+                sTranslation = sTranslation.Replace("%JA%", ope.AddressJump);
+            }
+
+            return sTranslation;
         }
 
-        private string getTranslation(string sTemplate, ref Operation ope, ref Operation opPrevResult, ref SADS6x S6x)
+        public string TranslateTranslation(Operation ope)
+        {
+            return getTranslation(Translation1, ope);
+            
+            // For Performance reasons Translation2 & Translation3 are not managed anymore
+        }
+
+        private string getTranslation(string sTemplate, Operation ope)
         {
             string sTranslation = sTemplate;
+            Register rReg = null;
             S6xRegister s6xReg = null;
 
             if (sTranslation == string.Empty) return sTranslation;
@@ -1434,7 +1579,16 @@ namespace SAD806x
             //      Template is overriden when  BitFlags are provided on related S6x Register
             if (Type == OPCodeType.BitByteGotoOP && ope.OriginalOpArr.Length >= 2)
             {
-                s6xReg = (S6xRegister)S6x.slProcessRegisters[Tools.RegisterUniqueAddress(ope.OriginalOpArr[1])];
+                rReg = null;
+                s6xReg = null;
+                if (ope.OperationParams[0].EmbeddedParam != null)
+                {
+                    if (ope.OperationParams[0].EmbeddedParam.GetType() == typeof(Register))
+                    {
+                        rReg = (Register)ope.OperationParams[0].EmbeddedParam;
+                        s6xReg = rReg.S6xRegister;
+                    }
+                }
                 if (s6xReg != null)
                 {
                     if (s6xReg.isBitFlags && s6xReg.BitFlags != null)
@@ -1526,7 +1680,16 @@ namespace SAD806x
                 }
                 if (fOperation)
                 {
-                    s6xReg = (S6xRegister)S6x.slProcessRegisters[Tools.RegisterUniqueAddress(ope.OriginalOpArr[2])];
+                    rReg = null;
+                    s6xReg = null;
+                    if (ope.OperationParams[1].EmbeddedParam != null)
+                    {
+                        if (ope.OperationParams[1].EmbeddedParam.GetType() == typeof(Register))
+                        {
+                            rReg = (Register)ope.OperationParams[1].EmbeddedParam;
+                            s6xReg = rReg.S6xRegister;
+                        }
+                    }
                     if (s6xReg != null)
                     {
                         if (s6xReg.isBitFlags && s6xReg.BitFlags != null)
@@ -1574,7 +1737,7 @@ namespace SAD806x
                 }
             }
 
-            for (int iParam = 0; iParam < ope.TranslatedParams.Length; iParam++)
+            for (int iParam = 0; iParam < ope.OperationParams.Length; iParam++)
             {
                 // Specific case related to RBase calculation
                 if (iParam == ope.IgnoredTranslatedParam)
@@ -1582,7 +1745,7 @@ namespace SAD806x
                     switch (iParam)
                     {
                         case 0:
-                            if (iParam < ope.TranslatedParams.Length - 1)
+                            if (iParam < ope.OperationParams.Length - 1)
                             {
                                 int iEndPosNext = sTranslation.LastIndexOf("%" + (iParam + 2).ToString() + "%") + ("%" + (iParam + 2).ToString() + "%").Length - 1;
                                 int iEndPosCurr = sTranslation.LastIndexOf("%" + (iParam + 1).ToString() + "%") + ("%" + (iParam + 1).ToString() + "%").Length - 1;
@@ -1592,7 +1755,7 @@ namespace SAD806x
                                 }
                                 else
                                 {
-                                    sTranslation = sTranslation.Replace("%" + (iParam + 1).ToString() + "%", ope.TranslatedParams[iParam]);
+                                    sTranslation = sTranslation.Replace("%" + (iParam + 1).ToString() + "%", getParamTranslation(ope.OperationParams[iParam].EmbeddedParam, ope.OperationParams[iParam].DefaultTranslatedParam, (iParam == ope.OperationParams.Length - 1)));
                                 }
                             }
                             break;
@@ -1606,22 +1769,27 @@ namespace SAD806x
                 }
                 else
                 {
-                    sTranslation = sTranslation.Replace("%" + (iParam + 1).ToString() + "%", ope.TranslatedParams[iParam]);
+                    sTranslation = sTranslation.Replace("%" + (iParam + 1).ToString() + "%", getParamTranslation(ope.OperationParams[iParam].EmbeddedParam, ope.OperationParams[iParam].DefaultTranslatedParam, (iParam == ope.OperationParams.Length - 1)));
                 }
             }
 
             // Goto Op Params Translation
             if (ope.GotoOpParams != null && (sTemplate.Contains("%P1%") || sTemplate.Contains("%P2%") || sTemplate.Contains("%CY%")))
             {
-                // GotoOpParams[Params Ope UniqueAddress, Params Ope Elem UniqueAddress, P1, P2, CY Ope UniqueAddress, CY Mode, CY P1, CY P2]
                 if (CarryTranslations == null)
                 {
-                    sTranslation = sTranslation.Replace("%P1%", ope.GotoOpParams[2]).Replace("%P2%", ope.GotoOpParams[3]);
+                    sTranslation = sTranslation.Replace("%P1%", ope.OPCode.getParamTranslation(ope.GotoOpParams.OpeEmbeddedParam1, ope.GotoOpParams.OpeDefaultParamTranslation1, false)).Replace("%P2%", ope.OPCode.getParamTranslation(ope.GotoOpParams.OpeEmbeddedParam2, ope.GotoOpParams.OpeDefaultParamTranslation2, false));
                 }
                 else
                 {
-                    sTranslation = sTranslation.Replace("%CY%", CarryTranslations[(CarryModes)Enum.Parse(typeof(CarryModes), ope.GotoOpParams[5])].ToString()).Replace("%P1%", ope.GotoOpParams[6]).Replace("%P2%", ope.GotoOpParams[7]);
+                    sTranslation = sTranslation.Replace("%CY%", CarryTranslations[ope.GotoOpParams.CarryOpeMode].ToString()).Replace("%P1%", ope.OPCode.getParamTranslation(ope.GotoOpParams.CarryOpeEmbeddedParam1, ope.GotoOpParams.CarryOpeDefaultParamTranslation1, false)).Replace("%P2%", ope.OPCode.getParamTranslation(ope.GotoOpParams.CarryOpeEmbeddedParam2, ope.GotoOpParams.CarryOpeDefaultParamTranslation2, false));
                 }
+            }
+
+            // Skip Operation
+            if (ope.CallType == CallType.Skip)
+            {
+                sTranslation = sTranslation.Replace("%JA%", ope.AddressJump);
             }
 
             // Arguments
@@ -1633,72 +1801,100 @@ namespace SAD806x
             // Byte shifting / Value to use is always the first parameter
             if (sTemplate.Contains("%2^%"))
             {
-                if (ope.TranslatedParams[0] == Tools.RegisterInstruction(ope.InstructedParams[0]))
+                if (ope.OperationParams[0].DefaultTranslatedParam == Tools.RegisterInstruction(ope.OperationParams[0].InstructedParam))
                 {
-                    sTranslation = sTranslation.Replace("/", ">>").Replace("*", "<<").Replace("%2^%", ope.TranslatedParams[0]);
+                    sTranslation = sTranslation.Replace("/", ">>").Replace("*", "<<").Replace("%2^%", getParamTranslation(ope.OperationParams[0].EmbeddedParam, ope.OperationParams[0].DefaultTranslatedParam, (0 == ope.OperationParams.Length - 1)));
                 }
                 else
                 {
-                    sTranslation = sTranslation.Replace("%2^%", ope.TranslatedParams[0]);
+                    sTranslation = sTranslation.Replace("%2^%", getParamTranslation(ope.OperationParams[0].EmbeddedParam, ope.OperationParams[0].DefaultTranslatedParam, (0 == ope.OperationParams.Length - 1)));
                 }
+            }
+
+            // ApplyAltSigned
+            if (ope.ApplySignedAlt) sTranslation = sTranslation.Replace("= ", "= " + SADDef.OPCSigndAltTranslationAdder);
+            
+            // Address Replacement
+            if (ope.TranslationReplacementAddress != string.Empty && ope.TranslationReplacementLabel != string.Empty)
+            {
+                sTranslation = sTranslation.Replace(ope.TranslationReplacementAddress, ope.TranslationReplacementLabel);
             }
 
             return sTranslation;
         }
 
+        public string getParamTranslation(object oParam, string defaultTranslation, bool writeModeForParam)
+        {
+            if (oParam == null) return defaultTranslation;
+
+            if (oParam.GetType() == typeof(string)) return defaultTranslation;
+
+            if (oParam.GetType() == typeof(int)) return defaultTranslation;
+
+            if (oParam.GetType() == typeof(RBase)) return Tools.RegisterInstruction(((RBase)oParam).Code);
+
+            if (oParam.GetType() == typeof(RConst)) return ((RConst)oParam).Value;
+
+            if (oParam.GetType() == typeof(Call)) return ((Call)oParam).ShortLabel;
+
+            if (oParam.GetType() == typeof(CalibrationElement))
+            {
+                if (((CalibrationElement)oParam).isScalar) return ((CalibrationElement)oParam).ScalarElem.ShortLabel;
+                else if (((CalibrationElement)oParam).isFunction) return ((CalibrationElement)oParam).FunctionElem.ShortLabel;
+                else if (((CalibrationElement)oParam).isTable) return ((CalibrationElement)oParam).TableElem.ShortLabel;
+                else if (((CalibrationElement)oParam).isStructure) return ((CalibrationElement)oParam).StructureElem.ShortLabel;
+            }
+
+            if (oParam.GetType() == typeof(Scalar)) return ((Scalar)oParam).ShortLabel;
+            if (oParam.GetType() == typeof(Function)) return ((Function)oParam).ShortLabel;
+            if (oParam.GetType() == typeof(Table)) return ((Table)oParam).ShortLabel;
+            if (oParam.GetType() == typeof(Structure)) return ((Structure)oParam).ShortLabel;
+
+            if (oParam.GetType() == typeof(Register)) return getRegisterTranslation((Register)oParam, defaultTranslation, writeModeForParam);
+
+            if (oParam.GetType() == typeof(object[]))
+            {
+                if (((object[])oParam).Length == 2 && defaultTranslation.Contains(SADDef.AdditionSeparator))
+                {
+                    bool isPointer = defaultTranslation.StartsWith(SADDef.LongRegisterPointerPrefix) && defaultTranslation.EndsWith(SADDef.LongRegisterPointerSuffix);
+                    string defaultTranslation0 = string.Empty;
+                    string defaultTranslation1 = string.Empty;
+                    string sTranslation = string.Empty;
+
+                    if (!defaultTranslation.StartsWith(SADDef.AdditionSeparator)) defaultTranslation0 = defaultTranslation.Substring(0, defaultTranslation.IndexOf(SADDef.AdditionSeparator));
+                    if (!defaultTranslation.EndsWith(SADDef.AdditionSeparator)) defaultTranslation1 = defaultTranslation.Substring(defaultTranslation.IndexOf(SADDef.AdditionSeparator) + 1);
+
+                    if (isPointer)
+                    {
+                        defaultTranslation0 = defaultTranslation0.Substring(1);
+                        defaultTranslation1 = defaultTranslation1.Substring(0, defaultTranslation1.Length - 1);
+                    }
+
+                    sTranslation = (isPointer ? SADDef.LongRegisterPointerPrefix : string.Empty);
+                    sTranslation += getParamTranslation(((object[])oParam)[0], defaultTranslation0, writeModeForParam) + SADDef.AdditionSeparator;
+                    sTranslation += getParamTranslation(((object[])oParam)[1], defaultTranslation1, writeModeForParam) + (isPointer ? SADDef.LongRegisterPointerSuffix : string.Empty);
+
+                    return sTranslation;
+                }
+            }
+            
+            return defaultTranslation;
+        }
+
         // Get Translation for Instructed Param
-        private string getRegisterTranslation(string instructedParam, bool writeMode, ref SortedList slEecRegisters, ref SADS6x S6x)
+        private string getRegisterTranslation(Register rReg, string defaultTranslation, bool writeMode)
         {
             // Possible values samples : 12, abcd, R12, [abcd], R12++, [R12], [R12+abcd], ...
 
-            object[] arrPointersValues = null;
             string sTranslation = string.Empty;
-            string sInstructedRegister = string.Empty;
-            string sInstructedAddedRegister = string.Empty;
-            bool bDualMode = false;
-            bool bAdderMode = false;
 
-            arrPointersValues = Tools.InstructionPointersValues(instructedParam);
-            //  Returns 0,1 - 0 Not Pointer, 1 Pointer - Int
-            //          Pointer / Value 1   - String format
-            //          Pointer / Value 1   - Integer format
-            //          Pointer / Value 2   - String if exists
-            //          Pointer / Value 2   - Integer format if exists
-
-            // Pointer / Value 2 is not managed for now
-
-            // No Register Translation to do
-            if (!(bool)arrPointersValues[0]) return instructedParam;
+            if (rReg == null) return defaultTranslation;
 
             // S6x Translation First to override other translations
-            if (arrPointersValues.Length == 3)
+            if (rReg.S6xRegister != null)
             {
-                sInstructedRegister = Tools.RegisterUniqueAddress((int)arrPointersValues[2]);
-            }
-            else
-            {
-                sInstructedRegister = Tools.RegisterUniqueAddress((int)arrPointersValues[2]) + SADDef.AdditionSeparator + arrPointersValues[4].ToString();
-                sInstructedAddedRegister = Tools.RegisterUniqueAddress((int)arrPointersValues[4]);
-                bDualMode = true;
-            }
-
-            S6xRegister s6xReg = (S6xRegister)S6x.slProcessRegisters[sInstructedRegister];
-            if (s6xReg == null && bDualMode)
-            {
-                // 0x24 to 0x58 to keep only real adders
-                // 0x100 to prevent basic registers to be calculated or shown for second part
-                if ((int)arrPointersValues[2] >= 0x24 && (int)arrPointersValues[2] <= 0x58 && (int)arrPointersValues[4] >= 0x100)
-                {
-                    s6xReg = (S6xRegister)S6x.slProcessRegisters[sInstructedAddedRegister];
-                    bAdderMode = true;
-                }
-            }
-
-            if (s6xReg != null)
-            {
-                sTranslation = instructedParam;
-                string regLabel = s6xReg.Label;
-                if (s6xReg.MultipleMeanings)
+                string regLabel = rReg.S6xRegister.Label;
+                if (rReg.S6xRegister.MultipleMeanings)
                 {
                     bool byteOpe = true;
                     switch (Type)
@@ -1710,65 +1906,48 @@ namespace SAD806x
                             byteOpe = (Instruction.ToLower() != "stw");
                             break;
                     }
-                    regLabel = s6xReg.Labels(byteOpe);
+                    regLabel = rReg.S6xRegister.Labels(byteOpe);
                 }
-                if (regLabel != null && regLabel != string.Empty && regLabel != s6xReg.Address)
+                if (regLabel != null && regLabel != string.Empty && regLabel != rReg.Address && regLabel != Tools.RegisterInstruction(rReg.Address))
                 {
-                    if (bDualMode)
+                    if (defaultTranslation.StartsWith(SADDef.LongRegisterPointerPrefix) && defaultTranslation.EndsWith(SADDef.LongRegisterPointerSuffix) && defaultTranslation.Contains(SADDef.AdditionSeparator))
                     {
-                        if (bAdderMode)
+                        if (defaultTranslation.StartsWith(SADDef.LongRegisterPointerPrefix + rReg.Instruction))
                         {
-                            if (Tools.RegisterInstruction(arrPointersValues[3].ToString()).ToUpper() != regLabel.ToUpper())
-                            {
-                                sTranslation = instructedParam.Replace(SADDef.AdditionSeparator + arrPointersValues[3].ToString(), SADDef.AdditionSeparator + regLabel);
-                            }
+                            return defaultTranslation.Replace(SADDef.AdditionSeparator + rReg.Address, SADDef.AdditionSeparator + regLabel);
                         }
-                        else
-                        {
-                            if (Tools.RegisterInstruction(arrPointersValues[1].ToString() + SADDef.AdditionSeparator + arrPointersValues[3].ToString()).ToUpper() != regLabel.ToUpper())
-                            {
-                                sTranslation = instructedParam.Replace(Tools.RegisterInstruction(arrPointersValues[1].ToString() + SADDef.AdditionSeparator + arrPointersValues[3].ToString()), SADDef.LongRegisterTemplate.Replace("%LREG%", regLabel));
-                            }
-                        }
+                        return defaultTranslation.Replace(rReg.Address + SADDef.AdditionSeparator, regLabel + SADDef.AdditionSeparator);
                     }
-                    else
-                    {
-                        if (Tools.RegisterInstruction(arrPointersValues[1].ToString()).ToUpper() != regLabel.ToUpper())
-                        {
-                            sTranslation = instructedParam.Replace(Tools.RegisterInstruction(arrPointersValues[1].ToString()), SADDef.LongRegisterTemplate.Replace("%LREG%", regLabel));
-                        }
-                    }
+                    return defaultTranslation.Replace(rReg.Instruction, Tools.PointerTranslation(regLabel));
                 }
-                s6xReg = null;
-                return sTranslation;
+                return defaultTranslation;
             }
 
             // Eec Register Param Calculation
-            EecRegister eecRegister = (EecRegister)slEecRegisters[arrPointersValues[1].ToString()];
-            if (eecRegister != null)
+            if (rReg.EecRegister != null)
             {
-                switch (eecRegister.Check)
+                switch (rReg.EecRegister.Check)
                 {
                     case EecRegisterCheck.ReadWrite:
-                        if (writeMode) sTranslation = eecRegister.TranslationWriteByte;
-                        else sTranslation = eecRegister.TranslationReadByte;
+                        if (writeMode) sTranslation = rReg.EecRegister.TranslationWriteByte;
+                        else sTranslation = rReg.EecRegister.TranslationReadByte;
                         break;
                     case EecRegisterCheck.DataType:
                         switch (Type)
                         {
                             case OPCodeType.BitByteGotoOP:
                             case OPCodeType.ByteOP:
-                                sTranslation = eecRegister.TranslationReadByte;
+                                sTranslation = rReg.EecRegister.TranslationReadByte;
                                 break;
                             case OPCodeType.WordOP:
-                                sTranslation = eecRegister.TranslationReadWord;
+                                sTranslation = rReg.EecRegister.TranslationReadWord;
                                 break;
                             case OPCodeType.MixedOP:
-                                if (writeMode) sTranslation = eecRegister.TranslationReadWord;
-                                else sTranslation = eecRegister.TranslationReadByte;
+                                if (writeMode) sTranslation = rReg.EecRegister.TranslationReadWord;
+                                else sTranslation = rReg.EecRegister.TranslationReadByte;
                                 break;
                             default: // Should never happen
-                                sTranslation = eecRegister.TranslationReadByte;
+                                sTranslation = rReg.EecRegister.TranslationReadByte;
                                 break;
                         }
                         break;
@@ -1777,28 +1956,27 @@ namespace SAD806x
                         {
                             case OPCodeType.BitByteGotoOP:
                             case OPCodeType.ByteOP:
-                                if (writeMode) sTranslation = eecRegister.TranslationWriteByte;
-                                else sTranslation = eecRegister.TranslationReadByte;
+                                if (writeMode) sTranslation = rReg.EecRegister.TranslationWriteByte;
+                                else sTranslation = rReg.EecRegister.TranslationReadByte;
                                 break;
                             case OPCodeType.WordOP:
-                                if (writeMode) sTranslation = eecRegister.TranslationWriteWord;
-                                else sTranslation = eecRegister.TranslationReadWord;
+                                if (writeMode) sTranslation = rReg.EecRegister.TranslationWriteWord;
+                                else sTranslation = rReg.EecRegister.TranslationReadWord;
                                 break;
                             case OPCodeType.MixedOP:
-                                if (writeMode) sTranslation = eecRegister.TranslationWriteWord;
-                                else sTranslation = eecRegister.TranslationReadByte;
+                                if (writeMode) sTranslation = rReg.EecRegister.TranslationWriteWord;
+                                else sTranslation = rReg.EecRegister.TranslationReadByte;
                                 break;
                             default: // Should never happen
-                                sTranslation = eecRegister.TranslationReadByte;
+                                sTranslation = rReg.EecRegister.TranslationReadByte;
                                 break;
                         }
                         break;
                     default:
-                        sTranslation = eecRegister.TranslationReadByte;
+                        sTranslation = rReg.EecRegister.TranslationReadByte;
                         break;
                 }
-                sTranslation = instructedParam.Replace(eecRegister.InstructionTrans, sTranslation);
-                eecRegister = null;
+                sTranslation = defaultTranslation.Replace(rReg.EecRegister.InstructionTrans, sTranslation);
                 return sTranslation;
             }
 
@@ -1806,22 +1984,13 @@ namespace SAD806x
             //  Default Translation for Special Registers
             if (is8061)
             {
-                if ((int)arrPointersValues[2] >= SADDef.KAMRegisters8061MinAdress && (int)arrPointersValues[2] <= SADDef.KAMRegisters8061MaxAdress)
-                {
-                    return instructedParam.Replace(Tools.RegisterInstruction(arrPointersValues[1].ToString()), Tools.PointerTranslation(SADDef.KAMRegister8061Template.Replace("%LREG%", arrPointersValues[1].ToString())));
-                }
-                if ((int)arrPointersValues[2] >= SADDef.CCRegisters8061MinAdress && (int)arrPointersValues[2] <= SADDef.CCRegisters8061MaxAdress)
-                {
-                    return instructedParam.Replace(Tools.RegisterInstruction(arrPointersValues[1].ToString()), Tools.PointerTranslation(SADDef.CCRegister8061Template.Replace("%LREG%", arrPointersValues[1].ToString())));
-                }
-                if ((int)arrPointersValues[2] >= SADDef.ECRegisters8061MinAdress && (int)arrPointersValues[2] <= SADDef.ECRegisters8061MaxAdress)
-                {
-                    return instructedParam.Replace(Tools.RegisterInstruction(arrPointersValues[1].ToString()), Tools.PointerTranslation(SADDef.ECRegister8061Template.Replace("%LREG%", arrPointersValues[1].ToString())));
-                }
+                if (rReg.is8061KAMRegister) return defaultTranslation.Replace(rReg.Instruction, Tools.PointerTranslation(SADDef.KAMRegister8061Template.Replace("%LREG%", rReg.Address)));
+                if (rReg.is8061CCRegister) return defaultTranslation.Replace(rReg.Instruction, Tools.PointerTranslation(SADDef.CCRegister8061Template.Replace("%LREG%", rReg.Address)));
+                if (rReg.is8061ECRegister) return defaultTranslation.Replace(rReg.Instruction, Tools.PointerTranslation(SADDef.ECRegister8061Template.Replace("%LREG%", rReg.Address)));
             }
             
             // No Translation
-            return instructedParam;
+            return defaultTranslation;
         }
     }
 }

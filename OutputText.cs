@@ -514,6 +514,20 @@ namespace SAD806x
             }
             txWriter.WriteLine("</Call with Args>\r\n");
             */
+
+            // Written Header
+            if (S6x.Properties.OutputHeader && S6x.Properties.Header != null && S6x.Properties.Header != string.Empty)
+            {
+                string[] headerLines = S6x.Properties.Header.Replace("\r", "\n").Replace("\n\n", "\n").Replace("\n\n", "\n").Split('\n');
+                int iMaxLineLength = 0;
+                foreach (string hLine in headerLines) if (hLine.Length > iMaxLineLength) iMaxLineLength = hLine.Length;
+
+                txWriter.WriteLine(OutputTools.BorderedHeader(iMaxLineLength, true));
+                txWriter.WriteLine(OutputTools.BorderedEmpty(iMaxLineLength, true));
+                foreach (string hLine in headerLines) txWriter.WriteLine(OutputTools.BorderedText(hLine, iMaxLineLength, true));
+                txWriter.WriteLine(OutputTools.BorderedEmpty(iMaxLineLength, true));
+                txWriter.WriteLine(OutputTools.BorderedFooter(iMaxLineLength, true));
+            }
         }
 
         private void processOutputTextFooter(ref TextWriter txWriter)
@@ -770,7 +784,7 @@ namespace SAD806x
 
             other = (S6xOtherAddress)S6x.slOtherAddresses[uniqueAddress];
 
-            if (other.Label != null && other.Label != string.Empty) processOutputTextElementLabel(ref txWriter, other.Label);
+            if (other.Label != null && other.Label != string.Empty && !other.hasDefaultLabel) processOutputTextElementLabel(ref txWriter, other.Label);
             if (other.OutputComments)
             {
                 if (other.Comments != null && other.Comments != string.Empty) processOutputTextElementHeaderComments(ref txWriter, other.Comments);
@@ -1067,7 +1081,7 @@ namespace SAD806x
                         }
                     }
 
-                    processOutputTextElementWithComments(ref txWriter, firstLine, secondLine, elem.Operation.Comments);
+                    processOutputTextElementWithComments(ref txWriter, firstLine, secondLine, elem.Operation.OutputComments ? elem.Operation.Comments : string.Empty);
                     processOutputTextIncludedElements(ref txWriter, ref elem, -1, elem.AddressEndInt);
 
                     if (elem.Operation.isReturn) subType = "newLine";
@@ -1095,7 +1109,7 @@ namespace SAD806x
                         if (elem.CalElement.ScalarElem.isScaled) sValues = elem.CalElement.ScalarElem.ValueScaled();
                         else sValues = elem.CalElement.ScalarElem.Value(10);
                         firstLine = string.Format(sFormat, elem.CalElement.UniqueAddressHex, elem.CalElement.ScalarElem.InitialValue, elem.CalElement.RBaseCalc + " " + elem.CalElement.ScalarElem.ShortLabel, subType, elem.CalElement.ScalarElem.Value(16), sValues);
-                        processOutputTextElementWithComments(ref txWriter, firstLine, string.Empty, elem.CalElement.ScalarElem.Comments);
+                        processOutputTextElementWithComments(ref txWriter, firstLine, string.Empty, elem.CalElement.ScalarElem.OutputComments ? elem.CalElement.ScalarElem.Comments : string.Empty);
                         processOutputTextIncludedElements(ref txWriter, ref elem, elem.AddressInt, elem.AddressEndInt);
                     }
                     else if (elem.CalElement.isFunction)
@@ -1103,7 +1117,7 @@ namespace SAD806x
                         subType = "func";
                         sFormat = "{0,6}: {1,-18}{2,-" + (20 - subType.Length).ToString() + "}{3,8},{4,9}{5,20},{6,9}";
                         processOutputTextElementLabel(ref txWriter, elem.CalElement.FunctionElem.FullLabel);
-                        processOutputTextElementHeaderComments(ref txWriter, elem.CalElement.FunctionElem.Comments);
+                        processOutputTextElementHeaderComments(ref txWriter, elem.CalElement.FunctionElem.OutputComments ? elem.CalElement.FunctionElem.Comments : string.Empty);
                         foreach (ScalarLine scalarLine in elem.CalElement.FunctionElem.Lines)
                         {
                             if (elem.CalElement.FunctionElem.isInputScaled) sValues = scalarLine.Scalars[0].ValueScaled(elem.CalElement.FunctionElem.getInputScaleExpression, elem.CalElement.FunctionElem.getInputScalePrecision);
@@ -1141,7 +1155,7 @@ namespace SAD806x
                             }
                         }
                         processOutputTextElementLabel(ref txWriter, elem.CalElement.TableElem.FullLabel);
-                        processOutputTextElementHeaderComments(ref txWriter, elem.CalElement.TableElem.Comments);
+                        processOutputTextElementHeaderComments(ref txWriter, elem.CalElement.TableElem.OutputComments ? elem.CalElement.TableElem.Comments : string.Empty);
                         foreach (ScalarLine scalarLine in elem.CalElement.TableElem.Lines)
                         {
                             sValues = string.Empty;
@@ -1186,20 +1200,20 @@ namespace SAD806x
                                 }
                                 for (int iCol = 0; iCol < sLine.Items.Count; iCol++)
                                 {
-                                    string sValue = ((StructureItem)sLine.Items[iCol]).Value();
+                                    string sValue = ((StructureItem)sLine.Items[iCol]).Value(sLine.NumberInStructure);
                                     if (sValue.Length > maxItemValuesLengths[iCol]) maxItemValuesLengths[iCol] = sValue.Length;
                                 }
                             }
 
                             processOutputTextElementLabel(ref txWriter, elem.CalElement.StructureElem.FullLabel);
-                            processOutputTextElementHeaderComments(ref txWriter, elem.CalElement.StructureElem.Comments);
+                            processOutputTextElementHeaderComments(ref txWriter, elem.CalElement.StructureElem.OutputComments ? elem.CalElement.StructureElem.Comments : string.Empty);
                             sFormat = "{0,6}: {1,-" + (maxInitialValuesLength + 6).ToString() + "}{2,-" + (17 - subType.Length).ToString() + "}{3,1}";
                             foreach (StructureLine sLine in elem.CalElement.StructureElem.Lines)
                             {
                                 sValues = string.Empty;
                                 for (int iCol = 0; iCol < sLine.Items.Count; iCol++)
                                 {
-                                    string sValue = ((StructureItem)sLine.Items[iCol]).Value();
+                                    string sValue = ((StructureItem)sLine.Items[iCol]).Value(sLine.NumberInStructure);
                                     switch (((StructureItem)sLine.Items[iCol]).Type)
                                     {
                                         case StructureItemType.String:
@@ -1234,14 +1248,14 @@ namespace SAD806x
                     else sValues = elem.ExtScalar.Value(10);
                     sFormat = "{0,6}: {1,-18}{2,-" + (20 - subType.Length).ToString() + "}{3,8}{4,10}{5,20}";
                     firstLine = string.Format(sFormat, elem.ExtScalar.UniqueAddressHex, elem.ExtScalar.InitialValue, elem.ExtScalar.ShortLabel, subType, elem.ExtScalar.Value(16), sValues);
-                    processOutputTextElementWithComments(ref txWriter, firstLine, string.Empty, elem.ExtScalar.Comments);
+                    processOutputTextElementWithComments(ref txWriter, firstLine, string.Empty, elem.ExtScalar.OutputComments ? elem.ExtScalar.Comments : string.Empty);
                     processOutputTextIncludedElements(ref txWriter, ref elem, elem.AddressInt, elem.AddressEndInt);
                     break;
                 case MergedType.ExtFunction:
                     subType = "ofunc";
                     sFormat = "{0,6}: {1,-18}{2,-" + (20 - subType.Length).ToString() + "}{3,8},{4,9}{5,20},{6,9}";
                     processOutputTextElementLabel(ref txWriter, elem.ExtFunction.FullLabel);
-                    processOutputTextElementHeaderComments(ref txWriter, elem.ExtFunction.Comments);
+                    processOutputTextElementHeaderComments(ref txWriter, elem.ExtFunction.OutputComments ? elem.ExtFunction.Comments : string.Empty);
                     foreach (ScalarLine scalarLine in elem.ExtFunction.Lines)
                     {
                         if (elem.ExtFunction.isInputScaled) sValues = scalarLine.Scalars[0].ValueScaled(elem.ExtFunction.getInputScaleExpression, elem.ExtFunction.getInputScalePrecision);
@@ -1278,7 +1292,7 @@ namespace SAD806x
                         }
                     }
                     processOutputTextElementLabel(ref txWriter, elem.ExtTable.FullLabel);
-                    processOutputTextElementHeaderComments(ref txWriter, elem.ExtTable.Comments);
+                    processOutputTextElementHeaderComments(ref txWriter, elem.ExtTable.OutputComments ? elem.ExtTable.Comments : string.Empty);
                     foreach (ScalarLine scalarLine in elem.ExtTable.Lines)
                     {
                         sValues = string.Empty;
@@ -1322,20 +1336,20 @@ namespace SAD806x
                             }
                             for (int iCol = 0; iCol < sLine.Items.Count; iCol++)
                             {
-                                string sValue = ((StructureItem)sLine.Items[iCol]).Value();
+                                string sValue = ((StructureItem)sLine.Items[iCol]).Value(sLine.NumberInStructure);
                                 if (sValue.Length > maxItemValuesLengths[iCol]) maxItemValuesLengths[iCol] = sValue.Length;
                             }
                         }
 
                         processOutputTextElementLabel(ref txWriter, elem.ExtStructure.FullLabel);
-                        processOutputTextElementHeaderComments(ref txWriter, elem.ExtStructure.Comments);
+                        processOutputTextElementHeaderComments(ref txWriter, elem.ExtStructure.OutputComments ? elem.ExtStructure.Comments : string.Empty);
                         sFormat = "{0,6}: {1,-" + (maxInitialValuesLength + 6).ToString() + "}{2,-" + (17 - subType.Length).ToString() + "}{3,1}";
                         foreach (StructureLine sLine in elem.ExtStructure.Lines)
                         {
                             sValues = string.Empty;
                             for (int iCol = 0; iCol < sLine.Items.Count; iCol++)
                             {
-                                string sValue = ((StructureItem)sLine.Items[iCol]).Value();
+                                string sValue = ((StructureItem)sLine.Items[iCol]).Value(sLine.NumberInStructure);
                                 switch (((StructureItem)sLine.Items[iCol]).Type)
                                 {
                                     case StructureItemType.String:

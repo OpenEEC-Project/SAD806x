@@ -50,11 +50,11 @@ namespace SAD806x
             advLabelTextBox.Text = s6xESig.SignatureLabel;
             advSigTextBox.Text = s6xESig.Signature;
 
-            mainTipPictureBox.Tag = Tools.ElementSignatureTip();
+            mainTipPictureBox.Tag = SharedUI.ElementSignatureTip();
             mainTipPictureBox.MouseHover += new EventHandler(TipPictureBox_MouseHover);
             mainTipPictureBox.Click += new EventHandler(TipPictureBox_Click);
 
-            structureTipPictureBox.Tag = Tools.StructureTip();
+            structureTipPictureBox.Tag = SharedUI.StructureTip();
             structureTipPictureBox.MouseHover += new EventHandler(TipPictureBox_MouseHover);
             structureTipPictureBox.Click += new EventHandler(TipPictureBox_Click);
 
@@ -392,6 +392,7 @@ namespace SAD806x
                     
                     commentsTextBox.Text = sigIntScal.Comments;
                     outputCommentsCheckBox.Checked = sigIntScal.OutputComments;
+                    scalarInlineCommentsCheckBox.Checked = sigIntScal.InlineComments;
 
                     scalarBitFlagsButton.Tag = null;
 
@@ -513,6 +514,7 @@ namespace SAD806x
                     sigIntScal.Label = labelTextBox.Text;
                     sigIntScal.Comments = commentsTextBox.Text;
                     sigIntScal.OutputComments = outputCommentsCheckBox.Checked;
+                    sigIntScal.InlineComments = scalarInlineCommentsCheckBox.Checked;
 
                     uniqueKey = sigIntScal.UniqueKey;
                     label = sigIntScal.Label;

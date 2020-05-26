@@ -283,14 +283,18 @@ namespace SAD806x
             // No Operation in Bank 1 for Early 8065
             if (isEarly && Num == 1) return;
 
-            string[] gopParams = null;
+            GotoOpParams gopParams = null;
 
             processOperations(AddressInternalInt, AddressInternalEndInt, CallType.Jump, false, false, Num, AddressInternalInt, ref gopParams, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
             processIntVectors(ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
 
             // S6x Additional Routines
-            foreach (S6xRoutine s6xRoutine in S6x.slProcessRoutines.Values)
+            //foreach (S6xRoutine s6xRoutine in S6x.slProcessRoutines.Values)
+            for (int iRoutine = 0; iRoutine < S6x.slProcessRoutines.Count; iRoutine++)
             {
+                S6xRoutine s6xRoutine = (S6xRoutine)S6x.slProcessRoutines.GetByIndex(iRoutine);
+                if (s6xRoutine == null) continue;
+
                 if (s6xRoutine.BankNum == Num)
                 {
                     if (!slOPs.ContainsKey(s6xRoutine.UniqueAddress))
@@ -302,8 +306,12 @@ namespace SAD806x
             }
 
             // S6x Additional Operations
-            foreach (S6xOperation s6xOpe in S6x.slProcessOperations.Values)
+            //foreach (S6xOperation s6xOpe in S6x.slProcessOperations.Values)
+            for (int iOpe = 0; iOpe < S6x.slProcessOperations.Count; iOpe++)
             {
+                S6xOperation s6xOpe = (S6xOperation)S6x.slProcessOperations.GetByIndex(iOpe);
+                if (s6xOpe == null) continue;
+
                 if (s6xOpe.BankNum == Num)
                 {
                     if (!slOPs.ContainsKey(s6xOpe.UniqueAddress))
@@ -316,18 +324,25 @@ namespace SAD806x
             }
 
             // Remaining Matching Signatures Not Macthed with Calls
-            for (int iMSig = 0; iMSig < Calibration.slUnMatchedSignatures.Count; iMSig++)
+            //      Backup is done, because items are removed when being processed.
+            ArrayList alUnMatchedSignaturesUniqueAddresses = new ArrayList();
+            foreach (MatchingSignature mSig in Calibration.slUnMatchedSignatures.Values) alUnMatchedSignaturesUniqueAddresses.Add(mSig.UniqueMatchingStartAddress);
+            foreach (string sigUniqueAddress in alUnMatchedSignaturesUniqueAddresses)
             {
-                MatchingSignature mSig = (MatchingSignature)Calibration.slUnMatchedSignatures.GetByIndex(iMSig);
+                MatchingSignature mSig = (MatchingSignature)Calibration.slUnMatchedSignatures[sigUniqueAddress];
+                if (mSig == null) continue;
 
                 if (mSig.BankNum != Num) continue;
 
-                if (!slOPs.ContainsKey(mSig.UniqueMatchingStartAddress))
-                {
-                    gopParams = null;
-                    processOperations(mSig.MatchingStartAddressInt, AddressInternalEndInt, CallType.Jump, false, false, Num, mSig.MatchingStartAddressInt, ref gopParams, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
-                }
+                // New Operations can be processed - !slOPs.ContainsKey(mSig.UniqueMatchingStartAddress)
+                // Operations already processed, Call not existing, Call can be created - !Calibration.slCalls.ContainsKey(mSig.UniqueMatchingStartAddress)
+                // Call existing, but to be promoted for signature identification and routine creation - Calibration.slCalls.ContainsKey(mSig.UniqueMatchingStartAddress)
+                // All cases in fact
+
+                gopParams = null;
+                processOperations(mSig.MatchingStartAddressInt, AddressInternalEndInt, CallType.Jump, false, false, Num, mSig.MatchingStartAddressInt, ref gopParams, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
             }
+            alUnMatchedSignaturesUniqueAddresses = null;
 
             // Additional Vectors are managed after S6x Objects to include their generated possible Additional Vectors
             processAddVectors(ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
@@ -340,7 +355,7 @@ namespace SAD806x
         {
             foreach (Vector intVector in slIntVectors.Values)
             {
-                string[] gopParams = null;
+                GotoOpParams gopParams = null;
 
                 // No Jump Conflict Check
                 processOperations(intVector.AddressInt, AddressInternalEndInt, CallType.Jump, true, false, Num, AddressInternalInt, ref gopParams, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
@@ -393,7 +408,8 @@ namespace SAD806x
                     ope.VectorListBankNum = ope.ReadDataBankNum;
                     alVectorListsOPsUniqueAddresses.Add(ope.UniqueAddress);
 
-                    prevOps = getPrecedingOPs(ope.AddressInt, 8, 99, true, true, false, false, false, false, false, false);
+                    //prevOps = getPrecedingOPs(ope.AddressInt, 8, 99, true, true, false, false, false, false, false, false);
+                    prevOps = getPrecedingOPs(ope.AddressInt, 8, 0);
                     foreach (Operation prevOpe in prevOps)
                     {
                         // To Prevent Issues on Bad Source Ope
@@ -437,7 +453,8 @@ namespace SAD806x
                 //ca,34             push  [R34]          push([R34]);                       => First Identification
                 {
                     sPushReg = ope.OriginalOpArr[1];
-                    prevOps = getPrecedingOPs(ope.AddressInt, 8, 99, true, true, false, false, false, false, false, false);
+                    //prevOps = getPrecedingOPs(ope.AddressInt, 8, 99, true, true, false, false, false, false, false, false);
+                    prevOps = getPrecedingOPs(ope.AddressInt, 8, 0);
                     foreach (Operation prevOpe in prevOps)
                     {
                         // To Prevent Issues on Bad Source Ope
@@ -490,7 +507,7 @@ namespace SAD806x
                 iNumber = -1;
                 ope = (Operation)slOPs[alAltStackVectorOPsUniqueAddresses[iPos].ToString()];
                 // Ope is always a1,..,..,22
-                iAddress = Convert.ToInt32(ope.InstructedParams[0], 16) - SADDef.EecBankStartAddress;
+                iAddress = Convert.ToInt32(ope.OperationParams[0].InstructedParam, 16) - SADDef.EecBankStartAddress;
                 ope.VectorListAddressInt = iAddress;
                 ope.VectorListBankNum = ope.ReadDataBankNum;
                 alVectorListsOPsUniqueAddresses.Add(ope.UniqueAddress);
@@ -601,7 +618,7 @@ namespace SAD806x
                 // Conflict Check with Calibration part, except for Early 8061
                 if (!isJumpAddressInConflict(iOVAddress, -1) || (is8061 && isEarly))
                 {
-                    string[] gopParams = null;
+                    GotoOpParams gopParams = null;
                     processOperations(iOVAddress, AddressInternalEndInt, CallType.Call, false, false, Num, AddressInternalInt, ref gopParams, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
                 }
             }
@@ -615,7 +632,33 @@ namespace SAD806x
             foreach (S6xSignature sig in S6x.slProcessSignatures.Values)
             {
                 if (sig.Signature == null || sig.Signature == string.Empty) continue;
-                
+
+                Signature806xOptions for806x = Signature806xOptions.Undefined;
+                if (sig.for806x != null && sig.for806x != string.Empty)
+                {
+                    try { for806x = (Signature806xOptions)Enum.Parse(typeof(Signature806xOptions), sig.for806x, true); }
+                    catch {}
+                }
+                if (for806x != Signature806xOptions.Undefined)
+                {
+                    if (is8061 && for806x != Signature806xOptions.for8061Only) continue;
+                    else if (!is8061 && for806x != Signature806xOptions.for8065Only) continue;
+                }
+
+                SignatureBankOptions forBankNum = SignatureBankOptions.Undefined;
+                if (sig.forBankNum != null && sig.forBankNum != string.Empty)
+                {
+                    try { forBankNum = (SignatureBankOptions)Enum.Parse(typeof(SignatureBankOptions), sig.forBankNum, true); }
+                    catch {}
+                }
+                if (forBankNum != SignatureBankOptions.Undefined)
+                {
+                    if (Num == 8 && forBankNum != SignatureBankOptions.forBank8Only) continue;
+                    else if (Num == 1 && forBankNum != SignatureBankOptions.forBank1Only) continue;
+                    else if (Num == 9 && forBankNum != SignatureBankOptions.forBank9Only) continue;
+                    else if (Num == 0 && forBankNum != SignatureBankOptions.forBank0Only) continue;
+                }
+
                 string cleanedSignature = string.Empty;
                 ArrayList alParams = new ArrayList();
                 
@@ -658,6 +701,8 @@ namespace SAD806x
                         string matchingBytes = oMatch[1].ToString();
                         string[] matchingParams = (string[])oMatch[2];
 
+                        sig.Found = true;
+                        
                         if (sig.Information != string.Empty) sig.Information += "\r\n";
                         sig.Information += "Signature matches on Bank " + Num + " at " + Convert.ToString(matchingStartAddress + SADDef.EecBankStartAddress, 16);
 
@@ -699,7 +744,7 @@ namespace SAD806x
         }
         
         // Process Operations
-        private void processOperations(int startAddress, int endAddress, CallType callType, bool intVectorCall, bool addVectorCall, int callerBankNum, int callerAddressInt, ref string[] gopParams, ref SADBank Bank0, ref SADBank Bank1, ref SADBank Bank8, ref SADBank Bank9, ref SADS6x S6x)
+        private void processOperations(int startAddress, int endAddress, CallType callType, bool intVectorCall, bool addVectorCall, int callerBankNum, int callerAddressInt, ref GotoOpParams gopParams, ref SADBank Bank0, ref SADBank Bank1, ref SADBank Bank8, ref SADBank Bank9, ref SADS6x S6x)
         {
             Call cCall = null;
             string sByte = string.Empty;
@@ -722,23 +767,23 @@ namespace SAD806x
                 if (!cCall.isIntVector && intVectorCall)
                 {
                     cCall.isIntVector = true;
-                    identifyCall(ref cCall, ref S6x);
+                    identifyCall(ref cCall, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
                 }
 
                 // Int Vector Call has to be identified
                 if (!cCall.isVector && addVectorCall)
                 {
                     cCall.isVector = true;
-                    identifyCall(ref cCall, ref S6x);
+                    identifyCall(ref cCall, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
                 }
                 
                 // Adding Caller can Promote Call Type, if it returns true, Call has to be identified
-                if (cCall.AddCaller(callerBankNum, callerAddressInt, callType)) identifyCall(ref cCall, ref S6x);
+                if (cCall.AddCaller(callerBankNum, callerAddressInt, callType)) identifyCall(ref cCall, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
 
                 // Goto Op Params to be found from already identified Call or SCall End (normally a return)
                 if (cCall.CallType == CallType.Call || cCall.CallType == CallType.ShortCall)
                 {
-                    string[] callBackGopParams = null;
+                    GotoOpParams callBackGopParams = null;
                     switch (cCall.BankNum)
                     {
                         case 8:
@@ -754,12 +799,7 @@ namespace SAD806x
                             if (Bank0 != null) if (Bank0.slOPs.ContainsKey(Tools.UniqueAddress(Num, cCall.AddressEndInt))) callBackGopParams = ((Operation)Bank0.slOPs[Tools.UniqueAddress(cCall.BankNum, cCall.AddressEndInt)]).GotoOpParams;
                             break;
                     }
-                    if (callBackGopParams != null)
-                    {
-                        if (gopParams == null) gopParams = new string[callBackGopParams.Length];
-                        for (int iGopParam = 0; iGopParam < callBackGopParams.Length; iGopParam++) gopParams[iGopParam] = callBackGopParams[iGopParam];
-                        callBackGopParams = null;
-                    }
+                    if (callBackGopParams != null) gopParams = callBackGopParams.Clone();
                 }
                 return;
             }
@@ -848,17 +888,12 @@ namespace SAD806x
                             cCall.AddressEndInt = ope.AddressInt;
                         }
 
-                        if (startAddress != AddressInternalInt) identifyCall(ref cCall, ref S6x);
+                        if (startAddress != AddressInternalInt) identifyCall(ref cCall, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
 
                         // Skip Case
                         if (prevOpe != null)
                         {
-                            if (prevOpe.CallType == CallType.Skip)
-                            {
-                                prevOpe.AddressJumpInt = ope.AddressNextInt;
-                                ((SADOPCode)Calibration.slOPCodes[prevOpe.OriginalOPCode]).postProcessOpSkipTranslation(ref prevOpe);
-                                slOPs[prevOpe.UniqueAddress] = prevOpe;
-                            }
+                            if (prevOpe.CallType == CallType.Skip) prevOpe.AddressJumpInt = ope.AddressNextInt;
                         }
 
                         ope = null;
@@ -904,10 +939,9 @@ namespace SAD806x
                     }
                     iAddress = ope.AddressNextInt - 1;
 
-                    ope.Instruction = ope.OriginalOp;
+                    ope.forcedInstruction = ope.OriginalOp;
 
-                    ope.Translation1 = string.Empty;
-                    if (ope.BytesNumber > 1) ope.Translation1 = string.Format("{0:x4} => {1:x4}", SADDef.EecBankStartAddress + ope.AddressInt, SADDef.EecBankStartAddress + ope.AddressNextInt - 1);
+                    if (ope.BytesNumber > 1) ope.forcedTranslation1 = string.Format("{0:x4} => {1:x4}", SADDef.EecBankStartAddress + ope.AddressInt, SADDef.EecBankStartAddress + ope.AddressNextInt - 1);
 
                     if (!slOPs.ContainsKey(ope.UniqueAddress)) slOPs.Add(ope.UniqueAddress, ope);
 
@@ -1013,11 +1047,7 @@ namespace SAD806x
                         // Skip Case
                         if (prevOpe != null)
                         {
-                            if (prevOpe.CallType == CallType.Skip)
-                            {
-                                prevOpe.AddressJumpInt = ope.AddressNextInt;
-                                ((SADOPCode)Calibration.slOPCodes[prevOpe.OriginalOPCode]).postProcessOpSkipTranslation(ref prevOpe);
-                            }
+                            if (prevOpe.CallType == CallType.Skip) prevOpe.AddressJumpInt = ope.AddressNextInt;
                         }
 
                         // OPs Origins Management
@@ -1096,8 +1126,8 @@ namespace SAD806x
                         //      Element Goto Ope
                         if (ope.GotoOpParams != null)
                         {
-                            // GotoOpParams[Params Ope UniqueAddress, Params Ope Elem UniqueAddress, P1, P2]
-                            if (ope.GotoOpParams[1].ToString() != string.Empty)
+                            // GotoOpParams[Params Ope UniqueAddress, Params Ope Elem UniqueAddress, P1, P2, CY Ope UniqueAddress, CY Mode, CY P1, CY P2]
+                            if (ope.GotoOpParams.ElemUniqueAddress != string.Empty)
                             {
                                 if (!alElemGotoOPsUniqueAddresses.Contains(ope.UniqueAddress)) alElemGotoOPsUniqueAddresses.Add(ope.UniqueAddress);
                             }
@@ -1125,7 +1155,7 @@ namespace SAD806x
 
             if (ope != null) cCall.AddressEndInt = ope.AddressInt;
 
-            if (startAddress != AddressInternalInt) identifyCall(ref cCall, ref S6x);
+            if (startAddress != AddressInternalInt) identifyCall(ref cCall, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
         }
 
         // Args Operation
@@ -1135,6 +1165,8 @@ namespace SAD806x
             Call subCall = null;
             S6xRoutine s6xRoutine = null;
             int iCallArg = -1;
+            int iOpeCallArg = -1;
+            int iMatchingArgs = -1;
 
             //  No Call with Args is identified
             if (Calibration.alArgsCallsUniqueAddresses.Count == 0) return;
@@ -1158,7 +1190,7 @@ namespace SAD806x
                     break;
                 case CallArgsType.Variable:
                     // Variable Number Args, always one
-                    if (subCall.ArgsStackDepth == 1)
+                    if (subCall.ArgsStackDepthMax == 1)
                     // Right place to read this number, higher than 1 it will be read in a higher Call, 0 it has already been used
                     {
                         ope.CallArgsNum = 1;
@@ -1176,47 +1208,70 @@ namespace SAD806x
                     break;
                 case CallArgsType.Fixed:
                     // Fixed Number
-                    if (subCall.ArgsStackDepth == 1)
+                    // 20200514 - PYM - This is now the Max Depth, some Args can be at Depth 1 to be used, others no
+                    if (subCall.ArgsStackDepthMax >= 1)
                     // Right place to read the args, higher than 1 it will be read in a higher Call, 0 it has already been used
                     {
-                        ope.CallArgsNum = subCall.ArgsNum;
+                        iMatchingArgs = 0;
                         // Arguments Copy
                         if (subCall.Arguments != null)
                         {
-                            ope.CallArguments = new CallArgument[subCall.Arguments.Length];
-                            for (int iArg = 0; iArg < subCall.Arguments.Length; iArg++)
+                            foreach (CallArgument cArg in subCall.Arguments) if (cArg.StackDepth == 1) iMatchingArgs++;
+                            if (iMatchingArgs > 0)
                             {
-                                ope.CallArguments[iArg] = subCall.Arguments[iArg].Clone();
-                                ope.CallArguments[iArg].Position = iArg;
+                                ope.CallArguments = new CallArgument[iMatchingArgs];
+                                ope.CallArgsNum = 0;
+                                iOpeCallArg = 0;
+                                foreach (CallArgument cArg in subCall.Arguments)
+                                {
+                                    if (cArg.StackDepth != 1) continue;
+                                    ope.CallArguments[iOpeCallArg] = cArg.Clone();
+                                    ope.CallArguments[iOpeCallArg].Position = iOpeCallArg;
+                                    ope.CallArgsNum++;
+                                    if (cArg.Word) ope.CallArgsNum++;
+                                    iOpeCallArg++;
+                                }
                             }
                         }
                     }
                     break;
                 case CallArgsType.FixedCyCond:
-                    // Fixed Number
-                    if (subCall.ArgsStackDepth == 1)
+                    // Fixed Number with Cy Cond
+                    // 20200514 - PYM - This is now the Max Depth, some Args can be at Depth 1 to be used, others no
+                    if (subCall.ArgsStackDepthMax >= 1)
                     // Right place to read the args, higher than 1 it will be read in a higher Call, 0 it has already been used
                     {
-                        ope.CallArgsNum = subCall.ArgsNum;
+                        iMatchingArgs = 0;
                         // Arguments Copy
                         if (subCall.Arguments != null)
                         {
-                            ope.CallArguments = new CallArgument[subCall.Arguments.Length];
-                            for (int iArg = 0; iArg < subCall.Arguments.Length; iArg++)
+                            foreach (CallArgument cArg in subCall.Arguments) if (cArg.StackDepth == 1) iMatchingArgs++;
+                            if (iMatchingArgs > 0)
                             {
-                                ope.CallArguments[iArg] = subCall.Arguments[iArg].Clone();
-                                ope.CallArguments[iArg].Position = iArg;
+                                ope.CallArguments = new CallArgument[iMatchingArgs];
+                                ope.CallArgsNum = 0;
+                                iOpeCallArg = 0;
+                                foreach (CallArgument cArg in subCall.Arguments)
+                                {
+                                    if (cArg.StackDepth != 1) continue;
+                                    ope.CallArguments[iOpeCallArg] = cArg.Clone();
+                                    ope.CallArguments[iOpeCallArg].Position = iOpeCallArg;
+                                    ope.CallArgsNum++;
+                                    if (cArg.Word) ope.CallArgsNum++;
+                                    iOpeCallArg++;
+                                }
+                                if (subCall.ArgsCondValidated) ope.CallArgsNum += subCall.ArgsNumCondAdder;
                             }
                         }
-                        if (subCall.ArgsCondValidated) ope.CallArgsNum += subCall.ArgsNumCondAdder;
                     }
                     break;
                 case CallArgsType.VariableExternalRegister:
                     // Variable Number Args, coming from External previous Register
-                    if (subCall.ArgsStackDepth == 1)
+                    if (subCall.ArgsStackDepthMax == 1)
                     // Right place to read this number, higher than 1 it will be read in a higher Call, 0 it has already been used
                     {
-                        adjacentOps = getPrecedingOPs(ope.AddressInt, 4, 99, false, false, false, false, false, false, false, false);
+                        //adjacentOps = getPrecedingOPs(ope.AddressInt, 4, 99, false, false, false, false, false, false, false, false);
+                        adjacentOps = getPrecedingOPs(ope.AddressInt, 4, 0);
                         // Reg Copy analysis, searching an easy result
                         foreach (Operation prevOpe in adjacentOps)
                         {
@@ -1228,7 +1283,7 @@ namespace SAD806x
                                     {
                                         if (prevOpe.OriginalOpArr[ope.OriginalOpArr.Length - 1] == subCall.ArgsVariableExternalRegister)
                                         {
-                                            ope.CallArgsNum = subCall.ArgsNum * Convert.ToInt32(prevOpe.OriginalOpArr[1], 16);
+                                            ope.CallArgsNum = subCall.ByteArgsNum * Convert.ToInt32(prevOpe.OriginalOpArr[1], 16);
                                             // Arguments Copy
                                             ope.CallArguments = new CallArgument[ope.CallArgsNum];
                                             for (int iArg = 0; iArg < ope.CallArguments.Length; iArg++)
@@ -1276,6 +1331,7 @@ namespace SAD806x
                             for (int iArg = 0; iArg < s6xRoutine.InputArguments.Length; iArg++)
                             {
                                 ope.CallArguments[iArg] = new CallArgument();
+                                ope.CallArguments[iArg].StackDepth = 1;
                                 ope.CallArguments[iArg].Position = iArg;
                                 ope.CallArguments[iArg].Word = s6xRoutine.InputArguments[iArg].Word;
                                 ope.CallArguments[iArg].Mode = (CallArgsMode)s6xRoutine.InputArguments[iArg].Encryption;
@@ -1315,7 +1371,7 @@ namespace SAD806x
             bool bNextVector = false;
             string[] arrValue = null;
 
-            string[] gopParams = null;
+            GotoOpParams gopParams = null;
 
             alRangeVectorsSourceAddresses = new ArrayList();
 
@@ -1504,7 +1560,7 @@ namespace SAD806x
             alRangeVectorsSourceAddresses = null;
         }
 
-        private void identifyCall(ref Call cCall, ref SADS6x S6x)
+        private void identifyCall(ref Call cCall, ref SADBank Bank0, ref SADBank Bank1, ref SADBank Bank8, ref SADBank Bank9, ref SADS6x S6x)
         {
             switch (cCall.CallType)
             {
@@ -1517,6 +1573,8 @@ namespace SAD806x
 
             // Init Call Identification for Constant Registers 
             identifyInitCall(ref cCall, ref S6x);
+            // Core Calls Identification from S6x Matching Signature - No S6x Routine creation
+            identifyCoreCallS6xSignature(ref cCall, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
             // Call with Args Identification
             identifyCallArgsType(ref cCall);
             // Call Type Identification (Vector, Routine, ...)
@@ -1536,6 +1594,9 @@ namespace SAD806x
             bool replacedParams = false;
             string[] arrMixedValues = null;
 
+            if (variableValue == null) return string.Empty;
+            if (variableValue == string.Empty) return string.Empty;
+            
             if (slMatchingParameters != null)
             {
                 foreach (string paramKey in slMatchingParameters.Keys)
@@ -1601,6 +1662,298 @@ namespace SAD806x
             return variableValue;
         }
 
+        // Core Calls Identification from S6x Matching Signature - No S6x Routine creation
+        private void identifyCoreCallS6xSignature(ref Call cCall, ref SADBank Bank0, ref SADBank Bank1, ref SADBank Bank8, ref SADBank Bank9, ref SADS6x S6x)
+        {
+            // Already processed
+            if (cCall.isIdentified) return;
+
+            SADFixedSigs.Fixed_Routines fixedRoutineType = SADFixedSigs.Fixed_Routines.UNKNOWN;
+
+            // Array containing managed forced signatures keys and SADFixedSigs.Fixed_Routines for value
+            SortedList slSignaturesKeys = new SortedList();
+            
+            foreach (object[] routineSignature in SADFixedSigs.Fixed_Routines_Signatures)
+            {
+                fixedRoutineType = (SADFixedSigs.Fixed_Routines)routineSignature[1];
+                switch (fixedRoutineType)
+                {
+                    case SADFixedSigs.Fixed_Routines.CORE_REG_INIT_8065:
+                        foreach (Routine roRo in Calibration.slRoutines.Values)
+                        {
+                            if (roRo.Code == RoutineCode.Init)
+                            {
+                                // Equivalent to Init Routine
+                                fixedRoutineType = SADFixedSigs.Fixed_Routines.UNKNOWN;
+                                break;
+                            }
+                            else if (roRo.Code == RoutineCode.CoreInit)
+                            {
+                                // Already processed
+                                fixedRoutineType = SADFixedSigs.Fixed_Routines.UNKNOWN;
+                                break;
+                            }
+
+                        }
+                        break;
+                    default:
+                        fixedRoutineType = SADFixedSigs.Fixed_Routines.UNKNOWN;
+                        break;
+                }
+                if (fixedRoutineType == SADFixedSigs.Fixed_Routines.UNKNOWN) continue;
+                if (slSignaturesKeys.ContainsKey(routineSignature[0].ToString())) continue;
+
+                slSignaturesKeys.Add(routineSignature[0].ToString(), fixedRoutineType);
+            }
+
+            // Nothing to managed anymore
+            if (slSignaturesKeys.Count == 0)
+            {
+                slSignaturesKeys = null;
+                return;
+            }
+
+            fixedRoutineType = SADFixedSigs.Fixed_Routines.UNKNOWN;
+            foreach (MatchingSignature mSig in Calibration.slUnMatchedSignatures.Values)
+            {
+                if (!mSig.S6xSignature.Forced) continue;                                    // Searching only on forced signatures
+                if (!slSignaturesKeys.ContainsKey(mSig.S6xSignature.UniqueKey)) continue;   // Only some signatures are core ones
+                if (mSig.BankNum != Num) continue;
+                if (!(mSig.MatchingStartAddressInt >= cCall.AddressInt && mSig.MatchingStartAddressInt <= cCall.AddressEndInt)) continue;
+
+                fixedRoutineType = (SADFixedSigs.Fixed_Routines)slSignaturesKeys[mSig.S6xSignature.UniqueKey];
+
+                switch (fixedRoutineType)
+                {
+                    case SADFixedSigs.Fixed_Routines.CORE_REG_INIT_8065:
+                        identifyCoreCallInitS6xSignature(ref cCall, mSig, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
+                        break;
+                }
+                break;
+            }
+
+            slSignaturesKeys = null;
+        }
+
+        // Core Calls Identification from S6x Matching Signature - No S6x Routine creation
+        //      Core Init Call / CORE_REG_INIT_8065
+        private void identifyCoreCallInitS6xSignature(ref Call cCall, MatchingSignature mSig, ref SADBank Bank0, ref SADBank Bank1, ref SADBank Bank8, ref SADBank Bank9, ref SADS6x S6x)
+        {
+            // Already processed
+            if (cCall.isIdentified) return;
+
+            if (mSig.S6xSignature.InternalStructures == null) return;
+            if (mSig.S6xSignature.InternalStructures.Length != 2) return;
+
+            cCall.isRoutine = true;
+
+            Routine rRoutine = new Routine(cCall.BankNum, cCall.AddressInt);
+            rRoutine.Code = RoutineCode.CoreInit;
+            rRoutine.SetTranslationComments();
+            if (!Calibration.slRoutines.ContainsKey(rRoutine.UniqueAddress)) Calibration.slRoutines.Add(rRoutine.UniqueAddress, rRoutine);
+            rRoutine = null;
+            
+            SADBank Bank = null;
+            switch (Calibration.BankNum)
+            {
+                case 8:
+                    Bank = Bank8;
+                    break;
+                case 1:
+                    Bank = Bank1;
+                    break;
+                case 9:
+                    Bank = Bank9;
+                    break;
+                case 0:
+                    Bank = Bank0;
+                    break;
+            }
+
+            int iRConstCheckStartAddr = -1;
+            int iRConstCheckIter = -1;
+            ArrayList alNewStructures = new ArrayList();
+            foreach (S6xRoutineInternalStructure s6xObject in mSig.S6xSignature.InternalStructures)
+            {
+                s6xObject.VariableBankNum = Bank.Num.ToString();
+                s6xObject.VariableAddress = getS6xSignatureMatchingParameter(s6xObject.VariableAddress, ref mSig.slMatchingParameters, false);
+
+                int iAddress = Convert.ToInt32(s6xObject.VariableAddress, 16) - SADDef.EecBankStartAddress;
+
+                if (s6xObject.ShortLabel == SADFixedStructures.GetFixedStructureTemplate(SADFixedStructures.FixedStructures.CORE_REG_INIT_ST1).ShortLabel)
+                {
+                    // First structure
+                    //  Number has to be defined
+                    s6xObject.Number = 0;
+                    try
+                    {
+                        while (true)
+                        {
+                            if (Bank.getWordInt(iAddress + s6xObject.Number * 4, false, true) == 0) break;
+                            s6xObject.Number++;
+                            if (s6xObject.Number > 32)
+                            {
+                                s6xObject.Number = 0;
+                                break;
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        s6xObject.Number = 0;
+                    }
+                }
+                else if (s6xObject.ShortLabel == SADFixedStructures.GetFixedStructureTemplate(SADFixedStructures.FixedStructures.CORE_REG_INIT_ST2).ShortLabel)
+                {
+                    // Second structure
+                    //  To be duplicated
+                    //  Number and Def have to be defined
+                    //  RConst have to be detected if any
+                    int regTopByte = -1;
+                    int iIterations = -1;
+                    int iCurrentStruct = -1;
+
+                    try
+                    {
+                        while (true)
+                        {
+                            regTopByte = Bank.getByteInt(iAddress, false);
+                            if (regTopByte >= 255) break;
+
+                            iIterations = Bank.getByteInt(iAddress + 1, false);
+
+                            if (regTopByte == 0)
+                            {
+                                iRConstCheckStartAddr = iAddress + 2;
+                                iRConstCheckIter = iIterations;
+                            }
+
+                            if (iCurrentStruct == -1)
+                            {
+                                s6xObject.Number = 1;
+                                s6xObject.StructDef = "\"Reg top byte \", ByteHex, Empty, Empty, \"Iterations \", Byte\\n\r\n";
+                                for (int iIter = 0; iIter < iIterations; iIter++)
+                                {
+                                    s6xObject.StructDef += "\"Reg \", Empty, \"" + string.Format("{0:x2}", regTopByte) + "\", ByteHex, \"= \", ByteHex";
+                                    if (iIter < iIterations - 1) s6xObject.StructDef += "\\n\r\n";
+                                }
+                                iCurrentStruct++;
+                            }
+                            else
+                            {
+                                S6xStructure s6xStruct = new S6xStructure();
+                                s6xStruct.BankNum = Bank.Num;
+                                s6xStruct.AddressInt = iAddress;
+                                s6xStruct.isCalibrationElement = false;
+                                s6xStruct.ShortLabel = s6xObject.ShortLabel + "_" + string.Format("{0:x2}", iCurrentStruct + 1);
+                                s6xStruct.Label = s6xObject.Label + " Part " + (iCurrentStruct + 2).ToString();
+                                s6xStruct.Comments = s6xStruct.ShortLabel + " - " + s6xStruct.Label;
+                                s6xStruct.Number = 1;                                            // To be updated by processing
+                                s6xStruct.StructDef = "\"Reg top byte \", ByteHex, Empty, Empty, \"Iterations \", Byte\\n\r\n";
+                                for (int iIter = 0; iIter < iIterations; iIter++)
+                                {
+                                    s6xStruct.StructDef += "\"Reg \", Empty, \"" + string.Format("{0:x2}", regTopByte) + "\", ByteHex, \"= \", ByteHex";
+                                    if (iIter < iIterations - 1) s6xStruct.StructDef += "\\n\r\n";
+                                }
+                                alNewStructures.Add(s6xStruct);
+                                iCurrentStruct++;
+                            }
+                            iAddress += 2 + iIterations * 2;
+                        }
+                    }
+                    catch
+                    {
+                        s6xObject.Number = 0;
+                    }
+                }
+            }
+            foreach (S6xStructure s6xStruct in alNewStructures)
+            {
+                if (!S6x.slProcessStructures.ContainsKey(s6xStruct.UniqueAddress))
+                {
+                    S6x.slProcessStructures.Add(s6xStruct.UniqueAddress, s6xStruct);
+                    if (S6x.slStructures.ContainsKey(s6xStruct.UniqueAddress)) S6x.slStructures[s6xStruct.UniqueAddress] = s6xStruct;
+                    else S6x.slStructures.Add(s6xStruct.UniqueAddress, s6xStruct);
+                }
+            }
+            alNewStructures = null;
+
+            // RConst management
+            if (iRConstCheckStartAddr > 0 && iRConstCheckIter > 0)
+            {
+                string[] arrBytes = Bank.getBytesArray(iRConstCheckStartAddr, iRConstCheckIter * 2);
+                int iIndex = 0;
+                while (true)
+                {
+                    if (iIndex + 8 > arrBytes.Length) break;
+                    int iReg1 = Convert.ToInt32(arrBytes[iIndex], 16);
+                    int iReg2 = Convert.ToInt32(arrBytes[iIndex + 2], 16);
+                    int iReg3 = Convert.ToInt32(arrBytes[iIndex + 4], 16);
+                    int iReg4 = Convert.ToInt32(arrBytes[iIndex + 6], 16);
+                    if (iReg1 + 1 != iReg2 || iReg1 + 2 != iReg3 || iReg1 + 3 != iReg4)
+                    {
+                        iIndex += 2;
+                        continue;
+                    }
+                    int iVal1 = Convert.ToInt32(arrBytes[iIndex + 1], 16);
+                    int iVal2 = Convert.ToInt32(arrBytes[iIndex + 3], 16);
+                    int iVal3 = Convert.ToInt32(arrBytes[iIndex + 5], 16);
+                    int iVal4 = Convert.ToInt32(arrBytes[iIndex + 7], 16);
+                    if (iVal1 != iVal3)
+                    {
+                        iIndex += 2;
+                        continue;
+                    }
+                    if (iVal2 + 1 != iVal4)
+                    {
+                        iIndex += 2;
+                        continue;
+                    }
+
+                    RConst rConst = null;
+                    Register rReg = null;
+
+                    rConst = new RConst(arrBytes[iIndex], iVal2 * 0x100 + iVal1);
+                    if (!Calibration.slRconst.ContainsKey(rConst.Code))
+                    {
+                        Calibration.slRconst.Add(rConst.Code, rConst);
+                        rReg = (Register)Calibration.slRegisters[Tools.RegisterUniqueAddress(rConst.Code)];
+                        if (rReg != null) rReg.RConst = rConst;
+                    }
+
+                    rConst = new RConst(arrBytes[iIndex + 4], iVal4 * 0x100 + iVal3);
+                    if (!Calibration.slRconst.ContainsKey(rConst.Code))
+                    {
+                        Calibration.slRconst.Add(rConst.Code, rConst);
+                        rReg = (Register)Calibration.slRegisters[Tools.RegisterUniqueAddress(rConst.Code)];
+                        if (rReg != null) rReg.RConst = rConst;
+                    }
+
+                    iIndex += 4;        // First Code will be reprocessed, but it is required when numbers are impair
+                }
+            }
+
+            // 20200512 - PYM
+            // Added to S6xRegisters
+            foreach (RConst rConstCpy in Calibration.slRconst.Values)
+            {
+                S6xRegister s6xReg = (S6xRegister)S6x.slProcessRegisters[Tools.RegisterUniqueAddress(rConstCpy.Code)];
+                if (s6xReg == null)
+                {
+                    s6xReg = new S6xRegister(rConstCpy.Code);
+                    s6xReg.Label = Tools.RegisterInstruction(rConstCpy.Code);
+                    s6xReg.Comments = "Constant register (RConst) " + s6xReg.Label;
+                    S6x.slProcessRegisters.Add(s6xReg.UniqueAddress, s6xReg);
+                    if (S6x.slRegisters.ContainsKey(s6xReg.UniqueAddress)) S6x.slRegisters[s6xReg.UniqueAddress] = s6xReg;
+                    else S6x.slRegisters.Add(s6xReg.UniqueAddress, s6xReg);
+                }
+                s6xReg.isRBase = false;
+                s6xReg.isRConst = true;
+                s6xReg.ConstValue = rConstCpy.Value;
+                s6xReg.AutoConstValue = true;
+            }
+        }
+
         // Call Identification S6x Routine, S6x Internal Elements generation from Matching Signature
         private void identifyCallS6xSignature(ref Call cCall, ref SADS6x S6x)
         {
@@ -1613,113 +1966,148 @@ namespace SAD806x
 
                 matchedUniqueMatchingStartAddress = mSig.UniqueMatchingStartAddress;
 
-                S6xRoutine s6xRoutine = null;
-                
+                S6xRoutine s6xRoutine = (S6xRoutine)S6x.slProcessRoutines[cCall.UniqueAddress];
                 // S6x Routine is not defined for now - A new one will be created for 
-                if (!S6x.slProcessRoutines.ContainsKey(cCall.UniqueAddress))
+                if (s6xRoutine == null)
                 {
-                    s6xRoutine = new S6xRoutine();
-                    s6xRoutine.BankNum = Num;
-                    s6xRoutine.AddressInt = cCall.AddressInt;
+                    // Creation only when Routine ShortLabel is defined
+                    if (mSig.S6xSignature.ShortLabel != null && mSig.S6xSignature.ShortLabel != string.Empty)
+                    {
+                        s6xRoutine = new S6xRoutine();
+                        s6xRoutine.BankNum = Num;
+                        s6xRoutine.AddressInt = cCall.AddressInt;
 
-                    s6xRoutine.Label = mSig.S6xSignature.Label;
-                    s6xRoutine.ShortLabel = mSig.S6xSignature.ShortLabel;
-                    s6xRoutine.Comments = mSig.S6xSignature.Comments;
-                    s6xRoutine.OutputComments = mSig.S6xSignature.OutputComments;
+                        s6xRoutine.Label = mSig.S6xSignature.Label;
+                        s6xRoutine.ShortLabel = mSig.S6xSignature.ShortLabel;
+                        s6xRoutine.Comments = mSig.S6xSignature.Comments;
+                        s6xRoutine.OutputComments = mSig.S6xSignature.OutputComments;
 
-                    if (mSig.S6xSignature.InputArguments != null)
-                    {
-                        s6xRoutine.InputArguments = new S6xRoutineInputArgument[mSig.S6xSignature.InputArguments.Length];
-                        for (int i = 0; i < mSig.S6xSignature.InputArguments.Length; i++) s6xRoutine.InputArguments[i] = mSig.S6xSignature.InputArguments[i].Clone();
-                    }
-                    if (mSig.S6xSignature.InputStructures != null)
-                    {
-                        s6xRoutine.InputStructures = new S6xRoutineInputStructure[mSig.S6xSignature.InputStructures.Length];
-                        for (int i = 0; i < mSig.S6xSignature.InputStructures.Length; i++) s6xRoutine.InputStructures[i] = mSig.S6xSignature.InputStructures[i].Clone();
-                    }
-                    if (mSig.S6xSignature.InputTables != null)
-                    {
-                        s6xRoutine.InputTables = new S6xRoutineInputTable[mSig.S6xSignature.InputTables.Length];
-                        for (int i = 0; i < mSig.S6xSignature.InputTables.Length; i++) s6xRoutine.InputTables[i] = mSig.S6xSignature.InputTables[i].Clone();
-                    }
-                    if (mSig.S6xSignature.InputFunctions != null)
-                    {
-                        s6xRoutine.InputFunctions = new S6xRoutineInputFunction[mSig.S6xSignature.InputFunctions.Length];
-                        for (int i = 0; i < mSig.S6xSignature.InputFunctions.Length; i++) s6xRoutine.InputFunctions[i] = mSig.S6xSignature.InputFunctions[i].Clone();
-                    }
-                    if (mSig.S6xSignature.InputScalars != null)
-                    {
-                        s6xRoutine.InputScalars = new S6xRoutineInputScalar[mSig.S6xSignature.InputScalars.Length];
-                        for (int i = 0; i < mSig.S6xSignature.InputScalars.Length; i++) s6xRoutine.InputScalars[i] = mSig.S6xSignature.InputScalars[i].Clone();
-                    }
-
-                    s6xRoutine.ByteArgumentsNum = cCall.ArgsNum;
-                    if (cCall.ArgsCondValidated) s6xRoutine.ByteArgumentsNum += cCall.ArgsNumCondAdder;
-                    if (s6xRoutine.ByteArgumentsNum < 0) s6xRoutine.ByteArgumentsNum = 0;
-                    if (cCall.ArgsStackDepth != 1) s6xRoutine.ByteArgumentsNum = 0;
-
-                    if (s6xRoutine.InputArguments != null)
-                    {
-                        s6xRoutine.ByteArgumentsNumOverride = true;
-                        s6xRoutine.ByteArgumentsNum = 0;
-                        foreach (S6xRoutineInputArgument s6xInput in s6xRoutine.InputArguments)
+                        if (mSig.S6xSignature.InputArguments != null)
                         {
-                            s6xRoutine.ByteArgumentsNum++;
-                            if (s6xInput.Word) s6xRoutine.ByteArgumentsNum++;
+                            s6xRoutine.InputArguments = new S6xRoutineInputArgument[mSig.S6xSignature.InputArguments.Length];
+                            for (int i = 0; i < mSig.S6xSignature.InputArguments.Length; i++) s6xRoutine.InputArguments[i] = mSig.S6xSignature.InputArguments[i].Clone();
                         }
-                    }
-
-                    if (s6xRoutine.InputStructures != null)
-                    {
-                        foreach (S6xRoutineInputStructure s6xInput in s6xRoutine.InputStructures)
+                        else if (cCall.Arguments != null && cCall.ByteArgsNum > 0)
                         {
-                            s6xInput.VariableAddress = getS6xSignatureMatchingParameter(s6xInput.VariableAddress, ref mSig.slMatchingParameters, true);
-                            s6xInput.VariableNumber = getS6xSignatureMatchingParameter(s6xInput.VariableNumber, ref mSig.slMatchingParameters, true);
-                            s6xInput.ForcedNumber = getS6xSignatureMatchingParameter(s6xInput.ForcedNumber, ref mSig.slMatchingParameters, false);
+                            s6xRoutine.InputArguments = new S6xRoutineInputArgument[cCall.Arguments.Length];
+                            for (int iArg = 0; iArg < s6xRoutine.InputArguments.Length; iArg++)
+                            {
+                                s6xRoutine.InputArguments[iArg] = new S6xRoutineInputArgument();
+                                s6xRoutine.InputArguments[iArg].Position = iArg + 1;
+                                s6xRoutine.InputArguments[iArg].UniqueKey = string.Format("Ra{0:d3}", s6xRoutine.InputArguments[iArg].Position);
+                                s6xRoutine.InputArguments[iArg].Encryption = (int)cCall.Arguments[iArg].Mode;
+                                s6xRoutine.InputArguments[iArg].Word = cCall.Arguments[iArg].Word;
+                                s6xRoutine.InputArguments[iArg].Pointer = s6xRoutine.InputArguments[iArg].Word;
+                            }
                         }
-                    }
-
-                    if (s6xRoutine.InputTables != null)
-                    {
-                        foreach (S6xRoutineInputTable s6xInput in s6xRoutine.InputTables)
+                        if (mSig.S6xSignature.InputStructures != null)
                         {
-                            s6xInput.VariableAddress = getS6xSignatureMatchingParameter(s6xInput.VariableAddress, ref mSig.slMatchingParameters, true);
-                            s6xInput.VariableColsNumberReg = getS6xSignatureMatchingParameter(s6xInput.VariableColsNumberReg, ref mSig.slMatchingParameters, true);
-                            s6xInput.VariableColsReg = getS6xSignatureMatchingParameter(s6xInput.VariableColsReg, ref mSig.slMatchingParameters, true);
-                            s6xInput.VariableRowsReg = getS6xSignatureMatchingParameter(s6xInput.VariableRowsReg, ref mSig.slMatchingParameters, true);
-                            s6xInput.VariableOutput = getS6xSignatureMatchingParameter(s6xInput.VariableOutput, ref mSig.slMatchingParameters, true);
-                            s6xInput.ForcedColsNumber = getS6xSignatureMatchingParameter(s6xInput.ForcedColsNumber, ref mSig.slMatchingParameters, false);
-                            s6xInput.ForcedRowsNumber = getS6xSignatureMatchingParameter(s6xInput.ForcedRowsNumber, ref mSig.slMatchingParameters, false);
+                            s6xRoutine.InputStructures = new S6xRoutineInputStructure[mSig.S6xSignature.InputStructures.Length];
+                            for (int i = 0; i < mSig.S6xSignature.InputStructures.Length; i++) s6xRoutine.InputStructures[i] = mSig.S6xSignature.InputStructures[i].Clone();
                         }
-                    }
-
-                    if (s6xRoutine.InputFunctions != null)
-                    {
-                        foreach (S6xRoutineInputFunction s6xInput in s6xRoutine.InputFunctions)
+                        if (mSig.S6xSignature.InputTables != null)
                         {
-                            s6xInput.VariableAddress = getS6xSignatureMatchingParameter(s6xInput.VariableAddress, ref mSig.slMatchingParameters, true);
-                            s6xInput.VariableInput = getS6xSignatureMatchingParameter(s6xInput.VariableInput, ref mSig.slMatchingParameters, true);
-                            s6xInput.VariableOutput = getS6xSignatureMatchingParameter(s6xInput.VariableOutput, ref mSig.slMatchingParameters, true);
-                            s6xInput.ForcedRowsNumber = getS6xSignatureMatchingParameter(s6xInput.ForcedRowsNumber, ref mSig.slMatchingParameters, false);
+                            s6xRoutine.InputTables = new S6xRoutineInputTable[mSig.S6xSignature.InputTables.Length];
+                            for (int i = 0; i < mSig.S6xSignature.InputTables.Length; i++) s6xRoutine.InputTables[i] = mSig.S6xSignature.InputTables[i].Clone();
                         }
-                    }
-
-                    if (s6xRoutine.InputScalars != null)
-                    {
-                        foreach (S6xRoutineInputScalar s6xInput in s6xRoutine.InputScalars)
+                        if (mSig.S6xSignature.InputFunctions != null)
                         {
-                            s6xInput.VariableAddress = getS6xSignatureMatchingParameter(s6xInput.VariableAddress, ref mSig.slMatchingParameters, true);
+                            s6xRoutine.InputFunctions = new S6xRoutineInputFunction[mSig.S6xSignature.InputFunctions.Length];
+                            for (int i = 0; i < mSig.S6xSignature.InputFunctions.Length; i++) s6xRoutine.InputFunctions[i] = mSig.S6xSignature.InputFunctions[i].Clone();
                         }
+                        if (mSig.S6xSignature.InputScalars != null)
+                        {
+                            s6xRoutine.InputScalars = new S6xRoutineInputScalar[mSig.S6xSignature.InputScalars.Length];
+                            for (int i = 0; i < mSig.S6xSignature.InputScalars.Length; i++) s6xRoutine.InputScalars[i] = mSig.S6xSignature.InputScalars[i].Clone();
+                        }
+
+                        s6xRoutine.ByteArgumentsNum = cCall.ByteArgsNum;
+                        if (cCall.ArgsCondValidated) s6xRoutine.ByteArgumentsNum += cCall.ArgsNumCondAdder;
+                        if (s6xRoutine.ByteArgumentsNum < 0) s6xRoutine.ByteArgumentsNum = 0;
+                        if (cCall.ArgsStackDepthMax != 1) s6xRoutine.ByteArgumentsNum = 0;
+
+                        if (s6xRoutine.InputArguments != null)
+                        {
+                            s6xRoutine.ByteArgumentsNumOverride = true;
+                            s6xRoutine.ByteArgumentsNum = 0;
+                            foreach (S6xRoutineInputArgument s6xInput in s6xRoutine.InputArguments)
+                            {
+                                s6xRoutine.ByteArgumentsNum++;
+                                if (s6xInput.Word) s6xRoutine.ByteArgumentsNum++;
+                            }
+                        }
+
+                        if (s6xRoutine.InputStructures != null)
+                        {
+                            foreach (S6xRoutineInputStructure s6xInput in s6xRoutine.InputStructures)
+                            {
+                                s6xInput.VariableAddress = getS6xSignatureMatchingParameter(s6xInput.VariableAddress, ref mSig.slMatchingParameters, true);
+                                s6xInput.VariableNumber = getS6xSignatureMatchingParameter(s6xInput.VariableNumber, ref mSig.slMatchingParameters, true);
+                                s6xInput.ForcedNumber = getS6xSignatureMatchingParameter(s6xInput.ForcedNumber, ref mSig.slMatchingParameters, false);
+                            }
+                        }
+
+                        if (s6xRoutine.InputTables != null)
+                        {
+                            foreach (S6xRoutineInputTable s6xInput in s6xRoutine.InputTables)
+                            {
+                                s6xInput.VariableAddress = getS6xSignatureMatchingParameter(s6xInput.VariableAddress, ref mSig.slMatchingParameters, true);
+                                s6xInput.VariableColsNumberReg = getS6xSignatureMatchingParameter(s6xInput.VariableColsNumberReg, ref mSig.slMatchingParameters, true);
+                                s6xInput.VariableColsReg = getS6xSignatureMatchingParameter(s6xInput.VariableColsReg, ref mSig.slMatchingParameters, true);
+                                s6xInput.VariableRowsReg = getS6xSignatureMatchingParameter(s6xInput.VariableRowsReg, ref mSig.slMatchingParameters, true);
+                                s6xInput.VariableOutput = getS6xSignatureMatchingParameter(s6xInput.VariableOutput, ref mSig.slMatchingParameters, true);
+                                s6xInput.ForcedColsNumber = getS6xSignatureMatchingParameter(s6xInput.ForcedColsNumber, ref mSig.slMatchingParameters, false);
+                                s6xInput.ForcedRowsNumber = getS6xSignatureMatchingParameter(s6xInput.ForcedRowsNumber, ref mSig.slMatchingParameters, false);
+                            }
+                        }
+
+                        if (s6xRoutine.InputFunctions != null)
+                        {
+                            foreach (S6xRoutineInputFunction s6xInput in s6xRoutine.InputFunctions)
+                            {
+                                s6xInput.VariableAddress = getS6xSignatureMatchingParameter(s6xInput.VariableAddress, ref mSig.slMatchingParameters, true);
+                                s6xInput.VariableInput = getS6xSignatureMatchingParameter(s6xInput.VariableInput, ref mSig.slMatchingParameters, true);
+                                s6xInput.VariableOutput = getS6xSignatureMatchingParameter(s6xInput.VariableOutput, ref mSig.slMatchingParameters, true);
+                                s6xInput.ForcedRowsNumber = getS6xSignatureMatchingParameter(s6xInput.ForcedRowsNumber, ref mSig.slMatchingParameters, false);
+                            }
+                        }
+
+                        if (s6xRoutine.InputScalars != null)
+                        {
+                            foreach (S6xRoutineInputScalar s6xInput in s6xRoutine.InputScalars)
+                            {
+                                s6xInput.VariableAddress = getS6xSignatureMatchingParameter(s6xInput.VariableAddress, ref mSig.slMatchingParameters, true);
+                            }
+                        }
+
+                        S6x.slProcessRoutines.Add(s6xRoutine.UniqueAddress, s6xRoutine);
+
+                        if (S6x.slRoutines.ContainsKey(s6xRoutine.UniqueAddress)) S6x.slRoutines[s6xRoutine.UniqueAddress] = s6xRoutine;
+                        else S6x.slRoutines.Add(s6xRoutine.UniqueAddress, s6xRoutine);
+
+                        if (mSig.S6xSignature.Information != string.Empty) mSig.S6xSignature.Information += "\r\n";
+                        mSig.S6xSignature.Information += "Related Routine generated on Bank " + s6xRoutine.BankNum + " at " + s6xRoutine.Address;
                     }
-
-                    S6x.slProcessRoutines.Add(s6xRoutine.UniqueAddress, s6xRoutine);
-
-                    if (S6x.slRoutines.ContainsKey(s6xRoutine.UniqueAddress)) S6x.slRoutines[s6xRoutine.UniqueAddress] = s6xRoutine;
-                    else S6x.slRoutines.Add(s6xRoutine.UniqueAddress, s6xRoutine);
-
-                    if (mSig.S6xSignature.Information != string.Empty) mSig.S6xSignature.Information += "\r\n";
-                    mSig.S6xSignature.Information += "Related Routine generated on Bank " + s6xRoutine.BankNum + " at " + s6xRoutine.Address;
+                    else
+                    {
+                        if (mSig.S6xSignature.Information != string.Empty) mSig.S6xSignature.Information += "\r\n";
+                        mSig.S6xSignature.Information += "No routine generated on Bank " + cCall.BankNum + " at " + cCall.Address;
+                        mSig.S6xSignature.Information += "\r\nbecause routine short label is empty.";
+                    }
                 }
+                else
+                {
+                    if (mSig.S6xSignature.Information != string.Empty) mSig.S6xSignature.Information += "\r\n";
+                    mSig.S6xSignature.Information += "Related Routine linked on Bank " + s6xRoutine.BankNum + " at " + s6xRoutine.Address;
+                    mSig.S6xSignature.Information += "\r\nRelated Routine is " + s6xRoutine.ShortLabel + " - " + s6xRoutine.Label;
+                }
+
+                if (s6xRoutine != null)
+                {
+                    s6xRoutine.SignatureForced = mSig.S6xSignature.Forced;
+                    s6xRoutine.SignatureKey = mSig.S6xSignature.UniqueKey;
+                }
+                s6xRoutine = null;
 
                 // Internal Elements Management by S6x Elements creation when not existing
                 if (mSig.S6xSignature.InternalStructures != null)
@@ -1931,6 +2319,7 @@ namespace SAD806x
 
                             s6xElement.Comments = s6xInternal.Comments;
                             s6xElement.OutputComments = s6xInternal.OutputComments;
+                            s6xElement.InlineComments = s6xInternal.InlineComments;
 
                             s6xElement.ScaleExpression = s6xInternal.ScaleExpression;
                             s6xElement.ScalePrecision = s6xInternal.ScalePrecision;
@@ -2000,12 +2389,12 @@ namespace SAD806x
                 }
                 else if (cCall.ArgsType == CallArgsType.Unknown) cCall.ArgsType = CallArgsType.Fixed;
 
-                if (cCall.ArgsNum != s6xRoutine.ByteArgumentsNum)
+                if (cCall.ByteArgsNum != s6xRoutine.ByteArgumentsNum)
                 {
-                    cCall.ArgsNum = s6xRoutine.ByteArgumentsNum;
+                    cCall.ByteArgsNum = s6xRoutine.ByteArgumentsNum;
                     cCall.Arguments = null;
-                    if (cCall.ArgsCondValidated) cCall.ArgsNum -= cCall.ArgsNumCondAdder;
-                    cCall.ArgsStackDepth = 1;   // To Force Use of Arguments on all related operations
+                    if (cCall.ArgsCondValidated) cCall.ByteArgsNum -= cCall.ArgsNumCondAdder;
+                    cCall.ArgsStackDepthMax = 1;   // To Force Use of Arguments on all related operations
                 }
 
                 // S6x Routine with less information than Call
@@ -2023,14 +2412,18 @@ namespace SAD806x
                 else if (s6xRoutine.InputArguments != null)
                 {
                     callArgs = new CallArgument[s6xRoutine.InputArguments.Length];
-                    for (int iArg = 0; iArg < cCall.Arguments.Length; iArg++)
+                    if (cCall.Arguments != null)
                     {
-                        if (iArg < callArgs.Length) callArgs[iArg] = cCall.Arguments[iArg].Clone();
+                        for (int iArg = 0; iArg < cCall.Arguments.Length; iArg++)
+                        {
+                            if (iArg < callArgs.Length) callArgs[iArg] = cCall.Arguments[iArg].Clone();
+                        }
                     }
                     for (int iArg = 0; iArg < s6xRoutine.InputArguments.Length; iArg++)
                     {
                         if (callArgs[iArg] == null) callArgs[iArg] = new CallArgument();
                         callArgs[iArg].S6xRoutineInputArgument = s6xRoutine.InputArguments[iArg];
+                        callArgs[iArg].StackDepth = 1;
                         callArgs[iArg].Word = s6xRoutine.InputArguments[iArg].Word;
                         callArgs[iArg].Mode = (CallArgsMode)s6xRoutine.InputArguments[iArg].Encryption;
                     }
@@ -2050,7 +2443,7 @@ namespace SAD806x
                     }
                 }
             }
-            else if (s6xRoutine.InputArguments != null && cCall.Arguments != null && s6xRoutine.ByteArgumentsNum == cCall.ArgsNum)
+            else if (s6xRoutine.InputArguments != null && cCall.Arguments != null && s6xRoutine.ByteArgumentsNum == cCall.ByteArgsNum)
             {
                 if (s6xRoutine.InputArguments.Length == cCall.Arguments.Length)
                 {
@@ -2388,7 +2781,11 @@ namespace SAD806x
                         {
                             rConst.Code = ops[iPos].OriginalOpArr[1];
                             rConst.Addresses = (int[])alAddresses.ToArray(typeof(int));
-                            if (!Calibration.slRconst.ContainsKey(rConst.Code)) Calibration.slRconst.Add(rConst.Code, rConst);
+                            if (!Calibration.slRconst.ContainsKey(rConst.Code))
+                            {
+                                Calibration.slRconst.Add(rConst.Code, rConst);
+                                ((Register)Calibration.slRegisters[Tools.RegisterUniqueAddress(rConst.Code)]).RConst = rConst;
+                            }
                             rConst = null;
 
                             break;
@@ -2397,7 +2794,11 @@ namespace SAD806x
                         {
                             rConst.Code = ops[iPos].OriginalOpArr[2];
                             rConst.ValueInt = variableValue;
-                            if (!Calibration.slRconst.ContainsKey(rConst.Code)) Calibration.slRconst.Add(rConst.Code, rConst);
+                            if (!Calibration.slRconst.ContainsKey(rConst.Code))
+                            {
+                                Calibration.slRconst.Add(rConst.Code, rConst);
+                                ((Register)Calibration.slRegisters[Tools.RegisterUniqueAddress(rConst.Code)]).RConst = rConst;
+                            }
                             rConst = null;
 
                             break;
@@ -2422,7 +2823,11 @@ namespace SAD806x
                             prevConstCode = currConstCode;
 
                             rConst = new RConst(ops[iPos].OriginalOpArr[3], Convert.ToInt32(ops[iPos].OriginalOpArr[2] + ops[iPos].OriginalOpArr[1], 16));
-                            if (!Calibration.slRconst.ContainsKey(rConst.Code)) Calibration.slRconst.Add(rConst.Code, rConst);
+                            if (!Calibration.slRconst.ContainsKey(rConst.Code))
+                            {
+                                Calibration.slRconst.Add(rConst.Code, rConst);
+                                ((Register)Calibration.slRegisters[Tools.RegisterUniqueAddress(rConst.Code)]).RConst = rConst;
+                            }
                             rConst = null;
                         }
                     }
@@ -2437,6 +2842,26 @@ namespace SAD806x
                     rRoutine.SetTranslationComments();
                     foreach (RConst rConstCom in Calibration.slRconst.Values) rRoutine.Comments += "\r\n" + Tools.PointerTranslation(rConstCom.Code) + " = " + rConstCom.Value;
                     if (!Calibration.slRoutines.ContainsKey(rRoutine.UniqueAddress)) Calibration.slRoutines.Add(rRoutine.UniqueAddress, rRoutine);
+
+                    // 20200512 - PYM
+                    // Added to S6xRegisters
+                    foreach (RConst rConstCpy in Calibration.slRconst.Values)
+                    {
+                        S6xRegister s6xReg = (S6xRegister)S6x.slProcessRegisters[Tools.RegisterUniqueAddress(rConstCpy.Code)];
+                        if (s6xReg == null)
+                        {
+                            s6xReg = new S6xRegister(rConstCpy.Code);
+                            s6xReg.Label = Tools.RegisterInstruction(rConstCpy.Code);
+                            s6xReg.Comments = "Constant register (RConst) " + s6xReg.Label;
+                            S6x.slProcessRegisters.Add(s6xReg.UniqueAddress, s6xReg);
+                            if (S6x.slRegisters.ContainsKey(s6xReg.UniqueAddress)) S6x.slRegisters[s6xReg.UniqueAddress] = s6xReg;
+                            else S6x.slRegisters.Add(s6xReg.UniqueAddress, s6xReg);
+                        }
+                        s6xReg.isRBase = false;
+                        s6xReg.isRConst = true;
+                        s6xReg.ConstValue = rConstCpy.Value;
+                        s6xReg.AutoConstValue = true;
+                    }
                 }
                 alAddresses = null;
             }
@@ -2475,12 +2900,10 @@ namespace SAD806x
             int argsCount = -1;
             int argsCondAdder = -1;
             int argsCondValue = -1;
-            bool argsCountMode = false;
             ArrayList alArgs = null;
+            ArrayList alArgsDetect = null;
             ArrayList alArgsCond = null;
-            CallArgument callArg = null;
-            int argDstReg = -2;
-
+            bool foundArgsDetect = false;
             string variableExternalLoopFirstAddress = string.Empty;
             string variableExternalRegister = string.Empty;
 
@@ -2498,7 +2921,7 @@ namespace SAD806x
                 
                 if (callOpe.isReturn) break;                                                        // Ends the search
                 //if (callOpe.CallType == CallType.Jump) break;                                     // Ends the search
-                if (!is8061 && !isPilot && callOpe.OriginalOPCode.ToLower() == "f3")                // Push Ends the search
+                if (!is8061 && !isPilot && callOpe.OriginalOPCode.ToLower() == "f3")                // Pop(PSW) Ends the search
                 if ((is8061 || isPilot) && callOpe.OriginalOPCode.ToLower() == "cc")                // Pop Ends the search
                 srcArgsCall = null;
                 switch (callOpe.CallType)
@@ -2529,25 +2952,26 @@ namespace SAD806x
                         {
                             case CallType.Call:
                             case CallType.ShortCall:
-                                if (srcArgsCall.ArgsStackDepth > 0)
+                                if (srcArgsCall.ArgsStackDepthMax > 0)
                                 {
-                                    if (srcArgsCall.ArgsStackDepth == 1 && srcArgsCall.ArgsType == CallArgsType.Variable && callOpe.CallArgsNum == 1)
+                                    if (srcArgsCall.ArgsStackDepthMax == 1 && srcArgsCall.ArgsType == CallArgsType.Variable && callOpe.CallArgsNum == 1)
                                     {
-                                        cCall.ArgsStackDepth = 1;       // Next Ope will Provide Args
+                                        cCall.ArgsStackDepthMax = 1;       // Next Ope will Provide Args
                                         cCall.ArgsType = CallArgsType.Fixed;
                                         //cCall.ArgsModes = srcArgsCall.ArgsModes;
                                         cCall.ArgsModes = null;         // Arg Mode should be analysed
                                         // VariableOutputFirstRegisterAddress Information to be manage Args Sizes and Modes
                                         cCall.ArgsVariableOutputFirstRegisterAddress = srcArgsCall.ArgsVariableOutputFirstRegisterAddress;
-                                        cCall.ArgsNum += Convert.ToInt32(callOpe.CallArgsArr[0], 16);
+                                        cCall.ByteArgsNum += Convert.ToInt32(callOpe.CallArgsArr[0], 16);
 
                                         // Created by default Word by Word, will be updated if not compatible in Args Mode detection
-                                        callArg = null;
+                                        CallArgument callArg = null;
                                         for (int iArg = 0; iArg < Convert.ToInt32(callOpe.CallArgsArr[0], 16); iArg++)
                                         {
                                             if (iArg % 2 == 0)
                                             {
                                                 callArg = new CallArgument();
+                                                callArg.StackDepth = 1;
                                                 if (cCall.ArgsVariableOutputFirstRegisterAddress >= 0)
                                                 {
                                                     callArg.OutputRegisterAddressInt = cCall.ArgsVariableOutputFirstRegisterAddress + iArg;
@@ -2584,31 +3008,58 @@ namespace SAD806x
                                     }
                                     else
                                     {
-                                        if (cCall.ArgsStackDepth != 1) cCall.ArgsStackDepth = srcArgsCall.ArgsStackDepth - 1;
+                                        if (cCall.ArgsStackDepthMax != 1) cCall.ArgsStackDepthMax = srcArgsCall.ArgsStackDepthMax - 1;
                                         cCall.ArgsType = srcArgsCall.ArgsType;
                                         cCall.ArgsModes = srcArgsCall.ArgsModes;
-                                        cCall.ArgsNum += srcArgsCall.ArgsNum;       // Loop on all available calls adding Args
+                                        //cCall.ByteArgsNum += srcArgsCall.ByteArgsNum;       // Loop on all available calls adding Args
                                         if (srcArgsCall.Arguments != null)
                                         {
-                                            foreach (CallArgument cArg in srcArgsCall.Arguments) alArgs.Add(cArg);
+                                            foreach (CallArgument cArg in srcArgsCall.Arguments)
+                                            {
+                                                CallArgument cpyArg = cArg.Clone();
+                                                // This is a Call, StackDepth is reduced
+                                                if (cpyArg.StackDepth > 0) cpyArg.StackDepth--;
+                                                if (cpyArg.StackDepth > 0)
+                                                {
+                                                    if (cpyArg.StackDepth == 1)
+                                                    {
+                                                        cCall.ByteArgsNum++;
+                                                        if (cpyArg.Word) cCall.ByteArgsNum++;
+                                                    }
+                                                    alArgs.Add(cpyArg);
+                                                }
+                                            }
                                         }
                                     }
                                     if (ope != null && (is8061 || isPilot))
                                     // On 8061 and 8065 Pilot Pop before Call increases Stack Depth
                                     {
-                                        if (ope.OriginalInstruction.ToLower() == "pop") cCall.ArgsStackDepth++;
+                                        if (ope.OriginalInstruction.ToLower() == "pop") cCall.ArgsStackDepthMax++;
                                     }
                                     Calibration.alArgsCallsUniqueAddresses.Add(cCall.UniqueAddress);
                                 }
                                 break;
                             default:
-                                cCall.ArgsStackDepth = srcArgsCall.ArgsStackDepth;
+                                cCall.ArgsStackDepthMax = srcArgsCall.ArgsStackDepthMax;
                                 cCall.ArgsType = srcArgsCall.ArgsType;
                                 cCall.ArgsModes = srcArgsCall.ArgsModes;
-                                cCall.ArgsNum += srcArgsCall.ArgsNum;       // Add Args Num of related Call Ope and Exit, this is the last possible Added Value
+                                //cCall.ByteArgsNum += srcArgsCall.ByteArgsNum;       // Add Args Num of related Call Ope and Exit, this is the last possible Added Value
                                 if (srcArgsCall.Arguments != null)
                                 {
-                                    foreach (CallArgument cArg in srcArgsCall.Arguments) alArgs.Add(cArg);
+                                    foreach (CallArgument cArg in srcArgsCall.Arguments)
+                                    {
+                                        //alArgs.Add(cArg);
+                                        CallArgument cpyArg = cArg.Clone();
+                                        if (cpyArg.StackDepth > 0)
+                                        {
+                                            if (cpyArg.StackDepth == 1)
+                                            {
+                                                cCall.ByteArgsNum++;
+                                                if (cpyArg.Word) cCall.ByteArgsNum++;
+                                            }
+                                            alArgs.Add(cpyArg);
+                                        }
+                                    }
                                 }
                                 Calibration.alArgsCallsUniqueAddresses.Add(cCall.UniqueAddress);
 
@@ -2638,7 +3089,6 @@ namespace SAD806x
                                 srcArgsCall = null;                             // To Generated a Break Condition
                                 break;
                         }
-                        Calibration.slCalls[cCall.UniqueAddress] = cCall;
                         ops = null;
                         ope = null;
 
@@ -2701,11 +3151,12 @@ namespace SAD806x
                     }
                     ope = null;
 
-                    cCall.ArgsStackDepth = argsStackDepth + 1;       // First pop, second pop is for its caller and the variable number
+                    cCall.ArgsStackDepthMax = argsStackDepth + 1;       // First pop, second pop is for its caller and the variable number
                     cCall.ArgsType = CallArgsType.Variable;
-                    cCall.ArgsNum = -1;
+                    cCall.ByteArgsNum = -1;
                     cCall.Arguments = new CallArgument[1];
                     cCall.Arguments[0] = new CallArgument();
+                    cCall.Arguments[0].StackDepth = cCall.ArgsStackDepthMax;
                     cCall.Arguments[0].Word = false;
                     // Args Mode Defaulted
                     cCall.Arguments[0].Mode = CallArgsMode.Standard;
@@ -2723,7 +3174,7 @@ namespace SAD806x
                                 // First output register address
                                 if (cCall.ArgsVariableOutputFirstRegisterAddress == -1)
                                 {
-                                    cCall.ArgsVariableOutputFirstRegisterAddress = Convert.ToInt32(ope.InstructedParams[0], 16);
+                                    cCall.ArgsVariableOutputFirstRegisterAddress = Convert.ToInt32(ope.OperationParams[0].InstructedParam, 16);
                                     ope = null;
                                 }
                                 break;
@@ -2732,7 +3183,6 @@ namespace SAD806x
                     }
                     ope = null;
                     
-                    Calibration.slCalls[cCall.UniqueAddress] = cCall;
                     Calibration.alArgsCallsUniqueAddresses.Add(cCall.UniqueAddress);
                     ops = null;
                     return;
@@ -2743,7 +3193,7 @@ namespace SAD806x
                 // 71,bf,da             an2b  Rda,bf             Rda &= bf;           
                 // ae,3b,14             ldzbw R14,[R3a++]        R14 = (uns)[R3a++];                First Loop, first Arg
                 // b2,3b,17             ldb   R17,[R3a++]        R17 = [R3a++];                     First Loop, second Arg
-                // e0,39,03             djnz  R39,3885           R39--; if (R39 !=  0) goto 3885;   Another Parameter to check is Args should be managed is Sub Call
+                // e0,39,03             djnz  R39,3885           R39--; if (R39 !=  0) goto 3885;   Another Parameter to check if Args should be managed is Sub Call
                 // 91,40,da             orrb  Rda,40             Rda |= 40;           
                 // 28,10                scall 3897               Sub0037();           
                 // e0,38,ef             djnz  R38,3879           R38--; if (R38 !=  0) goto 3879;   Main External Register Loop for Count
@@ -2765,15 +3215,23 @@ namespace SAD806x
                 }
                 if (opsMatchIndex >= 0)
                 {
+                    // Because of Signature, other pop before Match Index could add Depth, we search for them
+                    for (int iPos = opsMatchIndex - 1; iPos >= 0; iPos--)
+                    {
+                        ope = ops[iPos];
+                        if (ope == null) break;
+                        if (ope.OriginalOPCode.ToLower() != "cc") break;
+                        opsMatchIndex--;
+                    }
+                    ope = null;
+
                     argsStackDepth = 0;
-                    argsReg = string.Empty;
                     argsCount = 0;
-                    argsCountMode = false;
                     alArgs = new ArrayList();
-                    callArg = null;
-                    argDstReg = -2;
+                    alArgsDetect = new ArrayList();
                     variableExternalLoopFirstAddress = string.Empty;
                     variableExternalRegister = string.Empty;
+
                     for (int iPos = opsMatchIndex; iPos < ops.Length; iPos++)
                     {
                         ope = ops[iPos];
@@ -2781,77 +3239,75 @@ namespace SAD806x
                         switch (ope.OriginalOPCode.ToLower())
                         {
                             case "e0":
-                                if (ope.InstructedParams.Length == 2)
+                                if (ope.OperationParams.Length == 2)
                                 {
-                                    if (ope.InstructedParams[ope.InstructedParams.Length - 1] == variableExternalLoopFirstAddress)
+                                    if (ope.OperationParams[ope.OperationParams.Length - 1].InstructedParam == variableExternalLoopFirstAddress)
                                     {
                                         variableExternalRegister = ope.OriginalOpArr[1];
                                     }
                                 }
                                 break;
                             case "cc":
-                                argsStackDepth++;   // Each pop adds a Stack Depth
-                                argsReg = ope.OriginalOpArr[ope.OriginalOpArr.Length - 1];
+                                // Each pop adds a Stack Depth for CallArgumentDetection
+                                argsStackDepth++;
+                                alArgsDetect.Add(new CallArgumentDetection(argsStackDepth, ope.OriginalOpArr[ope.OriginalOpArr.Length - 1]));
                                 break;
                             case "b2":  // ldb   RXX,[RYY++]
                             case "be":  // ldsbw RXX,[RYY++]
                             case "ae":  // ldzbw RXX,[RYY++]
-                                if (argsStackDepth > 0 && string.Format("{0:x2}", Convert.ToInt32(ope.OriginalOpArr[1], 16) - 1) == argsReg)
+                                foreach (CallArgumentDetection cArgDetect in alArgsDetect)
                                 {
-                                    argsCountMode = true;
+                                    if (cArgDetect.StackReadRegister != string.Format("{0:x2}", Convert.ToInt32(ope.OriginalOpArr[1], 16) - 1)) continue;
+
                                     argsCount++;
-                                    if (argDstReg + 1 == Convert.ToInt32(ope.OriginalOpArr[ope.OriginalOpArr.Length - 1], 16) && callArg != null)
+                                    cArgDetect.CountModeOn = true;
+                                    int newOutputRegisterAddressInt = Convert.ToInt32(ope.OriginalOpArr[ope.OriginalOpArr.Length - 1], 16);
+                                    if (cArgDetect.CallArgument != null)
                                     {
-                                        callArg.Word = true;
-                                        alArgs.Add(callArg);
-                                        callArg = null;
-                                        argDstReg = -2;
+                                        if (cArgDetect.CallArgument.OutputRegisterAddressInt + 1 == newOutputRegisterAddressInt)
+                                        {
+                                            cArgDetect.CallArgument.Word = true;
+                                            newOutputRegisterAddressInt = -1;
+                                        }
+                                        alArgs.Add(cArgDetect.CallArgument);
+                                        cArgDetect.CallArgument = null;
                                     }
-                                    else
-                                    {
-                                        if (callArg != null) alArgs.Add(callArg);
-                                        callArg = new CallArgument();
-                                        argDstReg = Convert.ToInt32(ope.OriginalOpArr[ope.OriginalOpArr.Length - 1], 16);
-                                        callArg.OutputRegisterAddressInt = argDstReg;
-                                    }
+                                    if (newOutputRegisterAddressInt >= 0) cArgDetect.CreateCallArgument(newOutputRegisterAddressInt);
+
                                     if (variableExternalLoopFirstAddress == string.Empty) variableExternalLoopFirstAddress = ope.Address;
                                 }
                                 break;
                             case "c8":  // push(RXX);
-                                if (argsCountMode && ope.OriginalOpArr[1].ToLower() == argsReg) argsReg = string.Empty;
+                                int iArgsDetectToRemove = -1;
+                                for (int iIndex = 0; iIndex < alArgsDetect.Count; iIndex++)
+                                {
+                                    CallArgumentDetection cArgDetect = (CallArgumentDetection)alArgsDetect[iIndex];
+                                    if (!cArgDetect.CountModeOn) continue;
+                                    if (cArgDetect.StackReadRegister != ope.OriginalOpArr[1].ToLower()) continue;
+
+                                    // Remaining Args added before removal
+                                    if (cArgDetect.CallArgument != null) alArgs.Add(cArgDetect.CallArgument);
+
+                                    iArgsDetectToRemove = iIndex;
+                                    break;
+                                }
+                                if (iArgsDetectToRemove >= 0) alArgsDetect.RemoveAt(iArgsDetectToRemove);
                                 break;
                         }
                         ope = null;
-                        if (argsCountMode && argsReg == string.Empty) break;
+                        if (alArgsDetect.Count == 0) break;
                     }
-                    if (callArg != null)
+                    // Remaining Args added before cleanup
+                    foreach (CallArgumentDetection cArgDetect in alArgsDetect)
                     {
-                        alArgs.Add(callArg);
-                        callArg = null;
+                        if (cArgDetect.CallArgument != null) alArgs.Add(cArgDetect.CallArgument);
                     }
+                    alArgsDetect = null;
                     if (argsCount > 0 && variableExternalRegister != string.Empty)
                     {
-                        // Because of Signature, other pop before Match Index could add Depth, we search for them
-                        for (int iPos = opsMatchIndex - 1; iPos >= 0; iPos--)
-                        {
-                            ope = ops[iPos];
-                            if (ope == null) break;
-                            switch (ope.OriginalOPCode.ToLower())
-                            {
-                                case "cc":
-                                    argsStackDepth++;   // Each pop adds a Stack Depth
-                                    break;
-                                default:
-                                    ope = null;         // Break Condition
-                                    break;
-                            }
-                            if (ope == null) break;
-                        }
-                        ope = null;
-
-                        cCall.ArgsStackDepth = argsStackDepth;
+                        cCall.ArgsStackDepthMax = argsStackDepth;
                         cCall.ArgsType = CallArgsType.VariableExternalRegister;
-                        cCall.ArgsNum = argsCount;
+                        cCall.ByteArgsNum = argsCount;
                         cCall.ArgsVariableExternalRegister = variableExternalRegister;
                         if (alArgs.Count > 0)
                         {
@@ -2863,7 +3319,6 @@ namespace SAD806x
                         alArgs = null;
                         // Args Mode Defaulted at Standard
                         cCall.ArgsModes = new CallArgsMode[] { CallArgsMode.Standard };
-                        Calibration.slCalls[cCall.UniqueAddress] = cCall;
                         Calibration.alArgsCallsUniqueAddresses.Add(cCall.UniqueAddress);
                         ops = null;
                         return;
@@ -2898,15 +3353,13 @@ namespace SAD806x
                 if (opsMatchIndex >= 0)
                 {
                     argsStackDepth = 0;
-                    argsReg = string.Empty;
                     argsCount = 0;
                     argsCondAdder = 0;
                     argsCondValue = 0;
-                    argsCountMode = false;
                     alArgs = new ArrayList();
+                    alArgsDetect = new ArrayList();
                     alArgsCond = new ArrayList();
-                    callArg = null;
-                    argDstReg = -2;
+
                     for (int iPos = opsMatchIndex; iPos < ops.Length; iPos++)
                     {
                         ope = ops[iPos];
@@ -2914,30 +3367,31 @@ namespace SAD806x
                         switch (ope.OriginalOPCode.ToLower())
                         {
                             case "cc":
-                                argsStackDepth++;   // Each pop adds a Stack Depth
-                                argsReg = ope.OriginalOpArr[ope.OriginalOpArr.Length - 1];
+                                // Each pop adds a Stack Depth for CallArgumentDetection
+                                argsStackDepth++;
+                                alArgsDetect.Add(new CallArgumentDetection(argsStackDepth, ope.OriginalOpArr[ope.OriginalOpArr.Length - 1]));
                                 break;
                             case "b2":  // ldb   RXX,[RYY++]
                             case "be":  // ldsbw RXX,[RYY++]
                             case "ae":  // ldzbw RXX,[RYY++]
-                                if (argsStackDepth > 0 && string.Format("{0:x2}", Convert.ToInt32(ope.OriginalOpArr[1], 16) - 1) == argsReg)
+                                foreach (CallArgumentDetection cArgDetect in alArgsDetect)
                                 {
-                                    argsCountMode = true;
+                                    if (cArgDetect.StackReadRegister != string.Format("{0:x2}", Convert.ToInt32(ope.OriginalOpArr[1], 16) - 1)) continue;
+
                                     argsCount++;
-                                    if (argDstReg + 1 == Convert.ToInt32(ope.OriginalOpArr[ope.OriginalOpArr.Length - 1], 16) && callArg != null)
+                                    cArgDetect.CountModeOn = true;
+                                    int newOutputRegisterAddressInt = Convert.ToInt32(ope.OriginalOpArr[ope.OriginalOpArr.Length - 1], 16);
+                                    if (cArgDetect.CallArgument != null)
                                     {
-                                        callArg.Word = true;
-                                        alArgs.Add(callArg);
-                                        callArg = null;
-                                        argDstReg = -2;
+                                        if (cArgDetect.CallArgument.OutputRegisterAddressInt + 1 == newOutputRegisterAddressInt)
+                                        {
+                                            cArgDetect.CallArgument.Word = true;
+                                            newOutputRegisterAddressInt = -1;
+                                        }
+                                        alArgs.Add(cArgDetect.CallArgument);
+                                        cArgDetect.CallArgument = null;
                                     }
-                                    else
-                                    {
-                                        if (callArg != null) alArgs.Add(callArg);
-                                        callArg = new CallArgument(); ;
-                                        argDstReg = Convert.ToInt32(ope.OriginalOpArr[ope.OriginalOpArr.Length - 1], 16);
-                                        callArg.OutputRegisterAddressInt = argDstReg;
-                                    }
+                                    if (newOutputRegisterAddressInt >= 0) cArgDetect.CreateCallArgument(newOutputRegisterAddressInt);
                                 }
                                 break;
                             case "d3":  // jnc
@@ -2946,7 +3400,16 @@ namespace SAD806x
                                 else argsCondValue = 0;
                                 // push(SubCall With Args);
                                 // Not in Signature but just after Goto
-                                if (argsCountMode)
+                                foundArgsDetect = false;
+                                foreach (CallArgumentDetection cArgDetect in alArgsDetect)
+                                {
+                                    if (cArgDetect.CountModeOn)
+                                    {
+                                        foundArgsDetect = true;
+                                        break;
+                                    }
+                                }
+                                if (foundArgsDetect)
                                 {
                                     ope = (Operation)slOPs[Tools.UniqueAddress(ope.BankNum, ope.AddressNextInt)];
                                     if (ope != null)
@@ -2962,7 +3425,7 @@ namespace SAD806x
                                                     srcArgsCall = (Call)Calibration.slCalls[Tools.UniqueAddress(ope.BankNum, ope.AddressJumpInt - 2)];
                                                     if (srcArgsCall != null)
                                                     {
-                                                        argsCondAdder = srcArgsCall.ArgsNum;
+                                                        argsCondAdder = srcArgsCall.ByteArgsNum;
                                                         if (srcArgsCall.Arguments != null) foreach (CallArgument cArg in srcArgsCall.Arguments) alArgsCond.Add(cArg);
                                                         srcArgsCall = null;
                                                     }
@@ -2970,23 +3433,32 @@ namespace SAD806x
                                             }
                                         }
                                     }
-                                    argsReg = string.Empty;
+                                    // Remaining Args added before removal and break condition
+                                    foreach (CallArgumentDetection cArgDetect in alArgsDetect)
+                                    {
+                                        if (cArgDetect.CallArgument != null) alArgs.Add(cArgDetect.CallArgument);
+                                    }
+                                    alArgsDetect = null;
                                 }
                                 break;
                         }
                         ope = null;
-                        if (argsCountMode && argsReg == string.Empty) break;
+                        if (alArgsDetect == null) break;
                     }
-                    if (callArg != null)
+                    if (alArgsDetect != null)
                     {
-                        alArgs.Add(callArg);
-                        callArg = null;
+                        // Remaining Args added
+                        foreach (CallArgumentDetection cArgDetect in alArgsDetect)
+                        {
+                            if (cArgDetect.CallArgument != null) alArgs.Add(cArgDetect.CallArgument);
+                        }
+                        alArgsDetect = null;
                     }
                     if (argsCount > 0)
                     {
-                        cCall.ArgsStackDepth = argsStackDepth;
+                        cCall.ArgsStackDepthMax = argsStackDepth;
                         cCall.ArgsType = CallArgsType.FixedCyCond;
-                        cCall.ArgsNum = argsCount;
+                        cCall.ByteArgsNum = argsCount;
                         cCall.ArgsNumCondAdder = argsCondAdder;
                         cCall.ArgsCondValue = argsCondValue;
                         cCall.ArgsCondValidated = (argsCondValue == 1); //  Because of Signature, CY is at 1
@@ -3000,7 +3472,6 @@ namespace SAD806x
                         alArgs = null;
                         // Args Mode Calculation
                         identifyCallArgsMode(ref cCall, ref ops, opsMatchIndex, true);
-                        Calibration.slCalls[cCall.UniqueAddress] = cCall;
                         Calibration.alArgsCallsUniqueAddresses.Add(cCall.UniqueAddress);
                         ops = null;
                         return;
@@ -3029,13 +3500,20 @@ namespace SAD806x
                 }
                 if (opsMatchIndex >= 0)
                 {
+                    // Because of Signature, other pop before Match Index could add Depth, we search for them
+                    for (int iPos = opsMatchIndex - 1; iPos >= 0; iPos--)
+                    {
+                        ope = ops[iPos];
+                        if (ope == null) break;
+                        if (ope.OriginalOPCode.ToLower() != "cc") break;
+                        opsMatchIndex--;
+                    }
+                    ope = null;
+
                     argsStackDepth = 0;
-                    argsReg = string.Empty;
                     argsCount = 0;
-                    argsCountMode = false;
                     alArgs = new ArrayList();
-                    callArg = null;
-                    argDstReg = -2;
+                    alArgsDetect = new ArrayList();
                     for (int iPos = opsMatchIndex; iPos < ops.Length; iPos++)
                     {
                         ope = ops[iPos];
@@ -3043,67 +3521,65 @@ namespace SAD806x
                         switch (ope.OriginalOPCode.ToLower())
                         {
                             case "cc":
-                                argsStackDepth++;   // Each pop adds a Stack Depth
-                                argsReg = ope.OriginalOpArr[ope.OriginalOpArr.Length - 1];
+                                // Each pop adds a Stack Depth for CallArgumentDetection
+                                argsStackDepth++;
+                                alArgsDetect.Add(new CallArgumentDetection(argsStackDepth, ope.OriginalOpArr[ope.OriginalOpArr.Length - 1]));
                                 break;
                             case "b2":  // ldb   RXX,[RYY++]
                             case "be":  // ldsbw RXX,[RYY++]
                             case "ae":  // ldzbw RXX,[RYY++]
-                                if (argsStackDepth > 0 && string.Format("{0:x2}", Convert.ToInt32(ope.OriginalOpArr[1], 16) - 1) == argsReg)
+                                foreach (CallArgumentDetection cArgDetect in alArgsDetect)
                                 {
-                                    argsCountMode = true;
+                                    if (cArgDetect.StackReadRegister != string.Format("{0:x2}", Convert.ToInt32(ope.OriginalOpArr[1], 16) - 1)) continue;
+
                                     argsCount++;
-                                    if (argDstReg + 1 == Convert.ToInt32(ope.OriginalOpArr[ope.OriginalOpArr.Length - 1], 16) && callArg != null)
+                                    cArgDetect.CountModeOn = true;
+                                    int newOutputRegisterAddressInt = Convert.ToInt32(ope.OriginalOpArr[ope.OriginalOpArr.Length - 1], 16);
+                                    if (cArgDetect.CallArgument != null)
                                     {
-                                        callArg.Word = true;
-                                        alArgs.Add(callArg);
-                                        callArg = null;
-                                        argDstReg = -2;
+                                        if (cArgDetect.CallArgument.OutputRegisterAddressInt + 1 == newOutputRegisterAddressInt)
+                                        {
+                                            cArgDetect.CallArgument.Word = true;
+                                            newOutputRegisterAddressInt = -1;
+                                        }
+                                        alArgs.Add(cArgDetect.CallArgument);
+                                        cArgDetect.CallArgument = null;
                                     }
-                                    else
-                                    {
-                                        if (callArg != null) alArgs.Add(callArg);
-                                        callArg = new CallArgument(); ;
-                                        argDstReg = Convert.ToInt32(ope.OriginalOpArr[ope.OriginalOpArr.Length - 1], 16);
-                                        callArg.OutputRegisterAddressInt = argDstReg;
-                                    }
+                                    if (newOutputRegisterAddressInt >= 0) cArgDetect.CreateCallArgument(newOutputRegisterAddressInt);
                                 }
                                 break;
                             case "c8":  // push(RXX);
-                                if (argsCountMode && ope.OriginalOpArr[1].ToLower() == argsReg) argsReg = string.Empty;
+                                int iArgsDetectToRemove = -1;
+                                for (int iIndex = 0; iIndex < alArgsDetect.Count; iIndex++)
+                                {
+                                    CallArgumentDetection cArgDetect = (CallArgumentDetection)alArgsDetect[iIndex];
+                                    if (!cArgDetect.CountModeOn) continue;
+                                    if (cArgDetect.StackReadRegister != ope.OriginalOpArr[1].ToLower()) continue;
+
+                                    // Remaining Args added before removal
+                                    if (cArgDetect.CallArgument != null) alArgs.Add(cArgDetect.CallArgument);
+
+                                    iArgsDetectToRemove = iIndex;
+                                    break;
+                                }
+                                if (iArgsDetectToRemove >= 0) alArgsDetect.RemoveAt(iArgsDetectToRemove);
                                 break;
                         }
                         ope = null;
-                        if (argsCountMode && argsReg == string.Empty) break;
+                        if (alArgsDetect.Count == 0) break;
                     }
-                    if (callArg != null)
+                    // Remaining Args added before cleanup
+                    foreach (CallArgumentDetection cArgDetect in alArgsDetect)
                     {
-                        alArgs.Add(callArg);
-                        callArg = null;
+                        if (cArgDetect.CallArgument != null) alArgs.Add(cArgDetect.CallArgument);
                     }
+                    alArgsDetect = null;
+
                     if (argsCount > 0)
                     {
-                        // Because of Signature, other pop before Match Index could add Depth, we search for them
-                        for (int iPos = opsMatchIndex - 1; iPos >= 0; iPos--)
-                        {
-                            ope = ops[iPos];
-                            if (ope == null) break;
-                            switch (ope.OriginalOPCode.ToLower())
-                            {
-                                case "cc":
-                                    argsStackDepth++;   // Each pop adds a Stack Depth
-                                    break;
-                                default:
-                                    ope = null;         // Break Condition
-                                    break;
-                            }
-                            if (ope == null) break;
-                        }
-                        ope = null;
-
-                        cCall.ArgsStackDepth = argsStackDepth;
+                        cCall.ArgsStackDepthMax = argsStackDepth;
                         cCall.ArgsType = CallArgsType.Fixed;
-                        cCall.ArgsNum = argsCount;
+                        cCall.ByteArgsNum = argsCount;
                         if (alArgs.Count > 0)
                         {
                             cCall.Arguments = new CallArgument[alArgs.Count];
@@ -3112,7 +3588,6 @@ namespace SAD806x
                         alArgs = null;
                         // Args Mode Calculation
                         identifyCallArgsMode(ref cCall, ref ops, opsMatchIndex, true);
-                        Calibration.slCalls[cCall.UniqueAddress] = cCall;
                         Calibration.alArgsCallsUniqueAddresses.Add(cCall.UniqueAddress);
                         ops = null;
                         return;
@@ -3131,11 +3606,12 @@ namespace SAD806x
                 opsMatchIndex = Tools.matchOpsOriginalOps(ref ops, matchingOriginalOps);
                 if (opsMatchIndex >= 0)
                 {
-                    cCall.ArgsStackDepth = 1;       // First RXX = [STACK+2], other RXX = [STACK+X] is for its caller and the variable number, RXX = [STACK] is for Bank Num
+                    cCall.ArgsStackDepthMax = 1;       // First RXX = [STACK+2], other RXX = [STACK+X] is for its caller and the variable number, RXX = [STACK] is for Bank Num
                     cCall.ArgsType = CallArgsType.Variable;
-                    cCall.ArgsNum = -1;
+                    cCall.ByteArgsNum = -1;
                     cCall.Arguments = new CallArgument[1];
                     cCall.Arguments[0] = new CallArgument();
+                    cCall.Arguments[0].StackDepth = cCall.ArgsStackDepthMax;
                     cCall.Arguments[0].Word = false;
                     // Args Mode Defaulted
                     cCall.Arguments[0].Mode = CallArgsMode.Standard;
@@ -3153,7 +3629,7 @@ namespace SAD806x
                                 // First output register address
                                 if (cCall.ArgsVariableOutputFirstRegisterAddress == -1)
                                 {
-                                    cCall.ArgsVariableOutputFirstRegisterAddress = Convert.ToInt32(ope.InstructedParams[0], 16);
+                                    cCall.ArgsVariableOutputFirstRegisterAddress = Convert.ToInt32(ope.OperationParams[0].InstructedParam, 16);
                                     ope = null;
                                 }
                                 break;
@@ -3162,7 +3638,6 @@ namespace SAD806x
                     }
                     ope = null;
 
-                    Calibration.slCalls[cCall.UniqueAddress] = cCall;
                     Calibration.alArgsCallsUniqueAddresses.Add(cCall.UniqueAddress);
                     ops = null;
                     return;
@@ -3179,80 +3654,106 @@ namespace SAD806x
                     {
                         matchingOriginalOps = new string[] { "a2,20,..", "f2", "fa", "..,..,..", "..,..,..", "a3,20,..,.." };
                         opsMatchIndex = Tools.matchOpsOriginalOps(ref ops, matchingOriginalOps);
+                        if (opsMatchIndex < 0 || ops.Length < opsMatchIndex + opsMatchIndexAdder)
+                        {
+                            // 20200514 - PYM - Added for 8065 60pin
+                            matchingOriginalOps = new string[] { "a2,20,..", "a3,20,..,..", "51,..,..,..", "d7,..", "10,..", "b2,..,.." };
+                            opsMatchIndex = Tools.matchOpsOriginalOps(ref ops, matchingOriginalOps);
+                        }
                     }
                 }
                 if (opsMatchIndex >= 0)
                 {
                     argsStackDepth = 0;
                     argsStackDepthReducer = 0;
-                    argsReg = string.Empty;
                     argsCount = 0;
-                    argsCountMode = false;
                     alArgs = new ArrayList();
-                    callArg = null;
-                    argDstReg = -2;
+                    alArgsDetect = new ArrayList();
                     for (int iPos = opsMatchIndex; iPos < ops.Length; iPos++)
                     {
                         ope = ops[iPos];
                         if (ope == null) break;
                         switch (ope.OriginalOPCode.ToLower())
                         {
+                            case "10":
+                                // Bank Change for reading does not stop loop
+                                break;
                             case "f2":
-                            // PushP between RXX =[STACK] and RXX = [STACK+X] forces the STACK to go deeper
+                                // PushP between RXX =[STACK] and RXX = [STACK+X] forces the STACK to go deeper
                                 argsStackDepthReducer++;
                                 break;
                             case "a3":
-                            // Each RXX = [STACK+X] adds a stack depth, , RXX = [STACK] is for Bank Num
+                                // Each RXX = [STACK+X] adds a stack depth, RXX = [STACK] is for Bank Num
                                 if (ope.OriginalOpArr[1] == "20")
                                 {
                                     argsStackDepth = Convert.ToInt32(ope.OriginalOpArr[2], 16) / 2 - argsStackDepthReducer;
-                                    argsReg = ope.OriginalOpArr[ope.OriginalOpArr.Length - 1];
+                                    alArgsDetect.Add(new CallArgumentDetection(argsStackDepth, ope.OriginalOpArr[ope.OriginalOpArr.Length - 1]));
                                 }
                                 break;
                             case "b2":  // ldb   RXX,[RYY++]
                             case "be":  // ldsbw RXX,[RYY++]
                             case "ae":  // ldzbw RXX,[RYY++]
-                                if (argsStackDepth > 0 && string.Format("{0:x2}", Convert.ToInt32(ope.OriginalOpArr[1], 16) - 1) == argsReg)
+                                foundArgsDetect = false;
+                                foreach (CallArgumentDetection cArgDetect in alArgsDetect)
                                 {
-                                    argsCountMode = true;
+                                    if (cArgDetect.StackReadRegister != string.Format("{0:x2}", Convert.ToInt32(ope.OriginalOpArr[1], 16) - 1)) continue;
+
+                                    foundArgsDetect = true;
+
                                     argsCount++;
-                                    if (argDstReg + 1 == Convert.ToInt32(ope.OriginalOpArr[ope.OriginalOpArr.Length - 1], 16) && callArg != null)
+                                    cArgDetect.CountModeOn = true;
+                                    int newOutputRegisterAddressInt = Convert.ToInt32(ope.OriginalOpArr[ope.OriginalOpArr.Length - 1], 16);
+                                    if (cArgDetect.CallArgument != null)
                                     {
-                                        callArg.Word = true;
-                                        alArgs.Add(callArg);
-                                        callArg = null;
-                                        argDstReg = -2;
+                                        if (cArgDetect.CallArgument.OutputRegisterAddressInt + 1 == newOutputRegisterAddressInt)
+                                        {
+                                            cArgDetect.CallArgument.Word = true;
+                                            newOutputRegisterAddressInt = -1;
+                                        }
+                                        alArgs.Add(cArgDetect.CallArgument);
+                                        cArgDetect.CallArgument = null;
                                     }
-                                    else
-                                    {
-                                        if (callArg != null) alArgs.Add(callArg);
-                                        callArg = new CallArgument(); ;
-                                        argDstReg = Convert.ToInt32(ope.OriginalOpArr[ope.OriginalOpArr.Length - 1], 16);
-                                        callArg.OutputRegisterAddressInt = argDstReg;
-                                    }
+                                    if (newOutputRegisterAddressInt >= 0) cArgDetect.CreateCallArgument(newOutputRegisterAddressInt);
                                 }
-                                else if (argsCountMode)
+                                if (!foundArgsDetect)
                                 {
-                                    argsReg = string.Empty;
+                                    // Remaining Args added before removal and break condition
+                                    foreach (CallArgumentDetection cArgDetect in alArgsDetect)
+                                    {
+                                        if (cArgDetect.CountModeOn) foundArgsDetect = true;
+                                        if (cArgDetect.CallArgument != null) alArgs.Add(cArgDetect.CallArgument);
+                                    }
+                                    if (foundArgsDetect) alArgsDetect = null;
                                 }
                                 break;
                             default:
-                                if (argsCountMode) argsReg = string.Empty;
+                                // Remaining Args added before removal and break condition
+                                foundArgsDetect = false;
+                                foreach (CallArgumentDetection cArgDetect in alArgsDetect)
+                                {
+                                    if (cArgDetect.CountModeOn) foundArgsDetect = true;
+                                    if (cArgDetect.CallArgument != null) alArgs.Add(cArgDetect.CallArgument);
+                                }
+                                if (foundArgsDetect) alArgsDetect = null;
                                 break;
                         }
                         ope = null;
-                        if (argsCountMode && argsReg == string.Empty) break;
+                        if (alArgsDetect == null) break;
                     }
-                    if (callArg != null)
+                    if (alArgsDetect != null)
                     {
-                        alArgs.Add(callArg);
-                        callArg = null;
+                        // Remaining Args added
+                        foreach (CallArgumentDetection cArgDetect in alArgsDetect)
+                        {
+                            if (cArgDetect.CallArgument != null) alArgs.Add(cArgDetect.CallArgument);
+                        }
+                        alArgsDetect = null;
                     }
                     if (argsCount > 0)
                     {
-                        cCall.ArgsStackDepth = argsStackDepth;
+                        cCall.ArgsStackDepthMax = argsStackDepth;
                         cCall.ArgsType = CallArgsType.Fixed;
-                        cCall.ArgsNum = argsCount;
+                        cCall.ByteArgsNum = argsCount;
                         if (alArgs.Count > 0)
                         {
                             cCall.Arguments = new CallArgument[alArgs.Count];
@@ -3261,13 +3762,127 @@ namespace SAD806x
                         alArgs = null;
                         // Args Mode Calculation
                         identifyCallArgsMode(ref cCall, ref ops, opsMatchIndex, true);
-                        Calibration.slCalls[cCall.UniqueAddress] = cCall;
                         Calibration.alArgsCallsUniqueAddresses.Add(cCall.UniqueAddress);
                         ops = null;
                         return;
                     }
                     alArgs = null;
                 }
+
+                // 20200514 - PYM - Added for 8065 60pin
+                // Fixed Num for first 8065 60pin, but not early
+                // cc,18        pop   R18            R18 = pop();
+                // ae,19,14     ldzbw R14,[R18++]    R14 = (uns)[R18++];
+                // b2,19,17     ldb   R17,[R18++]    R17 = [R18++];
+                matchingOriginalOps = new string[] { "cc,..", "10,08", "b2,..,.." };
+                opsMatchIndex = Tools.matchOpsOriginalOps(ref ops, matchingOriginalOps);
+                if (opsMatchIndex < 0)
+                {
+                    matchingOriginalOps = new string[] { "cc,..", "10,08", "ae,..,.." };
+                    opsMatchIndex = Tools.matchOpsOriginalOps(ref ops, matchingOriginalOps);
+                }
+                if (opsMatchIndex < 0)
+                {
+                    matchingOriginalOps = new string[] { "cc,..", "10,08", "be,..,.." };
+                    opsMatchIndex = Tools.matchOpsOriginalOps(ref ops, matchingOriginalOps);
+                }
+                if (opsMatchIndex >= 0)
+                {
+                    // Because of Signature, other pop before Match Index could add Depth, we search for them
+                    for (int iPos = opsMatchIndex - 1; iPos >= 0; iPos--)
+                    {
+                        ope = ops[iPos];
+                        if (ope == null) break;
+                        if (ope.OriginalOPCode.ToLower() != "cc") break;
+                        opsMatchIndex--;
+                    }
+                    ope = null;
+
+                    argsStackDepth = 0;
+                    argsCount = 0;
+                    alArgs = new ArrayList();
+                    alArgsDetect = new ArrayList();
+                    for (int iPos = opsMatchIndex; iPos < ops.Length; iPos++)
+                    {
+                        ope = ops[iPos];
+                        if (ope == null) break;
+                        switch (ope.OriginalOPCode.ToLower())
+                        {
+                            case "cc":
+                                // Each pop adds a Stack Depth for CallArgumentDetection
+                                argsStackDepth++;
+                                alArgsDetect.Add(new CallArgumentDetection(argsStackDepth, ope.OriginalOpArr[ope.OriginalOpArr.Length - 1]));
+                                break;
+                            case "b2":  // ldb   RXX,[RYY++]
+                            case "be":  // ldsbw RXX,[RYY++]
+                            case "ae":  // ldzbw RXX,[RYY++]
+                                foreach (CallArgumentDetection cArgDetect in alArgsDetect)
+                                {
+                                    if (cArgDetect.StackReadRegister != string.Format("{0:x2}", Convert.ToInt32(ope.OriginalOpArr[1], 16) - 1)) continue;
+
+                                    argsCount++;
+                                    cArgDetect.CountModeOn = true;
+                                    int newOutputRegisterAddressInt = Convert.ToInt32(ope.OriginalOpArr[ope.OriginalOpArr.Length - 1], 16);
+                                    if (cArgDetect.CallArgument != null)
+                                    {
+                                        if (cArgDetect.CallArgument.OutputRegisterAddressInt + 1 == newOutputRegisterAddressInt)
+                                        {
+                                            cArgDetect.CallArgument.Word = true;
+                                            newOutputRegisterAddressInt = -1;
+                                        }
+                                        alArgs.Add(cArgDetect.CallArgument);
+                                        cArgDetect.CallArgument = null;
+                                    }
+                                    if (newOutputRegisterAddressInt >= 0) cArgDetect.CreateCallArgument(newOutputRegisterAddressInt);
+                                }
+                                break;
+                            case "c8":  // push(RXX);
+                                int iArgsDetectToRemove = -1;
+                                for (int iIndex = 0; iIndex < alArgsDetect.Count; iIndex++)
+                                {
+                                    CallArgumentDetection cArgDetect = (CallArgumentDetection)alArgsDetect[iIndex];
+                                    if (!cArgDetect.CountModeOn) continue;
+                                    if (cArgDetect.StackReadRegister != ope.OriginalOpArr[1].ToLower()) continue;
+
+                                    // Remaining Args added before removal
+                                    if (cArgDetect.CallArgument != null) alArgs.Add(cArgDetect.CallArgument);
+                                    
+                                    iArgsDetectToRemove = iIndex;
+                                    break;
+                                }
+                                if (iArgsDetectToRemove >= 0) alArgsDetect.RemoveAt(iArgsDetectToRemove);
+                                break;
+                        }
+                        ope = null;
+                        if (alArgsDetect.Count == 0) break;
+                    }
+                    // Remaining Args added before cleanup
+                    foreach (CallArgumentDetection cArgDetect in alArgsDetect)
+                    {
+                        if (cArgDetect.CallArgument != null) alArgs.Add(cArgDetect.CallArgument);
+                    }
+                    alArgsDetect = null;
+
+                    if (argsCount > 0)
+                    {
+                        cCall.ArgsStackDepthMax = argsStackDepth;
+                        cCall.ArgsType = CallArgsType.Fixed;
+                        cCall.ByteArgsNum = argsCount;
+                        if (alArgs.Count > 0)
+                        {
+                            cCall.Arguments = new CallArgument[alArgs.Count];
+                            alArgs.CopyTo(cCall.Arguments);
+                        }
+                        alArgs = null;
+                        // Args Mode Calculation
+                        identifyCallArgsMode(ref cCall, ref ops, opsMatchIndex, true);
+                        Calibration.alArgsCallsUniqueAddresses.Add(cCall.UniqueAddress);
+                        ops = null;
+                        return;
+                    }
+                    alArgs = null;
+                }
+
                 ops = null;
             }
 
@@ -3275,8 +3890,6 @@ namespace SAD806x
             cCall.ArgsType = CallArgsType.None;
             cCall.ArgsModes = null;
             cCall.Arguments = null;
-
-            Calibration.slCalls[cCall.UniqueAddress] = cCall;
         }
 
         private void identifyCallArgsMode(ref Call cCall, ref Operation[] ops, int opsMatchIndex, bool quickSearch)
@@ -4151,7 +4764,8 @@ namespace SAD806x
                     }
                     if (lastOpe.isReturn)
                     {
-                        opsResult = getPrecedingOPs(lastOpe.AddressInt, 8, 99, false, false, false, false, false, false, false, false);
+                        //opsResult = getPrecedingOPs(lastOpe.AddressInt, 8, 99, false, false, false, false, false, false, false, false);
+                        opsResult = getPrecedingOPs(lastOpe.AddressInt, 8, 0);
                         foreach (Operation ope in opsResult)
                         {
                             if (ope == null) break;
@@ -4571,8 +5185,9 @@ namespace SAD806x
                 // Parsing all Routine Inputs Outputs
                 foreach (RoutineIO ioIO in rRoutine.IOs)
                 {
-                    // 6 Ops Direct Analysis
-                    Operation[] precedingOperations = getPrecedingOPs(callOpe.AddressInt, 8, 99, false, true, false, false, false, false, false, false);
+                    // 8 Ops Direct Analysis
+                    //Operation[] precedingOperations = getPrecedingOPs(callOpe.AddressInt, 8, 99, false, true, false, false, false, false, false, false);
+                    Operation[] precedingOperations = getPrecedingOPs(callOpe.AddressInt, 8, 0);
                     foreach (Operation opResult in precedingOperations)
                     {
                         int iAddress = -1;
@@ -4582,15 +5197,15 @@ namespace SAD806x
 
                         //20180428
                         //if (opResult.TranslatedParams.Length != 2) continue;
-                        if (opResult.CalculatedParams.Length != 2) continue;
+                        if (opResult.OperationParams.Length != 2) continue;
 
                         //20180428
                         //if (opResult.TranslatedParams[opResult.TranslatedParams.Length - 1] != Tools.RegisterInstruction(ioIO.AddressRegister)) continue;
-                        if (opResult.CalculatedParams[opResult.CalculatedParams.Length - 1] != Tools.RegisterInstruction(ioIO.AddressRegister)) continue;
+                        if (opResult.OperationParams[opResult.OperationParams.Length - 1].CalculatedParam != Tools.RegisterInstruction(ioIO.AddressRegister)) continue;
 
                         //20180428
                         //try { iAddress = Convert.ToInt32(opResult.TranslatedParams[0], 16) - SADDef.EecBankStartAddress; }
-                        try { iAddress = Convert.ToInt32(opResult.CalculatedParams[0], 16) - SADDef.EecBankStartAddress; }
+                        try { iAddress = Convert.ToInt32(opResult.OperationParams[0].CalculatedParam, 16) - SADDef.EecBankStartAddress; }
                         catch { iAddress = -1; }
 
                         if (iAddress == -1) continue;
@@ -4605,14 +5220,17 @@ namespace SAD806x
                             
                             if (iAddress >= rBase.AddressBankInt && iAddress <= rBase.AddressBankEndInt)
                             {
-                                CalibrationElement calElem = new CalibrationElement(Calibration.BankNum, rBase.Code);
-                                calElem.RBaseCalc = opResult.TranslatedParams[0];
-                                calElem.AddressInt = iAddress;
-                                calElem.AddressBinInt = calElem.AddressInt + Calibration.BankAddressBinInt;
-                                if (!calElem.RelatedOpsUniqueAddresses.Contains(opResult.UniqueAddress))
+                                CalibrationElement calElem = (CalibrationElement)Calibration.slCalibrationElements[Tools.UniqueAddress(Calibration.BankNum, iAddress)];
+                                if (calElem == null)
                                 {
-                                    calElem.RelatedOpsUniqueAddresses.Add(opResult.UniqueAddress);
+                                    calElem = new CalibrationElement(Calibration.BankNum, rBase.Code);
+                                    calElem.RBaseCalc = opResult.OperationParams[0].DefaultTranslatedParam;
+                                    calElem.AddressInt = iAddress;
+                                    calElem.AddressBinInt = calElem.AddressInt + Calibration.BankAddressBinInt;
+                                    Calibration.slCalibrationElements.Add(calElem.UniqueAddress, calElem);
                                 }
+
+                                if (!calElem.RelatedOpsUniqueAddresses.Contains(opResult.UniqueAddress)) calElem.RelatedOpsUniqueAddresses.Add(opResult.UniqueAddress);
                                 if (opResult.alCalibrationElems == null) opResult.alCalibrationElems = new ArrayList();
                                 opResult.alCalibrationElems.Add(calElem);
 
@@ -4624,7 +5242,7 @@ namespace SAD806x
                                     {
                                         bool preferPrecedingProcess = true;
                                         ioTable = (RoutineIOTable)ioIO;
-                                        processCalibrationElementTable(ref calElem, ref rRoutine, ref ioTable, callOpe.AddressInt, callOpe.AddressInt, ref preferPrecedingProcess);
+                                        processCalibrationElementTable(ref calElem, ref rRoutine, ref ioTable, opResult.AddressInt, callOpe.UniqueAddress, callOpe.AddressInt, ref preferPrecedingProcess);
                                         ioTable = null;
                                     }
                                 }
@@ -4635,7 +5253,7 @@ namespace SAD806x
                                     if (!S6x.isS6xProcessTypeConflict(calElem.UniqueAddress, typeof(Function)))
                                     {
                                         ioFunction = (RoutineIOFunction)ioIO;
-                                        processCalibrationElementFunction(ref calElem, ref rRoutine, ref ioFunction, callOpe.AddressInt);
+                                        processCalibrationElementFunction(ref calElem, ref rRoutine, ref ioFunction, opResult.AddressInt, callOpe.UniqueAddress);
                                         ioFunction = null;
                                     }
                                 }
@@ -4645,7 +5263,7 @@ namespace SAD806x
                                     if (!S6x.isS6xProcessTypeConflict(calElem.UniqueAddress, typeof(Structure)))
                                     {
                                         ioStructure = (RoutineIOStructure)ioIO;
-                                        processCalibrationElementStructure(ref calElem, ref rRoutine, ref ioStructure, callOpe.AddressInt);
+                                        processCalibrationElementStructure(ref calElem, ref rRoutine, ref ioStructure, opResult.AddressInt, callOpe.UniqueAddress);
                                         ioStructure = null;
                                     }
                                 }
@@ -4655,7 +5273,7 @@ namespace SAD806x
                                     if (!S6x.isS6xProcessTypeConflict(calElem.UniqueAddress, typeof(Scalar)))
                                     {
                                         ioScalar = (RoutineIOScalar)ioIO;
-                                        processCalibrationElementScalar(ref calElem, ref rRoutine, ref ioScalar, callOpe.AddressInt);
+                                        processCalibrationElementScalar(ref calElem, ref rRoutine, ref ioScalar, opResult.AddressInt, callOpe.UniqueAddress);
                                         ioScalar = null;
                                     }
                                 }
@@ -4669,7 +5287,6 @@ namespace SAD806x
                             opResult.KnownElemAddress = string.Empty;
                             if (alPossibleOtherElemOPsUniqueAddresses.Contains(opResult.UniqueAddress)) alPossibleOtherElemOPsUniqueAddresses.Remove(opResult.UniqueAddress);
                             if (alPossibleKnownElemOPsUniqueAddresses.Contains(opResult.UniqueAddress)) alPossibleKnownElemOPsUniqueAddresses.Remove(opResult.UniqueAddress);
-                            slOPs[opResult.UniqueAddress] = opResult;
                             if (!alCalibElemOPsUniqueAddresses.Contains(opResult.UniqueAddress)) alCalibElemOPsUniqueAddresses.Add(opResult.UniqueAddress);
                             break;
                         }
@@ -4733,17 +5350,17 @@ namespace SAD806x
                             if (ope.OriginalOpArr[ope.OriginalOpArr.Length - 1] != regCpy) continue;
                             try
                             {
-                                int iTemp = Convert.ToInt32(ope.CalculatedParams[0], 16);
+                                int iTemp = Convert.ToInt32(ope.OperationParams[0].CalculatedParam, 16);
                                 rbAdderOpe = ope;
                             }
                             catch { }
                             break;
                         default:
-                            if (!regUsedAsPointer && ope.InstructedParams.Length >= 1)
+                            if (!regUsedAsPointer && ope.OperationParams.Length >= 1)
                             {
-                                if (Tools.PointerTranslation(Tools.RegisterInstruction(regCpy)) == ope.InstructedParams[0])
+                                if (Tools.PointerTranslation(Tools.RegisterInstruction(regCpy)) == ope.OperationParams[0].InstructedParam)
                                 {
-                                    object[] arrPointersValues = Tools.InstructionPointersValues(ope.InstructedParams[0]);
+                                    object[] arrPointersValues = Tools.InstructionPointersValues(ope.OperationParams[0].InstructedParam);
                                     // No Register to manage
                                     regUsedAsPointer = ((bool)arrPointersValues[0]);
                                     arrPointersValues = null;
@@ -4785,8 +5402,9 @@ namespace SAD806x
 
                 if (rbAdderOpe == null && rbOpe.OriginalOPCode.ToLower() == "64")
                 {
-                    regCpy = rbOpe.OriginalOpArr[rbOpe.OriginalOpArr.Length - 1]; 
-                    Operation[] precedingOperations = getPrecedingOPs(rbOpe.AddressInt, 8, 0, false, false, false, false, false, false, false, false);
+                    regCpy = rbOpe.OriginalOpArr[rbOpe.OriginalOpArr.Length - 1];
+                    //Operation[] precedingOperations = getPrecedingOPs(rbOpe.AddressInt, 8, 0, false, false, false, false, false, false, false, false);
+                    Operation[] precedingOperations = getPrecedingOPs(rbOpe.AddressInt, 8, 0);
                     for (int iPos = 0; iPos < precedingOperations.Length; iPos++)
                     {
                         Operation ope = precedingOperations[iPos];
@@ -4800,7 +5418,7 @@ namespace SAD806x
                                 if (ope.OriginalOpArr[ope.OriginalOpArr.Length - 1] != regCpy) continue;
                                 try
                                 {
-                                    int iTemp = Convert.ToInt32(ope.CalculatedParams[0], 16);
+                                    int iTemp = Convert.ToInt32(ope.OperationParams[0].CalculatedParam, 16);
                                     rbAdderOpe = ope;
                                 }
                                 catch { }
@@ -4817,13 +5435,19 @@ namespace SAD806x
                 if (rbAdderOpe == null) continue;
                 if (rbAdderOpe.alCalibrationElems != null) continue;
 
-                int iAddress = ((RBase)Calibration.slRbases[rbOpe.CalElemRBaseStructRBase]).AddressBankInt + Convert.ToInt32(rbAdderOpe.CalculatedParams[0], 16);
+                int iAddress = ((RBase)Calibration.slRbases[rbOpe.CalElemRBaseStructRBase]).AddressBankInt + Convert.ToInt32(rbAdderOpe.OperationParams[0].CalculatedParam, 16);
                 if (!Calibration.isCalibrationAddress(iAddress)) continue;
 
-                CalibrationElement calElem = new CalibrationElement(Calibration.BankNum, rbOpe.CalElemRBaseStructRBase);
-                calElem.AddressInt = iAddress;
-                calElem.AddressBinInt = iAddress + Calibration.BankAddressBinInt;
-                calElem.RBaseCalc = rbOpe.InstructedParams[0] + SADDef.AdditionSeparator + rbAdderOpe.CalculatedParams[0];
+                CalibrationElement calElem = (CalibrationElement)Calibration.slCalibrationElements[Tools.UniqueAddress(Calibration.BankNum, iAddress)];
+                if (calElem == null)
+                {
+                    calElem = new CalibrationElement(Calibration.BankNum, rbOpe.CalElemRBaseStructRBase);
+                    calElem.RBaseCalc = rbOpe.OperationParams[0].InstructedParam + SADDef.AdditionSeparator + rbAdderOpe.OperationParams[0].CalculatedParam;
+                    calElem.AddressInt = iAddress;
+                    calElem.AddressBinInt = iAddress + Calibration.BankAddressBinInt;
+                    Calibration.slCalibrationElements.Add(calElem.UniqueAddress, calElem);
+
+                }
                 calElem.RelatedOpsUniqueAddresses.Add(rbAdderOpe.UniqueAddress);
 
                 if (S6x.slProcessScalars.ContainsKey(calElem.UniqueAddress))
@@ -4871,10 +5495,9 @@ namespace SAD806x
                     calElem.StructureElem.StructDefString = structDef;
                 }
 
-                if (!Calibration.slCalibrationElements.ContainsKey(calElem.UniqueAddress)) Calibration.slCalibrationElements.Add(calElem.UniqueAddress, calElem);
                 if (!alCalibElemOPsUniqueAddresses.Contains(rbAdderOpe.UniqueAddress)) alCalibElemOPsUniqueAddresses.Add(rbAdderOpe.UniqueAddress);
                 rbAdderOpe.alCalibrationElems = new ArrayList();
-                rbAdderOpe.alCalibrationElems.Add(Calibration.slCalibrationElements[calElem.UniqueAddress]);
+                rbAdderOpe.alCalibrationElems.Add(calElem);
                 rbAdderOpe.CalElemRBaseStructAdder = true;
             }
         }
@@ -4911,6 +5534,8 @@ namespace SAD806x
                     }
                     else
                     {
+                        // Normally it should never be
+                        //  Addition to Operation.alCalibrationElems should always be done after creation in Calibration.slCalibrationElements
                         calibrationElem = opeCalElem;
                         bAddCalElem = true;
                     }
@@ -4963,7 +5588,7 @@ namespace SAD806x
                                                     if (S6x.isS6xProcessTypeConflict(calibrationElem.UniqueAddress, typeof(Structure))) break;
 
                                                     ioStructure = (RoutineIOStructure)ioGeneric;
-                                                    processCalibrationElementStructure(ref calibrationElem, ref rRoutine, ref ioStructure, ope.AddressInt);
+                                                    processCalibrationElementStructure(ref calibrationElem, ref rRoutine, ref ioStructure, ope.AddressInt, ope.UniqueAddress);
                                                     ioStructure = null;
                                                 }
                                                 else if (ioGeneric.GetType() == typeof(RoutineIOTable))
@@ -4971,7 +5596,7 @@ namespace SAD806x
                                                     if (S6x.isS6xProcessTypeConflict(calibrationElem.UniqueAddress, typeof(Table))) break;
 
                                                     ioTable = (RoutineIOTable)ioGeneric;
-                                                    processCalibrationElementTable(ref calibrationElem, ref rRoutine, ref ioTable, ope.AddressInt, ope.AddressInt, ref preferPrecedingProcess);
+                                                    processCalibrationElementTable(ref calibrationElem, ref rRoutine, ref ioTable, ope.AddressInt, ope.UniqueAddress, ope.AddressInt, ref preferPrecedingProcess);
                                                     ioTable = null;
                                                 }
                                                 else if (ioGeneric.GetType() == typeof(RoutineIOFunction))
@@ -4979,7 +5604,7 @@ namespace SAD806x
                                                     if (S6x.isS6xProcessTypeConflict(calibrationElem.UniqueAddress, typeof(Function))) break;
 
                                                     ioFunction = (RoutineIOFunction)ioGeneric;
-                                                    processCalibrationElementFunction(ref calibrationElem, ref rRoutine, ref ioFunction, ope.AddressInt);
+                                                    processCalibrationElementFunction(ref calibrationElem, ref rRoutine, ref ioFunction, ope.AddressInt, ope.UniqueAddress);
                                                     ioFunction = null;
                                                 }
                                                 else if (ioGeneric.GetType() == typeof(RoutineIOScalar))
@@ -4987,14 +5612,14 @@ namespace SAD806x
                                                     if (S6x.isS6xProcessTypeConflict(calibrationElem.UniqueAddress, typeof(Scalar))) break;
 
                                                     ioScalar = (RoutineIOScalar)ioGeneric;
-                                                    processCalibrationElementScalar(ref calibrationElem, ref rRoutine, ref ioScalar, ope.AddressInt);
+                                                    processCalibrationElementScalar(ref calibrationElem, ref rRoutine, ref ioScalar, ope.AddressInt, ope.UniqueAddress);
                                                     ioScalar = null;
                                                 }
                                                 else
                                                 {
                                                     if (S6x.isS6xProcessTypeConflict(calibrationElem.UniqueAddress, typeof(Scalar))) break;
 
-                                                    processCalibrationElementDefault(ref calibrationElem, ref rRoutine, ref ioGeneric, ope.AddressInt);
+                                                    processCalibrationElementDefault(ref calibrationElem, ref rRoutine, ref ioGeneric, ope.AddressInt, ope.UniqueAddress);
                                                 }
                                             }
 
@@ -5060,7 +5685,7 @@ namespace SAD806x
                                                         else
                                                         {
                                                             ioStructure = (RoutineIOStructure)ioIO;
-                                                            processCalibrationElementStructure(ref calibrationElem, ref rRoutine, ref ioStructure, followingOpResult.AddressInt);
+                                                            processCalibrationElementStructure(ref calibrationElem, ref rRoutine, ref ioStructure, ope.AddressInt, followingOpResult.UniqueAddress);
                                                             ioStructure = null;
                                                         }
                                                     }
@@ -5075,7 +5700,7 @@ namespace SAD806x
                                                             preferPrecedingProcess = (preferPrecedingProcessCount > preferFollowingProcessCount);
 
                                                             ioTable = (RoutineIOTable)ioIO;
-                                                            processCalibrationElementTable(ref calibrationElem, ref rRoutine, ref ioTable, ope.AddressInt, followingOpResult.AddressInt, ref preferPrecedingProcess);
+                                                            processCalibrationElementTable(ref calibrationElem, ref rRoutine, ref ioTable, ope.AddressInt, followingOpResult.UniqueAddress, ope.AddressInt, ref preferPrecedingProcess);
                                                             ioTable = null;
 
                                                             if (preferPrecedingProcess) preferPrecedingProcessCount++;
@@ -5091,7 +5716,7 @@ namespace SAD806x
                                                         else
                                                         {
                                                             ioFunction = (RoutineIOFunction)ioIO;
-                                                            processCalibrationElementFunction(ref calibrationElem, ref rRoutine, ref ioFunction, followingOpResult.AddressInt);
+                                                            processCalibrationElementFunction(ref calibrationElem, ref rRoutine, ref ioFunction, ope.AddressInt, followingOpResult.UniqueAddress);
                                                             ioFunction = null;
                                                         }
                                                     }
@@ -5104,14 +5729,14 @@ namespace SAD806x
                                                         else
                                                         {
                                                             ioScalar = (RoutineIOScalar)ioIO;
-                                                            processCalibrationElementScalar(ref calibrationElem, ref rRoutine, ref ioScalar, followingOpResult.AddressInt);
+                                                            processCalibrationElementScalar(ref calibrationElem, ref rRoutine, ref ioScalar, ope.AddressInt, followingOpResult.UniqueAddress);
                                                             ioScalar = null;
                                                         }
                                                     }
                                                     else
                                                     {
                                                         ioGeneric = ioIO;
-                                                        processCalibrationElementDefault(ref calibrationElem, ref rRoutine, ref ioGeneric, followingOpResult.AddressInt);
+                                                        processCalibrationElementDefault(ref calibrationElem, ref rRoutine, ref ioGeneric, ope.AddressInt, followingOpResult.UniqueAddress);
                                                         ioGeneric = null;
                                                     }
                                                     break;
@@ -5479,11 +6104,13 @@ namespace SAD806x
 
             if (foundSignature == null) return;
 
-            string foundKey = foundSignature.SignatureKey;
             foreach (S6xElementSignature elementSignature in S6x.slProcessElementsSignatures.Values)
             {
-                if (elementSignature.Skip || elementSignature.Found) continue;
-                if (foundKey == elementSignature.SignatureKey) elementSignature.Found = true;
+                if (elementSignature.Skip || elementSignature.Found || elementSignature.Ignore) continue;
+                // Set Element Signature as found, if it is the right one, it will not be processed anymore
+                if (foundSignature.UniqueKey == elementSignature.UniqueKey) elementSignature.Found = true;
+                // otherwise set Element Signature to be ignore, if it has the same Signature Key (Element Short Label), it will not be processed anymore too.
+                else if (foundSignature.SignatureKey == elementSignature.SignatureKey) elementSignature.Ignore = true;
             }
 
             if (foundSignature.Scalar != null)
@@ -5588,7 +6215,7 @@ namespace SAD806x
             foundSignature = null;
         }
 
-        private void processCalibrationElementFunction(ref CalibrationElement calibrationElem, ref Routine rRoutine, ref RoutineIOFunction ioFunction, int callOpeAddress)
+        private void processCalibrationElementFunction(ref CalibrationElement calibrationElem, ref Routine rRoutine, ref RoutineIOFunction ioFunction, int calElemOpeAddress, string callOpeUniqueAddress)
         {
             string sValue = string.Empty;
             bool updateRoutine = false;
@@ -5604,9 +6231,9 @@ namespace SAD806x
             calibrationElem.FunctionElem.ByteOutput = ioFunction.FunctionByte;
 
             RoutineCallInfoFunction ciCi = new RoutineCallInfoFunction();
-            ciCi.CalibrationElementOpeUniqueAddress = calibrationElem.RelatedOpsUniqueAddresses[calibrationElem.RelatedOpsUniqueAddresses.Count - 1].ToString();
+            ciCi.CalibrationElementOpeUniqueAddress = Tools.UniqueAddress(Num, calElemOpeAddress);
             ciCi.RoutineUniqueAddress = rRoutine.UniqueAddress;
-            ciCi.RoutineCallOpeUniqueAddress = Tools.UniqueAddress(Num, callOpeAddress);
+            ciCi.RoutineCallOpeUniqueAddress = callOpeUniqueAddress;
             ciCi.RoutineInputOutput = ioFunction;
             calibrationElem.FunctionElem.RoutinesCallsInfos.Add(ciCi);
             if (!slRoutineOPsCalibElemUniqueAddresses.ContainsKey(ciCi.RoutineCallOpeUniqueAddress))
@@ -5661,7 +6288,7 @@ namespace SAD806x
             }
         }
 
-        private void processCalibrationElementTable(ref CalibrationElement calibrationElem, ref Routine rRoutine, ref RoutineIOTable ioTable, int opeAddress, int callOpeAddress, ref bool preferPrecedingProcess)
+        private void processCalibrationElementTable(ref CalibrationElement calibrationElem, ref Routine rRoutine, ref RoutineIOTable ioTable, int calElemOpeAddress, string callOpeUniqueAddress, int searchOpeStartAddress, ref bool preferPrecedingProcess)
         {
             Operation[] adjacentOperations = null;
             bool processPrecedingOperations = false;
@@ -5680,9 +6307,9 @@ namespace SAD806x
             else calibrationElem.TableElem.SignedOutput = false; // Defaulted to Unsigned if not previously identified
 
             RoutineCallInfoTable ciCi = new RoutineCallInfoTable();
-            ciCi.CalibrationElementOpeUniqueAddress = calibrationElem.RelatedOpsUniqueAddresses[calibrationElem.RelatedOpsUniqueAddresses.Count - 1].ToString();
+            ciCi.CalibrationElementOpeUniqueAddress = Tools.UniqueAddress(Num, calElemOpeAddress);
             ciCi.RoutineUniqueAddress = rRoutine.UniqueAddress;
-            ciCi.RoutineCallOpeUniqueAddress = Tools.UniqueAddress(Num, callOpeAddress);
+            ciCi.RoutineCallOpeUniqueAddress = callOpeUniqueAddress;
             ciCi.RoutineInputOutput = ioTable;
             calibrationElem.TableElem.RoutinesCallsInfos.Add(ciCi);
             if (!slRoutineOPsCalibElemUniqueAddresses.ContainsKey(ciCi.RoutineCallOpeUniqueAddress))
@@ -5719,48 +6346,48 @@ namespace SAD806x
                     processPrecedingOperations = !precedingOperationsProcessed;
                 }
 
-                if (processPrecedingOperations) adjacentOperations = getPrecedingOPs(opeAddress, 16, 99, true, true, true, true, true, true, true, true);
-                else adjacentOperations = getFollowingOPs(opeAddress, 16, 99, true, true, true, true, true, true, true, true);
+                //if (processPrecedingOperations) adjacentOperations = getPrecedingOPs(searchOpeStartAddress, 16, 99, true, true, true, true, true, true, true, true);
+                // 20200515 - PYM
+                // Now managing 1 Call Sub Level in processPrecedingOperations mode
+                if (processPrecedingOperations) adjacentOperations = getPrecedingOPs(searchOpeStartAddress, 16, 1);
+                else adjacentOperations = getFollowingOPs(searchOpeStartAddress, 16, 99, true, true, true, true, true, true, true, true);
                 
                 foreach (Operation opResult in adjacentOperations)
                 {
-                    if (opResult != null)
-                    {
-                        // First Ope in Preceding Mode is always the Original Ope Address, no interest
-                        if (opResult.AddressInt != opeAddress)
-                        {
-                            // Break Conditions
-                            // Same Routine Type between Table Address and Col Number Address => Break
-                            if (opResult.CallType == CallType.Call || opResult.CallType == CallType.ShortCall)
-                            {
-                                if (Calibration.slRoutines.ContainsKey(Tools.UniqueAddress(opResult.ApplyOnBankNum, opResult.AddressJumpInt)))
-                                {
-                                    if (((Routine)Calibration.slRoutines[Tools.UniqueAddress(opResult.ApplyOnBankNum, opResult.AddressJumpInt)]).Type == RoutineType.TableByte) break;
-                                    if (((Routine)Calibration.slRoutines[Tools.UniqueAddress(opResult.ApplyOnBankNum, opResult.AddressJumpInt)]).Type == RoutineType.TableWord) break;
-                                }
-                            }
+                    if (opResult == null) continue;
+                    // First Ope in Preceding Mode is always the Original Ope Address, no interest
+                    if (opResult.AddressInt == searchOpeStartAddress) continue;
 
-                            // Col Number Register Identification
-                            if (opResult.InstructedParams.Length == 2)
-                            {
-                                switch (opResult.OriginalInstruction.ToLower())
-                                {
-                                    case "ldb":
-                                    case "ldw":
-                                    case "ldzbw":
-                                        if (opResult.InstructedParams[1] == SADDef.ShortRegisterPrefix + ioTable.TableColNumberRegister)
-                                        {
-                                            // Prevent converting a register to a number
-                                            try { calibrationElem.TableElem.ColsNumber = Convert.ToInt32(opResult.InstructedParams[0], 16); }
-                                            catch { }
-                                            break;
-                                        }
-                                        break;
-                                }
-                                if (calibrationElem.TableElem.ColsNumber > 64) calibrationElem.TableElem.ColsNumber = 0;
-                                if (calibrationElem.TableElem.ColsNumber > 0) break;
-                            }
+                    // Break Conditions
+                    // Same Routine Type between Table Address and Col Number Address => Break
+                    if (opResult.CallType == CallType.Call || opResult.CallType == CallType.ShortCall)
+                    {
+                        if (Calibration.slRoutines.ContainsKey(Tools.UniqueAddress(opResult.ApplyOnBankNum, opResult.AddressJumpInt)))
+                        {
+                            if (((Routine)Calibration.slRoutines[Tools.UniqueAddress(opResult.ApplyOnBankNum, opResult.AddressJumpInt)]).Type == RoutineType.TableByte) break;
+                            if (((Routine)Calibration.slRoutines[Tools.UniqueAddress(opResult.ApplyOnBankNum, opResult.AddressJumpInt)]).Type == RoutineType.TableWord) break;
                         }
+                    }
+
+                    // Col Number Register Identification
+                    if (opResult.OperationParams.Length == 2)
+                    {
+                        switch (opResult.OriginalInstruction.ToLower())
+                        {
+                            case "ldb":
+                            case "ldw":
+                            case "ldzbw":
+                                if (opResult.OperationParams[1].InstructedParam == SADDef.ShortRegisterPrefix + ioTable.TableColNumberRegister)
+                                {
+                                    // Prevent converting a register to a number
+                                    try { calibrationElem.TableElem.ColsNumber = Convert.ToInt32(opResult.OperationParams[0].InstructedParam, 16); }
+                                    catch { }
+                                    break;
+                                }
+                                break;
+                        }
+                        if (calibrationElem.TableElem.ColsNumber > 64) calibrationElem.TableElem.ColsNumber = 0;
+                        if (calibrationElem.TableElem.ColsNumber > 0) break;
                     }
                 }
                 adjacentOperations = null;
@@ -5776,7 +6403,7 @@ namespace SAD806x
             }
         }
 
-        private void processCalibrationElementStructure(ref CalibrationElement calibrationElem, ref Routine rRoutine, ref RoutineIOStructure ioStructure, int callOpeAddress)
+        private void processCalibrationElementStructure(ref CalibrationElement calibrationElem, ref Routine rRoutine, ref RoutineIOStructure ioStructure, int calElemOpeAddress, string callOpeUniqueAddress)
         {
             calibrationElem.StructureElem = new Structure();
             calibrationElem.StructureElem.BankNum = calibrationElem.BankNum;
@@ -5786,9 +6413,9 @@ namespace SAD806x
             calibrationElem.StructureElem.RBaseCalc = calibrationElem.RBaseCalc;
 
             RoutineCallInfoStructure ciCi = new RoutineCallInfoStructure();
-            ciCi.CalibrationElementOpeUniqueAddress = calibrationElem.RelatedOpsUniqueAddresses[calibrationElem.RelatedOpsUniqueAddresses.Count - 1].ToString();
+            ciCi.CalibrationElementOpeUniqueAddress = Tools.UniqueAddress(Num, calElemOpeAddress);
             ciCi.RoutineUniqueAddress = rRoutine.UniqueAddress;
-            ciCi.RoutineCallOpeUniqueAddress = Tools.UniqueAddress(Num, callOpeAddress);
+            ciCi.RoutineCallOpeUniqueAddress = callOpeUniqueAddress;
             ciCi.RoutineInputOutput = ioStructure;
             calibrationElem.StructureElem.RoutinesCallsInfos.Add(ciCi);
             if (!slRoutineOPsCalibElemUniqueAddresses.ContainsKey(ciCi.RoutineCallOpeUniqueAddress))
@@ -5816,7 +6443,7 @@ namespace SAD806x
             }
         }
 
-        private void processCalibrationElementScalar(ref CalibrationElement calibrationElem, ref Routine rRoutine, ref RoutineIOScalar ioScalar, int callOpeAddress)
+        private void processCalibrationElementScalar(ref CalibrationElement calibrationElem, ref Routine rRoutine, ref RoutineIOScalar ioScalar, int calElemOpeAddress, string callOpeUniqueAddress)
         {
             Operation[] followingOperations = null;
 
@@ -5828,9 +6455,9 @@ namespace SAD806x
             calibrationElem.ScalarElem.RBaseCalc = calibrationElem.RBaseCalc;
 
             RoutineCallInfoScalar ciCi = new RoutineCallInfoScalar();
-            ciCi.CalibrationElementOpeUniqueAddress = calibrationElem.RelatedOpsUniqueAddresses[calibrationElem.RelatedOpsUniqueAddresses.Count - 1].ToString();
+            ciCi.CalibrationElementOpeUniqueAddress = Tools.UniqueAddress(Num, calElemOpeAddress);
             ciCi.RoutineUniqueAddress = rRoutine.UniqueAddress;
-            ciCi.RoutineCallOpeUniqueAddress = Tools.UniqueAddress(Num, callOpeAddress);
+            ciCi.RoutineCallOpeUniqueAddress = callOpeUniqueAddress;
             ciCi.RoutineInputOutput = ioScalar;
             calibrationElem.ScalarElem.RoutinesCallsInfos.Add(ciCi);
             if (!slRoutineOPsCalibElemUniqueAddresses.ContainsKey(ciCi.RoutineCallOpeUniqueAddress))
@@ -5863,9 +6490,9 @@ namespace SAD806x
                 if (ope == null) break;
                 if (ope.isReturn) break;
 
-                for (int instructedParam = 0; instructedParam < ope.InstructedParams.Length; instructedParam++)
+                for (int instructedParam = 0; instructedParam < ope.OperationParams.Length; instructedParam++)
                 {
-                    if (ope.InstructedParams[instructedParam] == Tools.PointerTranslation(Tools.RegisterInstruction(ioScalar.AddressRegister)) && instructedParam < ope.InstructedParams.Length - 1)
+                    if (ope.OperationParams[instructedParam].InstructedParam == Tools.PointerTranslation(Tools.RegisterInstruction(ioScalar.AddressRegister)) && instructedParam < ope.OperationParams.Length - 1)
                     // Element Address Pointer is Accessed to read it only
                     // A Scalar is now created based on Operation Type
                     {
@@ -5930,12 +6557,12 @@ namespace SAD806x
 
         // Process Calibration Element related with Other Routine
         //  Tables, Functions, Structures are already managed, it is a Scalar
-        private void processCalibrationElementDefault(ref CalibrationElement calibrationElem, ref Routine rRoutine, ref RoutineIO ioGeneric, int callOpeAddress)
+        private void processCalibrationElementDefault(ref CalibrationElement calibrationElem, ref Routine rRoutine, ref RoutineIO ioGeneric, int calElemOpe, string callOpeUniqueAddress)
         {
             RoutineIOScalar ioScalar = new RoutineIOScalar();
             ioScalar.AddressRegister = ioGeneric.AddressRegister;
-            
-            processCalibrationElementScalar(ref calibrationElem, ref rRoutine, ref ioScalar, callOpeAddress);
+
+            processCalibrationElementScalar(ref calibrationElem, ref rRoutine, ref ioScalar, calElemOpe, callOpeUniqueAddress);
 
             ioScalar = null;
         }
@@ -5952,8 +6579,8 @@ namespace SAD806x
             if (!calibrationElem.isScalar) return;
 
             // Cal Elem is a pointer for address check - Otherwise it should be a structure, not the right place here
-            if (calOpe.InstructedParams.Length < 2) return;
-            if (!calOpe.InstructedParams[0].Contains(SADDef.LongRegisterPointerPrefix)) return;
+            if (calOpe.OperationParams.Length < 2) return;
+            if (!calOpe.OperationParams[0].InstructedParam.Contains(SADDef.LongRegisterPointerPrefix)) return;
 
             // Cmpw / Cmpb case, current ope gives the type, next ope gives the sign, it is enough
             if (calOpe.OriginalInstruction.ToLower() == "cmpw" || calOpe.OriginalInstruction.ToLower() == "cmpb")
@@ -5996,7 +6623,7 @@ namespace SAD806x
             }
 
             // Register Copy to continue
-            arrPointersValues = Tools.InstructionPointersValues(calOpe.InstructedParams[calOpe.InstructedParams.Length - 1]);
+            arrPointersValues = Tools.InstructionPointersValues(calOpe.OperationParams[calOpe.OperationParams.Length - 1].InstructedParam);
             // No Register to manage
             if (!(bool)arrPointersValues[0]) return;
             if (arrPointersValues.Length > 3) return;
@@ -6018,16 +6645,16 @@ namespace SAD806x
                 if (ope == null) break;
                 if (ope.isReturn) break;
 
-                for (int instructedParam = 0; instructedParam < ope.InstructedParams.Length; instructedParam++)
+                for (int instructedParam = 0; instructedParam < ope.OperationParams.Length; instructedParam++)
                 {
-                    if ((ope.InstructedParams[instructedParam].Contains(Tools.RegisterInstruction(regCpy)) || ope.InstructedParams[instructedParam].Contains(Tools.RegisterInstruction(regCpyTopByte))) && instructedParam < ope.InstructedParams.Length - 1)
+                    if ((ope.OperationParams[instructedParam].InstructedParam.Contains(Tools.RegisterInstruction(regCpy)) || ope.OperationParams[instructedParam].InstructedParam.Contains(Tools.RegisterInstruction(regCpyTopByte))) && instructedParam < ope.OperationParams.Length - 1)
                     // Register is used
                     {
                         bool isWord = false;
                         bool isSigned = false;
 
                         SADOPCode opCode = (SADOPCode)Calibration.slOPCodes[ope.OriginalOPCode];
-                        if (ope.InstructedParams[instructedParam].Contains(Tools.RegisterInstruction(regCpyTopByte)))
+                        if (ope.OperationParams[instructedParam].InstructedParam.Contains(Tools.RegisterInstruction(regCpyTopByte)))
                         {
                             isWord = true;
                         }
@@ -6196,7 +6823,7 @@ namespace SAD806x
                                 if (!S6x.isS6xProcessTypeConflict(calElem.UniqueAddress, typeof(Structure)))
                                 {
                                     ioStructure = (RoutineIOStructure)ioIO;
-                                    processCalibrationElementStructure(ref calElem, ref rRoutine, ref ioStructure, ope.AddressInt);
+                                    processCalibrationElementStructure(ref calElem, ref rRoutine, ref ioStructure, calOpe.AddressInt, ope.UniqueAddress);
                                     ioStructure = null;
                                 }
                                 alCompatibleRoutines = null;
@@ -6219,7 +6846,7 @@ namespace SAD806x
                                 if (!S6x.isS6xProcessTypeConflict(calElem.UniqueAddress, typeof(Function)))
                                 {
                                     ioFunction = (RoutineIOFunction)ioIO;
-                                    processCalibrationElementFunction(ref calElem, ref rRoutine, ref ioFunction, ope.AddressInt);
+                                    processCalibrationElementFunction(ref calElem, ref rRoutine, ref ioFunction, calOpe.AddressInt, ope.UniqueAddress);
                                     ioFunction = null;
                                 }
                                 alCompatibleRoutines = null;
@@ -6233,7 +6860,7 @@ namespace SAD806x
                                 if (!S6x.isS6xProcessTypeConflict(calElem.UniqueAddress, typeof(Scalar)))
                                 {
                                     ioScalar = (RoutineIOScalar)ioIO;
-                                    processCalibrationElementScalar(ref calElem, ref rRoutine, ref ioScalar, ope.AddressInt);
+                                    processCalibrationElementScalar(ref calElem, ref rRoutine, ref ioScalar, calOpe.AddressInt, ope.UniqueAddress);
                                     ioScalar = null;
                                 }
                                 alCompatibleRoutines = null;
@@ -6247,7 +6874,7 @@ namespace SAD806x
                                 if (!S6x.isS6xProcessTypeConflict(calElem.UniqueAddress, typeof(Scalar)))
                                 {
                                     ioGeneric = ioIO;
-                                    processCalibrationElementDefault(ref calElem, ref rRoutine, ref ioGeneric, ope.AddressInt);
+                                    processCalibrationElementDefault(ref calElem, ref rRoutine, ref ioGeneric, calOpe.AddressInt, ope.UniqueAddress);
                                     ioGeneric = null;
                                 }
                                 alCompatibleRoutines = null;
@@ -6320,11 +6947,11 @@ namespace SAD806x
                     if (ope == null) break;
 
                     // Col Number Register Identification
-                    if (ope.InstructedParams.Length == 2)
+                    if (ope.OperationParams.Length == 2)
                     {
-                        if (ope.InstructedParams[1] == regCpy)
+                        if (ope.OperationParams[1].InstructedParam == regCpy)
                         {
-                            regCpy = ope.InstructedParams[0]; // Changing Cols Number register, Including ShortRegisterPrefix for next searches
+                            regCpy = ope.OperationParams[0].InstructedParam; // Changing Cols Number register, Including ShortRegisterPrefix for next searches
                             if (!regCpy.StartsWith(SADDef.ShortRegisterPrefix)) // Else Cols Number is in a register, value has to be found previously
                             // Cols Number is directly available
                             {
@@ -6338,18 +6965,19 @@ namespace SAD806x
                 }
 
                 // Last Chance when not Found, searching before Calibration Element Operation
-                precedingTableOperations = getPrecedingOPs(calOpe.AddressInt, 8, 99, false, true, false, false, false, false, false, false);
+                //precedingTableOperations = getPrecedingOPs(calOpe.AddressInt, 8, 99, false, true, false, false, false, false, false, false);
+                precedingTableOperations = getPrecedingOPs(calOpe.AddressInt, 8, 0);
                 for (int iPos = 0; iPos < precedingTableOperations.Length; iPos++)
                 {
                     ope = precedingTableOperations[iPos];
                     if (ope == null) break;
 
                     // Col Number Register Identification
-                    if (ope.InstructedParams.Length == 2)
+                    if (ope.OperationParams.Length == 2)
                     {
-                        if (ope.InstructedParams[1] == regCpy)
+                        if (ope.OperationParams[1].InstructedParam == regCpy)
                         {
-                            regCpy = ope.InstructedParams[0]; // Changing Cols Number register, Including ShortRegisterPrefix for next searches
+                            regCpy = ope.OperationParams[0].InstructedParam; // Changing Cols Number register, Including ShortRegisterPrefix for next searches
                             if (!regCpy.StartsWith(SADDef.ShortRegisterPrefix)) // Else Cols Number is in a register, value has to be found previously
                             // Cols Number is directly available
                             {
@@ -6409,7 +7037,6 @@ namespace SAD806x
                             }
 
                             processCalibrationElementsRegistersTable(ref calElem.TableElem);
-                            Calibration.slCalibrationElements[calElem.UniqueAddress] = calElem;
                         }
                         else if (calElem.isFunction)
                         {
@@ -6436,7 +7063,6 @@ namespace SAD806x
                             }
 
                             processCalibrationElementsRegistersFunction(ref calElem.FunctionElem);
-                            Calibration.slCalibrationElements[calElem.UniqueAddress] = calElem;
                         }
                     }
                     calElem = null;
@@ -6445,13 +7071,18 @@ namespace SAD806x
             }
         }
 
+        // processCalibrationElementsRegistersFunction
+        //      To analyse input/output registers around functions
+        //      Base for detecting scalers and other registers
+        //      20200512 - PYM - Reviewed to better manage RegCpy vs RegByteCpy
         public void processCalibrationElementsRegistersFunction(ref Function function)
         {
             Operation[] adjacentOperations = null;
             string regCpy = string.Empty;
             string regByteCpy = string.Empty;
-            bool validReg1 = false;
-            bool validReg2 = false;
+            int regInt = -1;
+            int cmpIndex = -1;
+            int cpyIndex = -1;
             int minRegAdr = 0;
             int maxRegAdr = 0;
 
@@ -6538,31 +7169,44 @@ namespace SAD806x
                 
                 if (callOpe != null && rRoutine != null)
                 {
-                    adjacentOperations = getPrecedingOPs(callOpe.AddressInt, 16, 99, true, true, true, true, true, true, true, true);
+                    //adjacentOperations = getPrecedingOPs(callOpe.AddressInt, 16, 99, true, true, true, true, true, true, true, true);
+                    adjacentOperations = getPrecedingOPs(callOpe.AddressInt, 16, 0);
                     regCpy = SADDef.ShortRegisterPrefix + ioFunction.FunctionInputRegister;
+                    regByteCpy = "RXX";
+                    if (!ioFunction.FunctionByte)
+                    {
+                        regInt = Tools.InstructionRegisterAddress(regCpy);
+                        if (regInt >= 0) regByteCpy = Tools.RegisterInstruction(string.Format("{0:x2}", regInt + 1));
+                    }
                     foreach (Operation prevOpe in adjacentOperations)
                     {
                         if (prevOpe != null)
                         {
                             // Initial Call with Args (FuncAdr,RXX) 2 translated parameters
-                            if (prevOpe.AddressInt == callOpe.AddressInt && callOpe.CallArgsTranslatedArr.Length >= 2)
+                            if (prevOpe.AddressInt == callOpe.AddressInt && callOpe.CallArgsParams.Length > 0)
                             {
-                                regCpy = callOpe.CallArgsTranslatedArr[callOpe.CallArgsTranslatedArr.Length - 1];
-                                if (regCpy.StartsWith(SADDef.ShortRegisterPrefix))
-                                // Could be the right Input Register or a Copy
+                                foreach (CallArgument cArg in callOpe.CallArguments)
                                 {
-                                    try
+                                    if (regCpy == Tools.RegisterInstruction(cArg.OutputRegisterAddress))
                                     {
-                                        // Below R20 and Over R60 we consider it is the right Register
-                                        if (Convert.ToInt32(regCpy.Substring(1).Replace(SADDef.AdditionSeparator + "0", ""), 16) >= maxRegAdr) ciCi.InputRegister = regCpy;
-                                        else if (Convert.ToInt32(regCpy.Substring(1).Replace(SADDef.AdditionSeparator + "0", ""), 16) <= minRegAdr) ciCi.InputRegister = regCpy;
+                                        if (cArg.DecryptedValueInt % 2 == 0)
+                                        {
+                                            regCpy = Tools.RegisterInstruction(cArg.DecryptedValue);
+                                            regByteCpy = Tools.RegisterInstruction(string.Format("{0:x2}", cArg.DecryptedValueInt + 1));
+                                        }
+                                        else
+                                        {
+                                            regCpy = Tools.RegisterInstruction(string.Format("{0:x2}", cArg.DecryptedValueInt - 1));
+                                            regByteCpy = Tools.RegisterInstruction(cArg.DecryptedValue);
+                                        }
+
+                                        // Could be the right Input Register or a Copy
+                                        if (cArg.DecryptedValueInt < SADDef.EecBankStartAddress)
+                                        {
+                                            if (cArg.DecryptedValueInt <= minRegAdr || cArg.DecryptedValueInt >= maxRegAdr) ciCi.InputRegister = regCpy;
+                                        }
+                                        break;
                                     }
-                                    catch { }
-                                }
-                                else if (regCpy.StartsWith(SADDef.LongRegisterPointerPrefix))
-                                // Should be the right Input Register
-                                {
-                                    ciCi.InputRegister = regCpy;
                                 }
                             }
                             else if (prevOpe.AddressInt != callOpe.AddressInt)
@@ -6579,68 +7223,62 @@ namespace SAD806x
                             }
 
                             // Input Register Identification
-                            switch (prevOpe.OriginalInstruction.ToLower())
+                            if (ciCi.InputRegister == string.Empty)
                             {
-                                case "ldw":
-                                case "ldzbw":
-                                case "ldsbw":
-                                case "ldb":
-                                case "ad2w":
-                                case "ad2b":
-                                case "ad3w":
-                                case "ad3b":
-                                    //20180428
-                                    //if (prevOpe.TranslatedParams[prevOpe.TranslatedParams.Length - 1] == regCpy)
-                                    if (prevOpe.CalculatedParams[prevOpe.CalculatedParams.Length - 1] == regCpy)
-                                    {
-                                        //20180428
-                                        //regCpy = prevOpe.TranslatedParams[0]; // Changing register, Including ShortRegisterPrefix for next searches
-                                        regCpy = prevOpe.CalculatedParams[0]; // Changing register, Including ShortRegisterPrefix for next searches
-                                        if (regCpy.StartsWith(SADDef.ShortRegisterPrefix))
-                                        // Could be the right Input Register or a Copy
+                                switch (prevOpe.OriginalInstruction.ToLower())
+                                {
+                                    case "ldw":
+                                    case "ldzbw":
+                                    case "ldsbw":
+                                    case "ldb":
+                                    case "ad2w":
+                                    case "ad2b":
+                                    case "ad3w":
+                                    case "ad3b":
+                                    case "stw":
+                                    case "stb":
+                                        if (prevOpe.OriginalInstruction.ToLower() == "stw" || prevOpe.OriginalInstruction.ToLower() == "stb")
                                         {
-                                            try
+                                            cmpIndex = 0;
+                                            cpyIndex = prevOpe.OperationParams.Length - 1;
+                                        }
+                                        else
+                                        {
+                                            cmpIndex = prevOpe.OperationParams.Length - 1;
+                                            cpyIndex = 0;
+                                        }
+                                        if (prevOpe.OperationParams[cmpIndex].CalculatedParam == regCpy)
+                                        {
+                                            // Changing register, Including ShortRegisterPrefix for next searches
+                                            regInt = Tools.InstructionRegisterAddress(prevOpe.OperationParams[cpyIndex].CalculatedParam);
+                                            if (regInt >= 0)
                                             {
-                                                // Below R20 and Over R60 we consider it is the right Register
-                                                if (Convert.ToInt32(regCpy.Substring(1).Replace(SADDef.AdditionSeparator + "0", ""), 16) >= maxRegAdr) ciCi.InputRegister = regCpy;
-                                                else if (Convert.ToInt32(regCpy.Substring(1).Replace(SADDef.AdditionSeparator + "0", ""), 16) <= minRegAdr) ciCi.InputRegister = regCpy;
+                                                regCpy = Tools.RegisterInstruction(string.Format("{0:x2}", regInt));
+                                                if (!ioFunction.FunctionByte) regByteCpy = Tools.RegisterInstruction(string.Format("{0:x2}", regInt + 1));
+                                                // Could be the right Input Register or a Copy
+                                                if (regInt < SADDef.EecBankStartAddress)
+                                                {
+                                                    if (regInt <= minRegAdr || regInt >= maxRegAdr) ciCi.InputRegister = regCpy;
+                                                }
                                             }
-                                            catch { }
                                         }
-                                        else if (regCpy.StartsWith(SADDef.LongRegisterPointerPrefix))
-                                        // Should be the right Input Register
+                                        else if (prevOpe.OperationParams[cmpIndex].CalculatedParam == regByteCpy)
                                         {
-                                            ciCi.InputRegister = regCpy;
-                                        }
-                                    }
-                                    break;
-                                case "stw":
-                                case "stb":
-                                    //20180428
-                                    //if (prevOpe.TranslatedParams[0] == regCpy)
-                                    if (prevOpe.CalculatedParams[0] == regCpy)
-                                    {
-                                        //20180428
-                                        //regCpy = prevOpe.TranslatedParams[prevOpe.TranslatedParams.Length - 1]; // Changing register, Including ShortRegisterPrefix for next searches
-                                        regCpy = prevOpe.CalculatedParams[prevOpe.CalculatedParams.Length - 1]; // Changing register, Including ShortRegisterPrefix for next searches
-                                        if (regCpy.StartsWith(SADDef.ShortRegisterPrefix))
-                                        // Could be the right Input Register or a Copy
-                                        {
-                                            try
+                                            // Changing register, Including ShortRegisterPrefix for next searches
+                                            regInt = Tools.InstructionRegisterAddress(prevOpe.OperationParams[cpyIndex].CalculatedParam);
+                                            if (regInt >= 0)
                                             {
-                                                // Below R20 and Over R60 we consider it is the right Register
-                                                if (Convert.ToInt32(regCpy.Substring(1).Replace(SADDef.AdditionSeparator + "0", ""), 16) >= maxRegAdr) ciCi.InputRegister = regCpy;
-                                                else if (Convert.ToInt32(regCpy.Substring(1).Replace(SADDef.AdditionSeparator + "0", ""), 16) <= minRegAdr) ciCi.InputRegister = regCpy;
+                                                regByteCpy = Tools.RegisterInstruction(string.Format("{0:x2}", regInt));
+                                                regCpy = Tools.RegisterInstruction(string.Format("{0:x2}", regInt - 1));
+                                                // Could be the right Input Register or a Copy
+                                                if (regInt < SADDef.EecBankStartAddress)
+                                                {
+                                                    if (regInt <= minRegAdr || regInt >= maxRegAdr) ciCi.InputRegister = regByteCpy;
+                                                }
                                             }
-                                            catch { }
                                         }
-                                        else if (regCpy.StartsWith(SADDef.LongRegisterPointerPrefix))
-                                        // Should be the right Input Register
-                                        {
-                                            ciCi.InputRegister = regCpy;
-                                        }
-                                    }
-                                    break;
+                                        break;
+                                }
                             }
 
                             if (ciCi.InputRegister != string.Empty)
@@ -6650,20 +7288,15 @@ namespace SAD806x
                                 if (ciCi.InputRegister.Contains(SADDef.AdditionSeparator))
                                 {
                                     // [Rdc+5b] for example
-                                    break;
+                                    // It is OK
                                 }
                                 else
                                 {
-                                    try
-                                    {
-                                        ciCi.InputRegister = Convert.ToString(Convert.ToInt32(ciCi.InputRegister, 16), 16);
-                                        break;
-                                    }
-                                    catch
-                                    {
-                                        ciCi.InputRegister = string.Empty;
-                                    }
+                                    regInt = Tools.InstructionRegisterAddress(ciCi.InputRegister);
+                                    ciCi.InputRegister = string.Empty;
+                                    if (regInt >= 0) ciCi.InputRegister = Convert.ToString(regInt, 16);
                                 }
+                                if (ciCi.InputRegister != string.Empty) break;
                             }
                         }
                     }
@@ -6672,10 +7305,12 @@ namespace SAD806x
                     // Output Register Detection - After Routine Call
                     adjacentOperations = getFollowingOPs(callOpe.AddressNextInt, 8, 99, true, true, true, true, true, true, true, true);
                     regCpy = SADDef.ShortRegisterPrefix + ioFunction.OutputRegister;
-                    try { regByteCpy = SADDef.ShortRegisterPrefix + Convert.ToString(Convert.ToInt32(ioFunction.OutputRegister, 16) + 1, 16); }
-                    catch { regByteCpy = "RXX"; }
-                    validReg1 = false;
-                    validReg2 = false;
+                    regByteCpy = "RXX";
+                    if (!ioFunction.FunctionByte)
+                    {
+                        regInt = Tools.InstructionRegisterAddress(regCpy);
+                        if (regInt >= 0) regByteCpy = Tools.RegisterInstruction(string.Format("{0:x2}", regInt + 1));
+                    }
 
                     foreach (Operation postOpe in adjacentOperations)
                     {
@@ -6695,172 +7330,119 @@ namespace SAD806x
                             switch (postOpe.OriginalInstruction.ToLower())
                             {
                                 case "ldb":
-                                case "ldw":
                                 case "ldzbw":
                                 case "ldsbw":
-                                    //20180428
-                                    //if (postOpe.TranslatedParams[0] == regCpy)
-                                    if (postOpe.CalculatedParams[0] == regCpy)
+                                case "stb":
+                                    // Only OutputRegister or Only OutputRegisterByte is changed
+                                    if (postOpe.OriginalInstruction.ToLower() == "stb")
+                                    {
+                                        cmpIndex = postOpe.OperationParams.Length - 1;
+                                        cpyIndex = 0;
+                                    }
+                                    else
+                                    {
+                                        cmpIndex = 0;
+                                        cpyIndex = postOpe.OperationParams.Length - 1;
+                                    }
+                                    if (postOpe.OperationParams[cmpIndex].CalculatedParam == regCpy)
                                     {
                                         if (postOpe.OriginalInstruction.ToLower() == "ldsbw") ciCi.OutputRegisterSigned = true;
 
-                                        //20180428
-                                        //regCpy = postOpe.TranslatedParams[postOpe.TranslatedParams.Length - 1]; // Changing register, Including ShortRegisterPrefix for next searches
-                                        regCpy = postOpe.CalculatedParams[postOpe.CalculatedParams.Length - 1]; // Changing register, Including ShortRegisterPrefix for next searches
-                                        if (regCpy.StartsWith(SADDef.ShortRegisterPrefix))
-                                        // Could be the right Input Register or a Copy
+                                        // Changing register, Including ShortRegisterPrefix for next searches
+                                        regInt = Tools.InstructionRegisterAddress(postOpe.OperationParams[cpyIndex].CalculatedParam);
+                                        if (regInt >= 0)
                                         {
-                                            try
+                                            regCpy = Tools.RegisterInstruction(string.Format("{0:x2}", regInt));
+                                            // Could be the right Output Register or a Copy
+                                            if (regInt < SADDef.EecBankStartAddress)
                                             {
-                                                // Below R20 and Over R60 we consider it is the right Register
-                                                if (Convert.ToInt32(regCpy.Substring(1).Replace(SADDef.AdditionSeparator + "0", ""), 16) >= maxRegAdr) ciCi.OutputRegister = regCpy;
-                                                else if (Convert.ToInt32(regCpy.Substring(1).Replace(SADDef.AdditionSeparator + "0", ""), 16) <= minRegAdr) ciCi.OutputRegister = regCpy;
+                                                if (regInt <= minRegAdr || regInt >= maxRegAdr) ciCi.OutputRegister = regCpy;
                                             }
-                                            catch { }
                                         }
-                                        else if (regCpy.StartsWith(SADDef.LongRegisterPointerPrefix))
-                                        // Should be the right Input Register
+                                    }
+                                    else if (postOpe.OperationParams[cmpIndex].CalculatedParam == regByteCpy)
+                                    {
+                                        // Changing register, Including ShortRegisterPrefix for next searches
+                                        regInt = Tools.InstructionRegisterAddress(postOpe.OperationParams[cpyIndex].CalculatedParam);
+                                        if (regInt >= 0)
                                         {
-                                            ciCi.OutputRegister = regCpy;
+                                            regByteCpy = Tools.RegisterInstruction(string.Format("{0:x2}", regInt));
+                                            // Could be the right Input Register or a Copy
+                                            if (regInt < SADDef.EecBankStartAddress)
+                                            {
+                                                if (regInt <= minRegAdr || regInt >= maxRegAdr) ciCi.OutputRegisterByte = regByteCpy;
+                                            }
                                         }
                                     }
                                     break;
+                                case "ldw":
                                 case "stw":
-                                case "stb":
-                                    //20180428
-                                    //if (postOpe.TranslatedParams[postOpe.TranslatedParams.Length - 1] == regCpy)
-                                    if (postOpe.CalculatedParams[postOpe.CalculatedParams.Length - 1] == regCpy)
+                                    // OutputRegister and OutputRegisterByte are changed
+                                    if (postOpe.OriginalInstruction.ToLower() == "stw")
                                     {
-                                        //20180428
-                                        //regCpy = postOpe.TranslatedParams[0]; // Changing register, Including ShortRegisterPrefix for next searches
-                                        regCpy = postOpe.CalculatedParams[0]; // Changing register, Including ShortRegisterPrefix for next searches
-                                        if (regCpy.StartsWith(SADDef.ShortRegisterPrefix))
-                                        // Could be the right Input Register or a Copy
+                                        cmpIndex = postOpe.OperationParams.Length - 1;
+                                        cpyIndex = 0;
+                                    }
+                                    else
+                                    {
+                                        cmpIndex = 0;
+                                        cpyIndex = postOpe.OperationParams.Length - 1;
+                                    }
+                                    if (postOpe.OperationParams[cmpIndex].CalculatedParam == regCpy)
+                                    {
+                                        // Changing register, Including ShortRegisterPrefix for next searches
+                                        regInt = Tools.InstructionRegisterAddress(postOpe.OperationParams[cpyIndex].CalculatedParam);
+                                        if (regInt >= 0)
                                         {
-                                            try
+                                            regCpy = Tools.RegisterInstruction(string.Format("{0:x2}", regInt));
+                                            if (!ioFunction.FunctionByte) regByteCpy = Tools.RegisterInstruction(string.Format("{0:x2}", regInt + 1));
+                                            // Could be the right Output Register or a Copy
+                                            if (regInt < SADDef.EecBankStartAddress)
                                             {
-                                                // Below R20 and Over R60 we consider it is the right Register
-                                                if (Convert.ToInt32(regCpy.Substring(1).Replace(SADDef.AdditionSeparator + "0", ""), 16) >= maxRegAdr) ciCi.OutputRegister = regCpy;
-                                                else if (Convert.ToInt32(regCpy.Substring(1).Replace(SADDef.AdditionSeparator + "0", ""), 16) <= minRegAdr) ciCi.OutputRegister = regCpy;
+                                                if (regInt <= minRegAdr || regInt >= maxRegAdr)
+                                                {
+                                                    ciCi.OutputRegister = regCpy;
+                                                    if (!ioFunction.FunctionByte) ciCi.OutputRegisterByte = regByteCpy;
+                                                }
                                             }
-                                            catch { }
-                                        }
-                                        else if (regCpy.StartsWith(SADDef.LongRegisterPointerPrefix))
-                                        // Should be the right Input Register
-                                        {
-                                            ciCi.OutputRegister = regCpy;
                                         }
                                     }
                                     break;
                             }
 
-                            // Output Register Identification - Top Byte Register Only
-                            if (ciCi.OutputRegister == string.Empty)
-                            {
-                                switch (postOpe.OriginalInstruction.ToLower())
-                                {
-                                    case "ldb":
-                                        if (postOpe.CalculatedParams[0] == regByteCpy)
-                                        {
-                                            //20180428
-                                            //regByteCpy = postOpe.TranslatedParams[postOpe.TranslatedParams.Length - 1]; // Changing register, Including ShortRegisterPrefix for next searches
-                                            regByteCpy = postOpe.CalculatedParams[postOpe.CalculatedParams.Length - 1]; // Changing register, Including ShortRegisterPrefix for next searches
-                                            if (regByteCpy.StartsWith(SADDef.ShortRegisterPrefix))
-                                            // Could be the right Input Register or a Copy
-                                            {
-                                                try
-                                                {
-                                                    // Below R20 and Over R60 we consider it is the right Register
-                                                    if (Convert.ToInt32(regByteCpy.Substring(1).Replace(SADDef.AdditionSeparator + "0", ""), 16) >= maxRegAdr) ciCi.OutputRegisterByte = regByteCpy;
-                                                    else if (Convert.ToInt32(regByteCpy.Substring(1).Replace(SADDef.AdditionSeparator + "0", ""), 16) <= minRegAdr) ciCi.OutputRegisterByte = regByteCpy;
-                                                }
-                                                catch { }
-                                            }
-                                            else if (regByteCpy.StartsWith(SADDef.LongRegisterPointerPrefix))
-                                            // Should be the right Input Register
-                                            {
-                                                ciCi.OutputRegisterByte = regByteCpy;
-                                            }
-                                        }
-                                        break;
-                                    case "stb":
-                                        if (postOpe.CalculatedParams[postOpe.CalculatedParams.Length - 1] == regByteCpy)
-                                        {
-                                            regByteCpy = postOpe.CalculatedParams[0]; // Changing register, Including ShortRegisterPrefix for next searches
-                                            if (regByteCpy.StartsWith(SADDef.ShortRegisterPrefix))
-                                            // Could be the right Input Register or a Copy
-                                            {
-                                                try
-                                                {
-                                                    // Below R20 and Over R60 we consider it is the right Register
-                                                    if (Convert.ToInt32(regByteCpy.Substring(1).Replace(SADDef.AdditionSeparator + "0", ""), 16) >= maxRegAdr) ciCi.OutputRegisterByte = regByteCpy;
-                                                    else if (Convert.ToInt32(regByteCpy.Substring(1).Replace(SADDef.AdditionSeparator + "0", ""), 16) <= minRegAdr) ciCi.OutputRegisterByte = regByteCpy;
-                                                }
-                                                catch { }
-                                            }
-                                            else if (regByteCpy.StartsWith(SADDef.LongRegisterPointerPrefix))
-                                            // Should be the right Input Register
-                                            {
-                                                ciCi.OutputRegisterByte = regByteCpy;
-                                            }
-                                        }
-                                        break;
-                                }
-                            }
-                            
                             if (ciCi.OutputRegister != string.Empty)
                             {
-                                if (!validReg1)
+                                // Clean Up
+                                ciCi.OutputRegister = ciCi.OutputRegister.Replace(SADDef.ShortRegisterPrefix, "").Replace(SADDef.LongRegisterPointerPrefix, "").Replace(SADDef.LongRegisterPointerSuffix, "").Replace("0" + SADDef.AdditionSeparator, "").Replace(SADDef.AdditionSeparator + "0", "");
+                                if (ciCi.OutputRegister.Contains(SADDef.AdditionSeparator))
                                 {
-                                    // Clean Up
-                                    ciCi.OutputRegister = ciCi.OutputRegister.Replace(SADDef.ShortRegisterPrefix, "").Replace(SADDef.LongRegisterPointerPrefix, "").Replace(SADDef.LongRegisterPointerSuffix, "").Replace("0" + SADDef.AdditionSeparator, "").Replace(SADDef.AdditionSeparator + "0", "");
-                                    if (ciCi.OutputRegister.Contains(SADDef.AdditionSeparator))
-                                    {
-                                        // [Rdc+5b] for example
-                                        regCpy = "RXX";
-                                        validReg1 = true;
-                                    }
-                                    else
-                                    {
-                                        try
-                                        {
-                                            ciCi.OutputRegister = Convert.ToString(Convert.ToInt32(ciCi.OutputRegister, 16), 16);
-                                            regCpy = "RXX";
-                                            validReg1 = true;
-                                        }
-                                        catch
-                                        {
-                                            ciCi.OutputRegister = string.Empty;
-                                        }
-                                    }
+                                    // [Rdc+5b] for example
+                                    // It is OK
                                 }
+                                else
+                                {
+                                    regInt = Tools.InstructionRegisterAddress(ciCi.OutputRegister);
+                                    ciCi.OutputRegister = string.Empty;
+                                    if (regInt >= 0) ciCi.OutputRegister = Convert.ToString(regInt, 16);
+                                }
+                                if (ciCi.OutputRegister != string.Empty) regCpy = "RXX";    // No possible matching anymore
                             }
                             if (ciCi.OutputRegisterByte != string.Empty)
                             {
-                                if (!validReg2)
+                                // Clean Up
+                                ciCi.OutputRegisterByte = ciCi.OutputRegisterByte.Replace(SADDef.ShortRegisterPrefix, "").Replace(SADDef.LongRegisterPointerPrefix, "").Replace(SADDef.LongRegisterPointerSuffix, "").Replace("0" + SADDef.AdditionSeparator, "").Replace(SADDef.AdditionSeparator + "0", "");
+                                if (ciCi.OutputRegisterByte.Contains(SADDef.AdditionSeparator))
                                 {
-                                    // Clean Up
-                                    ciCi.OutputRegisterByte = ciCi.OutputRegisterByte.Replace(SADDef.ShortRegisterPrefix, "").Replace(SADDef.LongRegisterPointerPrefix, "").Replace(SADDef.LongRegisterPointerSuffix, "").Replace("0" + SADDef.AdditionSeparator, "").Replace(SADDef.AdditionSeparator + "0", "");
-                                    if (ciCi.OutputRegisterByte.Contains(SADDef.AdditionSeparator))
-                                    {
-                                        // [Rdc+5b] for example
-                                        regByteCpy = "RXX";
-                                        validReg2 = true;
-                                    }
-                                    else
-                                    {
-                                        try
-                                        {
-                                            ciCi.OutputRegisterByte = Convert.ToString(Convert.ToInt32(ciCi.OutputRegisterByte, 16), 16);
-                                            regByteCpy = "RXX";
-                                            validReg2 = true;
-                                        }
-                                        catch
-                                        {
-                                            ciCi.OutputRegisterByte = string.Empty;
-                                        }
-                                    }
+                                    // [Rdc+5b] for example
+                                    // It is OK
                                 }
+                                else
+                                {
+                                    regInt = Tools.InstructionRegisterAddress(ciCi.OutputRegisterByte);
+                                    ciCi.OutputRegisterByte = string.Empty;
+                                    if (regInt >= 0) ciCi.OutputRegisterByte = Convert.ToString(regInt, 16);
+                                }
+                                if (ciCi.OutputRegisterByte != string.Empty) regCpy = "RXX";    // No possible matching anymore
                             }
 
                             if (ciCi.OutputRegister != string.Empty && ciCi.OutputRegisterByte != string.Empty) break;
@@ -6975,7 +7557,10 @@ namespace SAD806x
                 if (callOpe != null && rRoutine != null)
                 {
                     // Input Registers Detection - Before Routine Call
-                    adjacentOperations = getPrecedingOPs(callOpe.AddressInt, 32, 99, true, true, true, true, true, true, true, true);
+                    //adjacentOperations = getPrecedingOPs(callOpe.AddressInt, 32, 99, true, true, true, true, true, true, true, true);
+                    // 20200515 - PYM
+                    // Now managing 1 Call Sub Level in getPrecedingOPs mode
+                    adjacentOperations = getPrecedingOPs(callOpe.AddressInt, 32, 1);
                     regCpyCols = SADDef.ShortRegisterPrefix + ioTable.TableColRegister;
                     regCpyRows = SADDef.ShortRegisterPrefix + ioTable.TableRowRegister;
                     validReg1 = false;
@@ -7042,11 +7627,11 @@ namespace SAD806x
                                 case "ad3b":
                                     //20180428
                                     //if (prevOpe.TranslatedParams[prevOpe.TranslatedParams.Length - 1] == regCpyCols)
-                                    if (prevOpe.CalculatedParams[prevOpe.CalculatedParams.Length - 1] == regCpyCols)
+                                    if (prevOpe.OperationParams[prevOpe.OperationParams.Length - 1].CalculatedParam == regCpyCols)
                                     {
                                         //20180428
                                         //regCpyCols = prevOpe.TranslatedParams[0]; // Changing register, Including ShortRegisterPrefix for next searches
-                                        regCpyCols = prevOpe.CalculatedParams[0]; // Changing register, Including ShortRegisterPrefix for next searches
+                                        regCpyCols = prevOpe.OperationParams[0].CalculatedParam; // Changing register, Including ShortRegisterPrefix for next searches
                                         if (regCpyCols.StartsWith(SADDef.ShortRegisterPrefix))
                                         // Could be the right Input Register or a Copy
                                         {
@@ -7066,11 +7651,11 @@ namespace SAD806x
                                     }
                                     //20180428
                                     //else if (prevOpe.TranslatedParams[prevOpe.TranslatedParams.Length - 1] == regCpyRows)
-                                    else if (prevOpe.CalculatedParams[prevOpe.CalculatedParams.Length - 1] == regCpyRows)
+                                    else if (prevOpe.OperationParams[prevOpe.OperationParams.Length - 1].CalculatedParam == regCpyRows)
                                     {
                                         //20180428
                                         //regCpyRows = prevOpe.TranslatedParams[0]; // Changing register, Including ShortRegisterPrefix for next searches
-                                        regCpyRows = prevOpe.CalculatedParams[0]; // Changing register, Including ShortRegisterPrefix for next searches
+                                        regCpyRows = prevOpe.OperationParams[0].CalculatedParam; // Changing register, Including ShortRegisterPrefix for next searches
                                         if (regCpyRows.StartsWith(SADDef.ShortRegisterPrefix))
                                         // Could be the right Input Register or a Copy
                                         {
@@ -7093,11 +7678,11 @@ namespace SAD806x
                                 case "stb":
                                     //20180428
                                     //if (prevOpe.TranslatedParams[0] == regCpyCols)
-                                    if (prevOpe.CalculatedParams[0] == regCpyCols)
+                                    if (prevOpe.OperationParams[0].CalculatedParam == regCpyCols)
                                     {
                                         //20180428
                                         //regCpyCols = prevOpe.TranslatedParams[prevOpe.TranslatedParams.Length - 1]; // Changing register, Including ShortRegisterPrefix for next searches
-                                        regCpyCols = prevOpe.CalculatedParams[prevOpe.CalculatedParams.Length - 1]; // Changing register, Including ShortRegisterPrefix for next searches
+                                        regCpyCols = prevOpe.OperationParams[prevOpe.OperationParams.Length - 1].CalculatedParam; // Changing register, Including ShortRegisterPrefix for next searches
                                         if (regCpyCols.StartsWith(SADDef.ShortRegisterPrefix))
                                         // Could be the right Input Register or a Copy
                                         {
@@ -7117,11 +7702,11 @@ namespace SAD806x
                                     }
                                     //20180428
                                     //else if (prevOpe.TranslatedParams[0] == regCpyRows)
-                                    else if (prevOpe.CalculatedParams[0] == regCpyRows)
+                                    else if (prevOpe.OperationParams[0].CalculatedParam == regCpyRows)
                                     {
                                         //20180428
                                         //regCpyRows = prevOpe.TranslatedParams[prevOpe.TranslatedParams.Length - 1]; // Changing register, Including ShortRegisterPrefix for next searches
-                                        regCpyRows = prevOpe.CalculatedParams[prevOpe.CalculatedParams.Length - 1]; // Changing register, Including ShortRegisterPrefix for next searches
+                                        regCpyRows = prevOpe.OperationParams[prevOpe.OperationParams.Length - 1].CalculatedParam; // Changing register, Including ShortRegisterPrefix for next searches
                                         if (regCpyRows.StartsWith(SADDef.ShortRegisterPrefix))
                                         // Could be the right Input Register or a Copy
                                         {
@@ -7228,13 +7813,13 @@ namespace SAD806x
                                 case "ldsbw":
                                     //20180428
                                     //if (postOpe.TranslatedParams[0] == regCpy)
-                                    if (postOpe.CalculatedParams[0] == regCpy)
+                                    if (postOpe.OperationParams[0].CalculatedParam == regCpy)
                                     {
                                         if (postOpe.OriginalInstruction.ToLower() == "ldsbw") ciCi.OutputRegisterSigned = true;
 
                                         //20180428
                                         //regCpy = postOpe.TranslatedParams[postOpe.TranslatedParams.Length - 1]; // Changing register, Including ShortRegisterPrefix for next searches
-                                        regCpy = postOpe.CalculatedParams[postOpe.CalculatedParams.Length - 1]; // Changing register, Including ShortRegisterPrefix for next searches
+                                        regCpy = postOpe.OperationParams[postOpe.OperationParams.Length - 1].CalculatedParam; // Changing register, Including ShortRegisterPrefix for next searches
                                         if (regCpy.StartsWith(SADDef.ShortRegisterPrefix))
                                         // Could be the right Input Register or a Copy
                                         {
@@ -7256,11 +7841,11 @@ namespace SAD806x
                                 case "ldb":
                                     //20180428
                                     //if (postOpe.TranslatedParams[0] == regByteCpy)
-                                    if (postOpe.CalculatedParams[0] == regByteCpy)
+                                    if (postOpe.OperationParams[0].CalculatedParam == regByteCpy)
                                     {
                                         //20180428
                                         //regByteCpy = postOpe.TranslatedParams[postOpe.TranslatedParams.Length - 1]; // Changing register, Including ShortRegisterPrefix for next searches
-                                        regByteCpy = postOpe.CalculatedParams[postOpe.CalculatedParams.Length - 1]; // Changing register, Including ShortRegisterPrefix for next searches
+                                        regByteCpy = postOpe.OperationParams[postOpe.OperationParams.Length - 1].CalculatedParam; // Changing register, Including ShortRegisterPrefix for next searches
                                         if (regByteCpy.StartsWith(SADDef.ShortRegisterPrefix))
                                         // Could be the right Input Register or a Copy
                                         {
@@ -7282,11 +7867,11 @@ namespace SAD806x
                                 case "stw":
                                     //20180428
                                     //if (postOpe.TranslatedParams[postOpe.TranslatedParams.Length - 1] == regCpy)
-                                    if (postOpe.CalculatedParams[postOpe.CalculatedParams.Length - 1] == regCpy)
+                                    if (postOpe.OperationParams[postOpe.OperationParams.Length - 1].CalculatedParam == regCpy)
                                     {
                                         //20180428
                                         //regCpy = postOpe.TranslatedParams[0]; // Changing register, Including ShortRegisterPrefix for next searches
-                                        regCpy = postOpe.CalculatedParams[0]; // Changing register, Including ShortRegisterPrefix for next searches
+                                        regCpy = postOpe.OperationParams[0].CalculatedParam; // Changing register, Including ShortRegisterPrefix for next searches
                                         if (regCpy.StartsWith(SADDef.ShortRegisterPrefix))
                                         // Could be the right Input Register or a Copy
                                         {
@@ -7308,11 +7893,11 @@ namespace SAD806x
                                 case "stb":
                                     //20180428
                                     //if (postOpe.TranslatedParams[postOpe.TranslatedParams.Length - 1] == regByteCpy)
-                                    if (postOpe.CalculatedParams[postOpe.CalculatedParams.Length - 1] == regByteCpy)
+                                    if (postOpe.OperationParams[postOpe.OperationParams.Length - 1].CalculatedParam == regByteCpy)
                                     {
                                         //20180428
                                         //regByteCpy = postOpe.TranslatedParams[0]; // Changing register, Including ShortRegisterPrefix for next searches
-                                        regByteCpy = postOpe.CalculatedParams[0]; // Changing register, Including ShortRegisterPrefix for next searches
+                                        regByteCpy = postOpe.OperationParams[0].CalculatedParam; // Changing register, Including ShortRegisterPrefix for next searches
                                         if (regByteCpy.StartsWith(SADDef.ShortRegisterPrefix))
                                         // Could be the right Input Register or a Copy
                                         {
@@ -7422,6 +8007,7 @@ namespace SAD806x
                 Operation ope = (Operation)slOPs[uniqueAddress];
 
                 if (ope == null) continue;
+
                 if (ope.KnownElemAddress == string.Empty) continue;
 
                 address = Convert.ToInt32(ope.KnownElemAddress, 16);
@@ -7432,7 +8018,6 @@ namespace SAD806x
                     // Known, should not be managed by OtherElemAddress, later on with KnownElemAddress
                     ope.OtherElemAddress = string.Empty;
                     if (!alOtherRemoval.Contains(ope.UniqueAddress)) alKnownRemoval.Add(ope.UniqueAddress);
-                    slOPs[uniqueAddress] = ope;
                     continue;
                 }
 
@@ -7466,12 +8051,12 @@ namespace SAD806x
                 {
                     if (slOPs.ContainsKey(elemUniqueAddress))
                     {
-                        if (ope.InstructedParams.Length < 1) bKnown = true;
+                        if (ope.OperationParams.Length < 1) bKnown = true;
 
                         if (!bKnown)
                         {
                             // Specific exception - Structures initiated with adder to address can use an existing ope address
-                            arrPointersValues = Tools.InstructionPointersValues(ope.InstructedParams[0]);
+                            arrPointersValues = Tools.InstructionPointersValues(ope.OperationParams[0].InstructedParam);
                             if (!((bool)arrPointersValues[0] && arrPointersValues.Length > 3)) bKnown = true;
                         }
                     }
@@ -7548,7 +8133,8 @@ namespace SAD806x
                             ops = null;
                             if (!bKnown)
                             {
-                                ops = getPrecedingOPs(ope.AddressInt, 16, 1, true, true, false, false, false, false, false, false);
+                                //ops = getPrecedingOPs(ope.AddressInt, 16, 1, true, true, false, false, false, false, false, false);
+                                ops = getPrecedingOPs(ope.AddressInt, 16, 0);
                                 foreach (Operation opRes in ops)
                                 {
                                     if (opRes == null) break;
@@ -8157,11 +8743,10 @@ namespace SAD806x
 
             if (foundSignature == null) return;
 
-            string foundKey = foundSignature.SignatureKey;
             foreach (S6xElementSignature elementSignature in S6x.slProcessElementsSignatures.Values)
             {
                 if (elementSignature.Skip || elementSignature.Found) continue;
-                if (foundKey == elementSignature.SignatureKey) elementSignature.Found = true;
+                if (foundSignature.UniqueKey == elementSignature.UniqueKey) elementSignature.Found = true;
             }
 
             bool isCalElement = false;
@@ -8494,7 +9079,7 @@ namespace SAD806x
                         else
                         {
                             if (!table.OtherRelatedOpsUniqueAddresses.Contains(ope.UniqueAddress)) table.OtherRelatedOpsUniqueAddresses.Add(ope.UniqueAddress);
-                            Calibration.slExtFunctions.Add(table.UniqueAddress, table);
+                            Calibration.slExtTables.Add(table.UniqueAddress, table);
                         }
                     }
                 }
@@ -8707,11 +9292,12 @@ namespace SAD806x
                 S6xOtherAddress s6xOther = (S6xOtherAddress)S6x.slProcessOtherAddresses[extObject.UniqueAddress];
                 if (s6xOther != null)
                 {
-                    otherAddressLabel = s6xOther.Label;
+                    if (s6xOther.OutputLabel && !s6xOther.hasDefaultLabel) otherAddressLabel = s6xOther.Label;
 
                     // S6x CleanUp
                     S6x.slProcessOtherAddresses.Remove(s6xOther.UniqueAddress);
-                    S6x.slOtherAddresses.Remove(s6xOther.UniqueAddress);
+                    // 20200308 - PYM - It stays in S6x definition, other addresses are no more in conflict on addresses
+                    //S6x.slOtherAddresses.Remove(s6xOther.UniqueAddress);
 
                     s6xOther = null;
                 }
@@ -8791,11 +9377,12 @@ namespace SAD806x
                 S6xOtherAddress s6xOther = (S6xOtherAddress)S6x.slProcessOtherAddresses[extObject.UniqueAddress];
                 if (s6xOther != null)
                 {
-                    otherAddressLabel = s6xOther.Label;
+                    if (s6xOther.OutputLabel && !s6xOther.hasDefaultLabel) otherAddressLabel = s6xOther.Label;
 
                     // S6x CleanUp
                     S6x.slProcessOtherAddresses.Remove(s6xOther.UniqueAddress);
-                    S6x.slOtherAddresses.Remove(s6xOther.UniqueAddress);
+                    // 20200308 - PYM - It stays in S6x definition, other addresses are no more in conflict on addresses
+                    //S6x.slOtherAddresses.Remove(s6xOther.UniqueAddress);
 
                     s6xOther = null;
                 } 
@@ -8848,11 +9435,12 @@ namespace SAD806x
                 S6xOtherAddress s6xOther = (S6xOtherAddress)S6x.slProcessOtherAddresses[extObject.UniqueAddress];
                 if (s6xOther != null)
                 {
-                    otherAddressLabel = s6xOther.Label;
+                    if (s6xOther.OutputLabel && !s6xOther.hasDefaultLabel) otherAddressLabel = s6xOther.Label;
 
                     // S6x CleanUp
                     S6x.slProcessOtherAddresses.Remove(s6xOther.UniqueAddress);
-                    S6x.slOtherAddresses.Remove(s6xOther.UniqueAddress);
+                    // 20200308 - PYM - It stays in S6x definition, other addresses are no more in conflict on addresses
+                    //S6x.slOtherAddresses.Remove(s6xOther.UniqueAddress);
 
                     s6xOther = null;
                 } 
@@ -8957,11 +9545,12 @@ namespace SAD806x
                 S6xOtherAddress s6xOther = (S6xOtherAddress)S6x.slProcessOtherAddresses[sStruct.UniqueAddress];
                 if (s6xOther != null)
                 {
-                    otherAddressLabel = s6xOther.Label;
+                    if (s6xOther.OutputLabel && !s6xOther.hasDefaultLabel) otherAddressLabel = s6xOther.Label;
 
                     // S6x CleanUp
                     S6x.slProcessOtherAddresses.Remove(s6xOther.UniqueAddress);
-                    S6x.slOtherAddresses.Remove(s6xOther.UniqueAddress);
+                    // 20200308 - PYM - It stays in S6x definition, other addresses are no more in conflict on addresses
+                    //S6x.slOtherAddresses.Remove(s6xOther.UniqueAddress);
 
                     s6xOther = null;
                 } 
@@ -9246,6 +9835,41 @@ namespace SAD806x
                     if (!bConflict) if (Calibration.slExtTables.ContainsKey(sStruct.ParentUniqueAddress)) bConflict = true;
                     if (!bConflict) if (Calibration.slExtFunctions.ContainsKey(sStruct.ParentUniqueAddress)) bConflict = true;
                     if (!bConflict) if (Calibration.slExtScalars.ContainsKey(sStruct.ParentUniqueAddress)) bConflict = true;
+                    if (!bConflict) if (isOtherElemAddressInsideExtScalar(sStruct.ParentAddressInt, sStruct.ParentAddressInt, typeof(Structure))) bConflict = true;
+                    if (!bConflict)
+                    {
+                        switch (sStruct.BankNum)
+                        {
+                            case 8:
+                                if (Bank8 != null)
+                                {
+                                    if (Bank8.slOPs.ContainsKey(sStruct.ParentUniqueAddress)) bConflict = true;
+                                    if (!bConflict) if (Bank8.isOtherElemAddressInsideOperation(sStruct.ParentAddressInt)) bConflict = true;
+                                }
+                                break;
+                            case 1:
+                                if (Bank1 != null)
+                                {
+                                    if (Bank1.slOPs.ContainsKey(sStruct.ParentUniqueAddress)) bConflict = true;
+                                    if (!bConflict) if (Bank1.isOtherElemAddressInsideOperation(sStruct.ParentAddressInt)) bConflict = true;
+                                }
+                                break;
+                            case 9:
+                                if (Bank9 != null)
+                                {
+                                    if (Bank9.slOPs.ContainsKey(sStruct.ParentUniqueAddress)) bConflict = true;
+                                    if (!bConflict) if (Bank9.isOtherElemAddressInsideOperation(sStruct.ParentAddressInt)) bConflict = true;
+                                }
+                                break;
+                            case 0:
+                                if (Bank0 != null)
+                                {
+                                    if (Bank0.slOPs.ContainsKey(sStruct.ParentUniqueAddress)) bConflict = true;
+                                    if (!bConflict) if (Bank0.isOtherElemAddressInsideOperation(sStruct.ParentAddressInt)) bConflict = true;
+                                }
+                                break;
+                        }
+                    }
 
                     if (bConflict)
                     {
@@ -9296,7 +9920,7 @@ namespace SAD806x
 
             saSA = new StructureAnalysis();
 
-            object[] arrPointersValues = Tools.InstructionPointersValues(srcOpe.InstructedParams[0]);
+            object[] arrPointersValues = Tools.InstructionPointersValues(srcOpe.OperationParams[0].InstructedParam);
             if ((bool)arrPointersValues[0] && arrPointersValues.Length > 3)
             {
                 // SPECIFIC MODE NOT MANAGED FOR NOW - Address Reg does not contain Address, but is an address adder
@@ -9320,7 +9944,7 @@ namespace SAD806x
             }
             else
             {
-                arrPointersValues = Tools.InstructionPointersValues(srcOpe.InstructedParams[srcOpe.InstructedParams.Length - 1]);
+                arrPointersValues = Tools.InstructionPointersValues(srcOpe.OperationParams[srcOpe.OperationParams.Length - 1].InstructedParam);
                 if ((bool)arrPointersValues[0])
                 {
                     saSA.MainRegister = arrPointersValues[1].ToString();
@@ -9346,20 +9970,21 @@ namespace SAD806x
             // Source Ope is not the intialization of Address Register - Seaching for new Source
             if (srcOpe.OriginalInstruction.ToLower() != "ldw")
             {
-                arrOps = getPrecedingOPs(srcOpe.AddressInt, 8, 0, false, false, false, false, false, false, false, false);
+                //arrOps = getPrecedingOPs(srcOpe.AddressInt, 8, 0, false, false, false, false, false, false, false, false);
+                arrOps = getPrecedingOPs(srcOpe.AddressInt, 8, 0);
                 foreach (Operation ope in arrOps)
                 {
                     if (ope == null) break;
 
-                    if (ope.InstructedParams.Length == 0) continue;
+                    if (ope.OperationParams.Length == 0) continue;
 
                     if (saSA.LoopRegister == string.Empty)
                     {
-                        if (ope.InstructedParams[ope.InstructedParams.Length - 1] != Tools.RegisterInstruction(saSA.MainRegister)) continue;
+                        if (ope.OperationParams[ope.OperationParams.Length - 1].InstructedParam != Tools.RegisterInstruction(saSA.MainRegister)) continue;
                     }
                     else
                     {
-                        if (ope.InstructedParams[ope.InstructedParams.Length - 1] != Tools.RegisterInstruction(saSA.LoopRegister)) continue;
+                        if (ope.OperationParams[ope.OperationParams.Length - 1].InstructedParam != Tools.RegisterInstruction(saSA.LoopRegister)) continue;
                     }
                     switch (ope.OriginalInstruction.ToLower())
                     {
@@ -9408,7 +10033,7 @@ namespace SAD806x
                         default:
                             if (saSA.LoopRegister == string.Empty)
                             {
-                                if (ope.InstructedParams.Length > 2) saSA.AnalysisStartOpeAddressInt = ope.AddressInt;
+                                if (ope.OperationParams.Length > 2) saSA.AnalysisStartOpeAddressInt = ope.AddressInt;
                             }
                             break;
                     }
@@ -9431,7 +10056,7 @@ namespace SAD806x
 
                     if (ope.AddressInt == srcOpe.AddressInt) continue;
                     if (ope.AddressInt == saSA.AnalysisInitOpeAddressInt) continue;
-                    if (ope.InstructedParams.Length == 0) continue;
+                    if (ope.OperationParams.Length == 0) continue;
 
                     bool bBreak = false;
 
@@ -9440,12 +10065,12 @@ namespace SAD806x
                     {
                         case "8b":
                         case "89":
-                            if (ope.InstructedParams[ope.InstructedParams.Length - 1] == Tools.RegisterInstruction(saSA.MainRegister))
+                            if (ope.OperationParams[ope.OperationParams.Length - 1].InstructedParam == Tools.RegisterInstruction(saSA.MainRegister))
                             {
-                                if (ope.CalculatedParams[0] != "ffff") // Specific case
+                                if (ope.OperationParams[0].CalculatedParam != "ffff") // Specific case
                                 {
                                     saSA.LoopExitOpeAddressInt = ope.AddressInt;
-                                    saSA.ExitAddress = ope.CalculatedParams[0];
+                                    saSA.ExitAddress = ope.OperationParams[0].CalculatedParam;
                                     bBreak = true;
                                 }
                             }
@@ -9460,13 +10085,13 @@ namespace SAD806x
                             if (cOpe.AddressInt != ope.AddressInt) continue;
                             if (!ope.OriginalOPCode.ToLower().StartsWith("d")) continue;
                             if (ope.GotoOpParams == null) continue;
-                            if (ope.GotoOpParams.Length == 0) continue;
                             
-                            Operation cmpOpe = (Operation)slOPs[ope.GotoOpParams[0]];
+                            Operation cmpOpe = (Operation)slOPs[ope.GotoOpParams.OpeUniqueAddress];
                             if (cmpOpe == null) continue;
-                            if (cmpOpe.InstructedParams.Length == 0) continue;
-                            foreach (string instructedParam in cmpOpe.InstructedParams)
+                            if (cmpOpe.OperationParams.Length == 0) continue;
+                            foreach (OperationParam opeParam in cmpOpe.OperationParams)
                             {
+                                string instructedParam = opeParam.InstructedParam;
                                 arrPointersValues = Tools.InstructionPointersValues(instructedParam);
                                 if ((bool)arrPointersValues[0]) continue; // Searching for a hard coded value
 
@@ -9600,7 +10225,8 @@ namespace SAD806x
             structBank = null;
 
             // Basic adder value search (when not 0)
-            Operation[] arrOps = getPrecedingOPs(srcOpe.AddressInt, 8, 0, false, false, false, false, false, false, false, false);
+            //Operation[] arrOps = getPrecedingOPs(srcOpe.AddressInt, 8, 0, false, false, false, false, false, false, false, false);
+            Operation[] arrOps = getPrecedingOPs(srcOpe.AddressInt, 8, 0);
             foreach (Operation ope in arrOps)
             {
                 if (ope == null) break;
@@ -9608,12 +10234,12 @@ namespace SAD806x
                 if (ope.CallType == CallType.Jump) break;
 
                 if (ope.AddressInt == srcOpe.AddressInt) continue;
-                if (ope.InstructedParams.Length == 0) continue;
+                if (ope.OperationParams.Length == 0) continue;
 
                 if (adderInitialValue != 0 || adderStep != 0 || adderInitialScalar) break;
                 
                 // Main Register Init or Update
-                if (ope.InstructedParams[ope.InstructedParams.Length - 1] == Tools.RegisterInstruction(mainRegCpy) || ope.InstructedParams[ope.InstructedParams.Length - 1] == Tools.RegisterInstruction(mainRegCpyTB))
+                if (ope.OperationParams[ope.OperationParams.Length - 1].InstructedParam == Tools.RegisterInstruction(mainRegCpy) || ope.OperationParams[ope.OperationParams.Length - 1].InstructedParam == Tools.RegisterInstruction(mainRegCpyTB))
                 {
                     switch (ope.OriginalInstruction.ToLower())
                     {
@@ -9720,7 +10346,7 @@ namespace SAD806x
                                 case "75":
                                     if (adderStep == 0)
                                     {
-                                        adderStep = Convert.ToInt32(ope.InstructedParams[0], 16);
+                                        adderStep = Convert.ToInt32(ope.OperationParams[0].InstructedParam, 16);
                                         adderCurrentValue += adderStep;
                                     }
                                     continue;
@@ -9734,7 +10360,7 @@ namespace SAD806x
                                 case "79":
                                     if (adderStep == 0)
                                     {
-                                        adderStep = 0 - Convert.ToInt32(ope.InstructedParams[0], 16);
+                                        adderStep = 0 - Convert.ToInt32(ope.OperationParams[0].InstructedParam, 16);
                                         adderCurrentValue += adderStep;
                                     }
                                     continue;
@@ -9802,45 +10428,43 @@ namespace SAD806x
                         // Read Register is Used - GotoOpParams should contain it
                         {
                             if (Convert.ToInt32(sReg, 16) % 2 == 0) sRegTP = Convert.ToString(Convert.ToInt32(sReg, 16) + 1, 16);
-                            foreach (string sParam in ope.GotoOpParams)
+                            if (ope.GotoOpParams != null)
                             {
-                                if (sParam.Contains(Tools.RegisterInstruction(sReg)) || (sRegTP != string.Empty && sParam.Contains(Tools.RegisterInstruction(sRegTP))))
+                                string[] interestingGotoOpParams = new string[] { ope.GotoOpParams.OpeDefaultParamTranslation1, ope.GotoOpParams.OpeDefaultParamTranslation2 };
+                                foreach (string sParam in interestingGotoOpParams)
                                 {
-                                    if (!siaSIA.ReadCondOperations.Contains(ope))
+                                    if (sParam.Contains(Tools.RegisterInstruction(sReg)) || (sRegTP != string.Empty && sParam.Contains(Tools.RegisterInstruction(sRegTP))))
                                     {
-                                        siaSIA.ReadCondOperations.Add(ope);
-                                        if (ope.GotoOpParams != null)
+                                        if (!siaSIA.ReadCondOperations.Contains(ope))
                                         {
-                                            if (ope.GotoOpParams.Length > 0)
+                                            siaSIA.ReadCondOperations.Add(ope);
+                                            if (ope.GotoOpParams != null)
                                             {
-                                                if (!siaSIA.ReadCondCmpOperations.ContainsKey(ope.GotoOpParams[0])) siaSIA.ReadCondCmpOperations.Add(ope.GotoOpParams[0], slOPs[ope.GotoOpParams[0]]);
+                                                if (!siaSIA.ReadCondCmpOperations.ContainsKey(ope.GotoOpParams.OpeUniqueAddress)) siaSIA.ReadCondCmpOperations.Add(ope.GotoOpParams.OpeUniqueAddress, slOPs[ope.GotoOpParams.OpeUniqueAddress]);
                                             }
                                         }
+                                        sReg = string.Empty;
+                                        break;
                                     }
-                                    sReg = string.Empty;
-                                    break;
                                 }
+                                if (sReg == string.Empty) break;
                             }
-                            if (sReg == string.Empty) break;
                         }
 
                         // Main Register is directly used - GotoOpParams Operation should be the operation of the item
                         if (ope.GotoOpParams != null)
                         {
-                            if (ope.GotoOpParams.Length > 0)
+                            if (siaSIA.ReadOperation.UniqueAddress == ope.GotoOpParams.OpeUniqueAddress && !siaSIA.ReadCondOperations.Contains(ope))
                             {
-                                if (siaSIA.ReadOperation.UniqueAddress == ope.GotoOpParams[0] && !siaSIA.ReadCondOperations.Contains(ope))
-                                {
-                                    siaSIA.ReadCondOperations.Add(ope);
-                                    if (!siaSIA.ReadCondCmpOperations.ContainsKey(ope.GotoOpParams[0])) siaSIA.ReadCondCmpOperations.Add(ope.GotoOpParams[0], slOPs[ope.GotoOpParams[0]]);
-                                    break;
-                                }
+                                siaSIA.ReadCondOperations.Add(ope);
+                                if (!siaSIA.ReadCondCmpOperations.ContainsKey(ope.GotoOpParams.OpeUniqueAddress)) siaSIA.ReadCondCmpOperations.Add(ope.GotoOpParams.OpeUniqueAddress, slOPs[ope.GotoOpParams.OpeUniqueAddress]);
+                                break;
                             }
                         }
                     }
                 }
 
-                if (ope.InstructedParams.Length == 0) continue;
+                if (ope.OperationParams.Length == 0) continue;
 
                 // Main Register Cpy
                 switch (ope.OriginalOPCode.ToLower())
@@ -9874,10 +10498,7 @@ namespace SAD806x
                                     siaSIA.ReadCondOperations.Add(ope);
                                     if (ope.GotoOpParams != null)
                                     {
-                                        if (ope.GotoOpParams.Length > 0)
-                                        {
-                                            if (!siaSIA.ReadCondCmpOperations.ContainsKey(ope.GotoOpParams[0])) siaSIA.ReadCondCmpOperations.Add(ope.GotoOpParams[0], slOPs[ope.GotoOpParams[0]]);
-                                        }
+                                        if (!siaSIA.ReadCondCmpOperations.ContainsKey(ope.GotoOpParams.OpeUniqueAddress)) siaSIA.ReadCondCmpOperations.Add(ope.GotoOpParams.OpeUniqueAddress, slOPs[ope.GotoOpParams.OpeUniqueAddress]);
                                     }
                                 }
                                 break;
@@ -9887,9 +10508,9 @@ namespace SAD806x
                 }
 
                 // Address Register ReInit
-                if (ope.InstructedParams[ope.InstructedParams.Length - 1] == Tools.RegisterInstruction(saSA.MainRegister) || (mainRegCpy != string.Empty && ope.InstructedParams[ope.InstructedParams.Length - 1] == Tools.RegisterInstruction(mainRegCpy)))
+                if (ope.OperationParams[ope.OperationParams.Length - 1].InstructedParam == Tools.RegisterInstruction(saSA.MainRegister) || (mainRegCpy != string.Empty && ope.OperationParams[ope.OperationParams.Length - 1].InstructedParam == Tools.RegisterInstruction(mainRegCpy)))
                 {
-                    if (ope.InstructedParams.Length > 2 && ope.OriginalInstruction.ToLower() != "stw" && ope.OriginalInstruction.ToLower() != "stw") break;
+                    if (ope.OperationParams.Length > 2 && ope.OriginalInstruction.ToLower() != "stw" && ope.OriginalInstruction.ToLower() != "stw") break;
                     else
                     {
                         bool bBreak = false;
@@ -9913,12 +10534,12 @@ namespace SAD806x
                     case "8b":
                     case "89":
                         // On Address - If exitAddress is greater than Struct address, it is its end address, else it is its start address    
-                        if (ope.InstructedParams[ope.InstructedParams.Length - 1] == Tools.RegisterInstruction(saSA.MainRegister) || (mainRegCpy != string.Empty && ope.InstructedParams[ope.InstructedParams.Length - 1] == Tools.RegisterInstruction(mainRegCpy)))
+                        if (ope.OperationParams[ope.OperationParams.Length - 1].InstructedParam == Tools.RegisterInstruction(saSA.MainRegister) || (mainRegCpy != string.Empty && ope.OperationParams[ope.OperationParams.Length - 1].InstructedParam == Tools.RegisterInstruction(mainRegCpy)))
                         {
-                            if (ope.CalculatedParams[0] != "ffff") // Specific case
+                            if (ope.OperationParams[0].CalculatedParam != "ffff") // Specific case
                             {
                                 saSA.LoopExitOpeAddressInt = ope.AddressInt;
-                                saSA.ExitAddress = ope.CalculatedParams[0];
+                                saSA.ExitAddress = ope.OperationParams[0].CalculatedParam;
                             }
                         }
                         continue;
@@ -10018,7 +10639,7 @@ namespace SAD806x
                             else continue;
                         }
 
-                        if (loopOpe.InstructedParams.Length == 0) continue;
+                        if (loopOpe.OperationParams.Length == 0) continue;
                         if (loopOpe.OriginalOpArr.Length == 1) continue;
 
                         // Loop on MainRegister Top Byte (Like Increment)
@@ -10045,12 +10666,12 @@ namespace SAD806x
                                     case "65":
                                     case "75":
                                         saSA.LoopOpeAddressInt = loopOpe.AddressInt;
-                                        saSA.LineSize = Convert.ToInt32(loopOpe.InstructedParams[0], 16);
+                                        saSA.LineSize = Convert.ToInt32(loopOpe.OperationParams[0].InstructedParam, 16);
                                         break;
                                     case "69":
                                     case "79":
                                         saSA.LoopOpeAddressInt = loopOpe.AddressInt;
-                                        saSA.LineSize = Convert.ToInt32(loopOpe.InstructedParams[0], 16);
+                                        saSA.LineSize = Convert.ToInt32(loopOpe.OperationParams[0].InstructedParam, 16);
                                         saSA.LoopReversed = true;
                                         break;
                                 }
@@ -10109,12 +10730,12 @@ namespace SAD806x
                                 {
                                     case "65":
                                     case "75":
-                                        saSA.LineSize = Convert.ToInt32(ope.InstructedParams[0], 16);
+                                        saSA.LineSize = Convert.ToInt32(ope.OperationParams[0].InstructedParam, 16);
                                         if (saSA.slItems.Count == 0) saSA.StructNewAddressInt = saSA.StructAddressInt + saSA.LineSize;
                                         break;
                                     case "69":
                                     case "79":
-                                        saSA.LineSize = Convert.ToInt32(ope.InstructedParams[0], 16);
+                                        saSA.LineSize = Convert.ToInt32(ope.OperationParams[0].InstructedParam, 16);
                                         if (saSA.slItems.Count == 0) saSA.StructNewAddressInt = saSA.StructAddressInt - saSA.LineSize;
                                         saSA.LoopReversed = true;
                                         break;
@@ -10142,7 +10763,7 @@ namespace SAD806x
                             {
                                 case "65":
                                 case "75":
-                                    mainRegPosition += Convert.ToInt32(ope.InstructedParams[0], 16);
+                                    mainRegPosition += Convert.ToInt32(ope.OperationParams[0].InstructedParam, 16);
                                     break;
                             }
                             continue;
@@ -10150,9 +10771,9 @@ namespace SAD806x
                 }
 
                 // Reading Structure
-                if (ope.InstructedParams[0].StartsWith(SADDef.LongRegisterPointerPrefix) && ope.InstructedParams[0].EndsWith(SADDef.LongRegisterPointerSuffix))
+                if (ope.OperationParams[0].InstructedParam.StartsWith(SADDef.LongRegisterPointerPrefix) && ope.OperationParams[0].InstructedParam.EndsWith(SADDef.LongRegisterPointerSuffix))
                 {
-                    arrPointersValues = Tools.InstructionPointersValues(ope.InstructedParams[0]);
+                    arrPointersValues = Tools.InstructionPointersValues(ope.OperationParams[0].InstructedParam);
                     if (!(bool)arrPointersValues[0]) continue;
                     if (arrPointersValues[1].ToString() == saSA.MainRegister || arrPointersValues[1].ToString() == saSA.MainRegisterTB || arrPointersValues[1].ToString() == mainRegCpy || arrPointersValues[1].ToString() == mainRegCpyTB)
                     {
@@ -10164,7 +10785,7 @@ namespace SAD806x
                                 siaSIA = new StructureItemAnalysis(mainRegPosition);
                                 siaSIA.ReadOperation = ope;
                                 saSA.slItems.Add(mainRegPosition, siaSIA);
-                                arrPointersValues = Tools.InstructionPointersValues(ope.InstructedParams[ope.InstructedParams.Length - 1]);
+                                arrPointersValues = Tools.InstructionPointersValues(ope.OperationParams[ope.OperationParams.Length - 1].InstructedParam);
                                 if ((bool)arrPointersValues[0]) siaSIA.ReadRegister = arrPointersValues[1].ToString();
                                 siaSIA = null;
                             }
@@ -10177,12 +10798,12 @@ namespace SAD806x
                                 siaSIA = new StructureItemAnalysis(tmpMainRegPosition);
                                 siaSIA.ReadOperation = ope;
                                 saSA.slItems.Add(tmpMainRegPosition, siaSIA);
-                                arrPointersValues = Tools.InstructionPointersValues(ope.InstructedParams[ope.InstructedParams.Length - 1]);
+                                arrPointersValues = Tools.InstructionPointersValues(ope.OperationParams[ope.OperationParams.Length - 1].InstructedParam);
                                 if ((bool)arrPointersValues[0]) siaSIA.ReadRegister = arrPointersValues[1].ToString();
                                 siaSIA = null;
                             }
                         }
-                        if (ope.InstructedParams[0].Contains(SADDef.IncrementSuffix))
+                        if (ope.OperationParams[0].InstructedParam.Contains(SADDef.IncrementSuffix))
                         {
                             mainRegPosition++;
                             SADOPCode opCode = (SADOPCode)Calibration.slOPCodes[ope.OriginalOPCode];
@@ -10310,7 +10931,7 @@ namespace SAD806x
                 if (ope.AddressInt == saSA.LoopOpeAddressInt) continue;
                 if (ope.AddressInt == siaSIA.ReadOperation.AddressInt) continue;
 
-                if (ope.InstructedParams.Length == 0) continue;
+                if (ope.OperationParams.Length == 0) continue;
 
                 bool bBreak = false;
 
@@ -10318,7 +10939,7 @@ namespace SAD806x
                 switch (ope.OriginalInstruction.ToLower())
                 {
                     case "push":
-                        if (ope.InstructedParams[0] == Tools.RegisterInstruction(regCpy))
+                        if (ope.OperationParams[0].InstructedParam == Tools.RegisterInstruction(regCpy))
                         {
                             siaSIA.forVectorPush = true;    // So it is a Vector
                             siaSIA.VectorBank = ope.ApplyOnBankNum;
@@ -10333,7 +10954,7 @@ namespace SAD806x
                 }
 
                 // Pointer Detection / Pointer use
-                if (ope.InstructedParams[0] == Tools.PointerTranslation(Tools.RegisterInstruction(regCpy)) || (siaSIA.PointerRegister != string.Empty && ope.InstructedParams[0] == Tools.PointerTranslation(siaSIA.PointerRegister)))
+                if (ope.OperationParams[0].InstructedParam == Tools.PointerTranslation(Tools.RegisterInstruction(regCpy)) || (siaSIA.PointerRegister != string.Empty && ope.OperationParams[0].InstructedParam == Tools.PointerTranslation(siaSIA.PointerRegister)))
                 {
                     switch (ope.OriginalInstruction.ToLower())
                     {
@@ -10479,17 +11100,17 @@ namespace SAD806x
                 {
                     case "stb":
                     case "stw":
-                        if (ope.CalculatedParams[ope.CalculatedParams.Length - 1] == Tools.RegisterInstruction(regCpy))
+                        if (ope.OperationParams[ope.OperationParams.Length - 1].CalculatedParam == Tools.RegisterInstruction(regCpy))
                         {
-                            regCpy = Tools.InstructionPointersValues(ope.CalculatedParams[0])[1].ToString();
+                            regCpy = Tools.InstructionPointersValues(ope.OperationParams[0].CalculatedParam)[1].ToString();
                             if (!siaSIA.isByte) regCpyTB = Convert.ToString(Convert.ToInt32(regCpy, 16) + 1, 16);
                         }
                         break;
                     case "ldb":
                     case "ldw":
-                        if (ope.CalculatedParams[0] == Tools.RegisterInstruction(regCpy))
+                        if (ope.OperationParams[0].CalculatedParam == Tools.RegisterInstruction(regCpy))
                         {
-                            regCpy = Tools.InstructionPointersValues(ope.CalculatedParams[ope.CalculatedParams.Length - 1])[1].ToString();
+                            regCpy = Tools.InstructionPointersValues(ope.OperationParams[ope.OperationParams.Length - 1].CalculatedParam)[1].ToString();
                             if (!siaSIA.isByte) regCpyTB = Convert.ToString(Convert.ToInt32(regCpy, 16) + 1, 16);
                         }
                         break;
@@ -10506,11 +11127,11 @@ namespace SAD806x
             // Second Try
             if (firstTry) processStructureAnalysisFollowItem(ref saSA, ref siaSIA, false);
         }
-
+        
         public void processElemTranslations(ref SADS6x S6x)
         {
             Operation ope = null;
-            SADOPCode opCode = null;
+            //SADOPCode opCode = null;
             CalibrationElement calElem = null;
             string elemAddress = string.Empty;
             string elemShortLabel = string.Empty;
@@ -10534,11 +11155,8 @@ namespace SAD806x
 
                     if (elemShortLabel != string.Empty && elemShortLabel != null)
                     {
-                        opCode = (SADOPCode)Calibration.slOPCodes[ope.OriginalOPCode];
-                        //findNextGotoCondition = opCode.postProcessOpElemTranslation(ref ope, elemAddress, elemShortLabel);
-                        opCode.postProcessOpElemTranslation(ref ope, elemAddress, elemShortLabel);
-                        slOPs[uniqueAddress] = ope;
-                        opCode = null;
+                        ope.TranslationReplacementAddress = elemAddress;
+                        ope.TranslationReplacementLabel = elemShortLabel;
                     }
                 }
                 ope = null;
@@ -10668,10 +11286,9 @@ namespace SAD806x
 
                 if (elemShortLabel != string.Empty && elemShortLabel != null)
                 {
-                    opCode = (SADOPCode)Calibration.slOPCodes[ope.OriginalOPCode];
-                    opCode.postProcessOpElemTranslation(ref ope, ope.KnownElemAddress, elemShortLabel);
-                    slOPs[uniqueAddress] = ope;
-                    opCode = null;
+                    ope.TranslationReplacementAddress = ope.KnownElemAddress;
+                    ope.TranslationReplacementLabel = elemShortLabel;
+
                 }
 
                 ope = null;
@@ -10681,6 +11298,7 @@ namespace SAD806x
             foreach (string uniqueAddress in alPossibleOtherElemOPsUniqueAddresses)
             {
                 ope = (Operation)slOPs[uniqueAddress];
+
                 if (ope.OtherElemAddress != string.Empty)
                 {
                     elemAddress = ope.OtherElemAddress;
@@ -10690,7 +11308,7 @@ namespace SAD806x
                     try
                     {
                         calElemUniqueAddress = Tools.UniqueAddress(ope.ReadDataBankNum, Convert.ToInt32(elemAddress, 16) - SADDef.EecBankStartAddress);
-                        elemUniqueAddress = Tools.UniqueAddress(ope.ApplyOnBankNum, Convert.ToInt32(elemAddress, 16) - SADDef.EecBankStartAddress);
+                        elemUniqueAddress = Tools.UniqueAddress(ope.ReadDataBankNum, Convert.ToInt32(elemAddress, 16) - SADDef.EecBankStartAddress);
                     }
                     catch
                     {
@@ -10727,10 +11345,8 @@ namespace SAD806x
                     }
                     if (elemShortLabel != string.Empty && elemShortLabel != null)
                     {
-                        opCode = (SADOPCode)Calibration.slOPCodes[ope.OriginalOPCode];
-                        opCode.postProcessOpElemTranslation(ref ope, elemAddress, elemShortLabel);
-                        slOPs[uniqueAddress] = ope;
-                        opCode = null;
+                        ope.TranslationReplacementAddress = elemAddress;
+                        ope.TranslationReplacementLabel = elemShortLabel;
                     }
                 }
                 ope = null;
@@ -10744,11 +11360,11 @@ namespace SAD806x
                 if (ope.GotoOpParams != null)
                 {
                     // Elem UniqueAddres (CalElem or Other)
-                    if (ope.GotoOpParams[0].ToString() != string.Empty && ope.GotoOpParams[1].ToString() != string.Empty)
+                    if (ope.GotoOpParams.OpeUniqueAddress != string.Empty && ope.GotoOpParams.ElemUniqueAddress != string.Empty)
                     {
-                        elemAddress = ope.GotoOpParams[1].ToString();
+                        elemAddress = ope.GotoOpParams.ElemAddress;
                         elemShortLabel = string.Empty;
-                        Operation relOpe = (Operation)slOPs[ope.GotoOpParams[0].ToString()];
+                        Operation relOpe = (Operation)slOPs[ope.GotoOpParams.OpeUniqueAddress];
                         string calElemUniqueAddress = string.Empty;
                         string elemUniqueAddress = string.Empty;
                         if (relOpe != null)
@@ -10802,10 +11418,8 @@ namespace SAD806x
 
                         if (elemShortLabel != string.Empty && elemShortLabel != null)
                         {
-                            opCode = (SADOPCode)Calibration.slOPCodes[ope.OriginalOPCode];
-                            opCode.postProcessOpElemTranslation(ref ope, elemAddress, elemShortLabel);
-                            slOPs[uniqueAddress] = ope;
-                            opCode = null;
+                            ope.TranslationReplacementAddress = elemAddress;
+                            ope.TranslationReplacementLabel = elemShortLabel;
                         }
                     }
                 }
@@ -10817,10 +11431,7 @@ namespace SAD806x
         public void processCallTranslations(ref SADS6x S6x)
         {
             Operation ope = null;
-            SADOPCode opCode = null;
             Call cCall = null;
-            S6xRoutine s6xRoutine = null;
-            S6xOperation s6xOperation = null;
             string sTranslation = string.Empty;
 
             foreach (string uniqueAddress in alCallOPsUniqueAddresses)
@@ -10832,34 +11443,27 @@ namespace SAD806x
                 if (Calibration.alMainCallsUniqueAddresses.Contains(Tools.UniqueAddress(ope.ApplyOnBankNum, ope.AddressJumpInt)))
                 // Main Calls mngt
                 {
-                    opCode = (SADOPCode)Calibration.slOPCodes[ope.OriginalOPCode];
                     cCall = (Call)Calibration.slCalls[Tools.UniqueAddress(ope.ApplyOnBankNum, ope.AddressJumpInt)];
-                    opCode.postProcessOpCallTranslation(ref ope, ref cCall);
-                    slOPs[uniqueAddress] = ope;
+                    if (cCall.CallType != CallType.Unknown && cCall.CallType != CallType.Skip)
+                    {
+                        ope.TranslationReplacementAddress = cCall.Address;
+                        ope.TranslationReplacementLabel = cCall.ShortLabel;
+                    }
                     cCall = null;
-                    opCode = null;
                 }
                 else if (S6x.slProcessRoutines.ContainsKey(Tools.UniqueAddress(ope.ApplyOnBankNum, ope.AddressJumpInt)))
                 // Not Existing Call, but S6x Declared Routine
                 //  Essentially to override fixed translation on Fake Calls
                 {
-                    s6xRoutine = (S6xRoutine)S6x.slProcessRoutines[Tools.UniqueAddress(ope.ApplyOnBankNum, ope.AddressJumpInt)];
-                    opCode = (SADOPCode)Calibration.slOPCodes[ope.OriginalOPCode];
-                    opCode.postProcessOpElemTranslation(ref ope, ope.AddressJump, s6xRoutine.ShortLabel);
-                    slOPs[uniqueAddress] = ope;
-                    opCode = null;
-                    s6xRoutine = null;
+                    ope.TranslationReplacementAddress = ope.AddressJump;
+                    ope.TranslationReplacementLabel = ((S6xRoutine)S6x.slProcessRoutines[Tools.UniqueAddress(ope.ApplyOnBankNum, ope.AddressJumpInt)]).ShortLabel;
                 }
                 else if (S6x.slProcessOperations.ContainsKey(Tools.UniqueAddress(ope.ApplyOnBankNum, ope.AddressJumpInt)))
                 // Not Existing Call, but S6x Declared Operation
                 //  Essentially to override fixed translation on Fake Calls
                 {
-                    s6xOperation = (S6xOperation)S6x.slProcessOperations[Tools.UniqueAddress(ope.ApplyOnBankNum, ope.AddressJumpInt)];
-                    opCode = (SADOPCode)Calibration.slOPCodes[ope.OriginalOPCode];
-                    opCode.postProcessOpElemTranslation(ref ope, ope.AddressJump, s6xOperation.ShortLabel);
-                    slOPs[uniqueAddress] = ope;
-                    opCode = null;
-                    s6xOperation = null;
+                    ope.TranslationReplacementAddress = ope.AddressJump;
+                    ope.TranslationReplacementLabel = ((S6xOperation)S6x.slProcessOperations[Tools.UniqueAddress(ope.ApplyOnBankNum, ope.AddressJumpInt)]).ShortLabel;
                 }
                 else if (is8061)
                 // 8061 Calibration Console / Engineering Console mngt
@@ -10887,9 +11491,8 @@ namespace SAD806x
                                     sTranslation = SADDef.CCMemory8061Template.Replace("%LREG%", ope.AddressJump);
                                 }
                                 
-                                opCode = (SADOPCode)Calibration.slOPCodes[ope.OriginalOPCode];
-                                opCode.postProcessOpElemTranslation(ref ope, ope.AddressJump, sTranslation);
-                                slOPs[uniqueAddress] = ope;
+                                ope.TranslationReplacementAddress = ope.AddressJump;
+                                ope.TranslationReplacementLabel = sTranslation;
                             }
                             else if (ope.AddressJumpInt + SADDef.EecBankStartAddress >= SADDef.ECMemory8061MinAdress && ope.AddressJumpInt + SADDef.EecBankStartAddress <= SADDef.ECMemory8061MaxAdress)
                             {
@@ -10910,11 +11513,9 @@ namespace SAD806x
                                     sTranslation = SADDef.ECMemory8061Template.Replace("%LREG%", ope.AddressJump);
                                 }
 
-                                opCode = (SADOPCode)Calibration.slOPCodes[ope.OriginalOPCode];
-                                opCode.postProcessOpElemTranslation(ref ope, ope.AddressJump, sTranslation);
-                                slOPs[uniqueAddress] = ope;
+                                ope.TranslationReplacementAddress = ope.AddressJump;
+                                ope.TranslationReplacementLabel = sTranslation;
                             }
-                            opCode = null;
                             break;
                     }
                 }
@@ -10930,11 +11531,15 @@ namespace SAD806x
 
                 Vector vVect = (Vector)Calibration.slAdditionalVectors[Tools.UniqueAddress(ope.VectorListBankNum, ope.VectorListAddressInt)];
                 if (vVect == null) continue;
-                opCode = (SADOPCode)Calibration.slOPCodes[ope.OriginalOPCode];
-                if (vVect.VectList == null) opCode.postProcessOpElemTranslation(ref ope, vVect.SourceAddress, vVect.ShortLabel);
-                else if (vVect.UniqueSourceAddress == vVect.VectList.UniqueAddress) opCode.postProcessOpElemTranslation(ref ope, vVect.SourceAddress, vVect.VectList.ShortLabel);
-                else opCode.postProcessOpElemTranslation(ref ope, vVect.SourceAddress, vVect.ShortLabel);
-                opCode = null;
+                //opCode = (SADOPCode)Calibration.slOPCodes[ope.OriginalOPCode];
+                //if (vVect.VectList == null) opCode.postProcessOpElemTranslation(ref ope, vVect.SourceAddress, vVect.ShortLabel);
+                //else if (vVect.UniqueSourceAddress == vVect.VectList.UniqueAddress) opCode.postProcessOpElemTranslation(ref ope, vVect.SourceAddress, vVect.VectList.ShortLabel);
+                //else opCode.postProcessOpElemTranslation(ref ope, vVect.SourceAddress, vVect.ShortLabel);
+                //opCode = null;
+                sTranslation = vVect.ShortLabel;
+                if (vVect.VectList != null) if (vVect.UniqueSourceAddress == vVect.VectList.UniqueAddress) sTranslation = vVect.VectList.ShortLabel;
+                ope.TranslationReplacementAddress = vVect.SourceAddress;
+                ope.TranslationReplacementLabel = sTranslation;
             }
         }
 
@@ -11369,7 +11974,9 @@ namespace SAD806x
 
             return opsResult;
         }
-
+        
+        // Parameters removed, because not used at all
+        /*
         public Operation[] getPrecedingOPs(int opStartAddress, int opsNumber, int maxSubCallLevel, bool includeJumpsInResult, bool backwardJumpsOnly, bool followCalls, bool followShortCalls, bool followJumps, bool followShortJumps, bool followGotos, bool followSkips)
         {
             ///// TO BE REVIEWED PROPERLY
@@ -11473,12 +12080,98 @@ namespace SAD806x
                     opsResult[iResult] = ope;
                     opAddress = ope.AddressNextInt;
                 }
-                */
+                
             }
 
             return opsResult;
         }
+        */
 
+        // Classic version, with really used parameters and variable ops number - Still not reviewed fully
+        //  TO BE REVIEWED PROPERLY
+        public Operation[] getPrecedingOPs(int opStartAddress, int opsNumberCurrentLevel, int maxSubCallLevel)
+        {
+            ArrayList alOps = new ArrayList();
+            int opAddress = opStartAddress;
+            int iOpsNumberCurrentLevel = 0;
+
+            while (true)
+            {
+                Operation ope = (Operation)slOPs[Tools.UniqueAddress(Num, opAddress)];
+                if (ope == null) break;
+
+                alOps.Add(ope);
+                if (iOpsNumberCurrentLevel >= opsNumberCurrentLevel) break;
+                iOpsNumberCurrentLevel++;
+                     
+                // Including interesting Call Operations, except if first address is a call, which is the case in some searches
+                if (ope.AddressInt != opStartAddress && ope.ApplyOnBankNum == Num && (ope.CallType == CallType.Call || ope.CallType == CallType.ShortCall))
+                {
+                    alOps.AddRange(getPrecedingCallOPs(ope.AddressJumpInt, maxSubCallLevel - 1));
+                }
+
+                SortedList slOrigins = (SortedList)slOPsOrigins[opAddress];
+                if (slOrigins == null) break;
+                if (slOrigins.Count == 0) break;
+
+                opAddress = -1;
+                int iDistance = Int32.MaxValue;
+                foreach (Operation opeOri in slOrigins.Values)
+                {
+                    if (opeOri.BankNum != Num) continue;
+                    if (opStartAddress >= opAddress)
+                    {
+                        if (opStartAddress - opeOri.AddressInt < iDistance)
+                        {
+                            opAddress = opeOri.AddressInt;
+                            iDistance = opStartAddress - opAddress;
+                        }
+                    }
+                    else
+                    {
+                        if (opeOri.AddressInt - opStartAddress < iDistance)
+                        {
+                            opAddress = opeOri.AddressInt;
+                            iDistance = opAddress - opStartAddress;
+                        }
+                    }
+                }
+                if (opAddress <= 0) break;
+            }
+
+            return (Operation[])alOps.ToArray(typeof(Operation));
+        }
+
+        // Return Call and SubCall Operations in reverse order
+        //      For real calls ending with return
+        public Operation[] getPrecedingCallOPs(int iAddressCall, int maxSubCallLevel)
+        {
+            if (maxSubCallLevel < 0) return new Operation[] { };
+
+            Call cCall = (Call)Calibration.slCalls[Tools.UniqueAddress(Num, iAddressCall)];
+            if (cCall == null) return new Operation[] { };
+
+            Operation[] callOps = getCallOps(ref cCall, 0xffff, 0, true, false, false, false, false, false, true, true);
+            if (callOps == null) return new Operation[] { };
+            if (callOps.Length == 0) return new Operation[] { };
+            if (callOps[callOps.Length - 1] == null) return new Operation[] { };
+            // Only Calls which end with a return are interesting
+            if (!callOps[callOps.Length - 1].isReturn) return new Operation[] { };
+
+            ArrayList alOps = new ArrayList();
+            // Return instruction is not included
+            for (int iCallOpe = callOps.Length - 2; iCallOpe >= 0; iCallOpe--)
+            {
+                if (callOps[iCallOpe] == null) continue;
+                if (callOps[iCallOpe].ApplyOnBankNum == Num && (callOps[iCallOpe].CallType == CallType.Call || callOps[iCallOpe].CallType == CallType.ShortCall))
+                {
+                    alOps.AddRange(getPrecedingCallOPs(callOps[iCallOpe].AddressJumpInt, maxSubCallLevel - 1));
+                }
+                alOps.Add(callOps[iCallOpe]);
+            }
+            return (Operation[])alOps.ToArray(typeof(Operation));
+        }
+        
         // For Test Purpose only
         public string getOperationsArrayOutput(ref Operation[] arrOps)
         {
@@ -11593,7 +12286,8 @@ namespace SAD806x
 
         public Call getPrecedingMainCall(int opeAddress)
         {
-            Operation[] adjacentOps = getPrecedingOPs(opeAddress, 32, 99, true, true, false, false, false, false, false, false);
+            //Operation[] adjacentOps = getPrecedingOPs(opeAddress, 32, 99, true, true, false, false, false, false, false, false);
+            Operation[] adjacentOps = getPrecedingOPs(opeAddress, 32, 0);
             foreach (Operation ope in adjacentOps)
             {
                 if (ope == null) return null;
@@ -11677,7 +12371,8 @@ namespace SAD806x
 
             if (ope == null) return null;
 
-            prevOps = getPrecedingOPs(ope.AddressInt, 16, 99, true, true, false, false, false, false, false, false);
+            //prevOps = getPrecedingOPs(ope.AddressInt, 16, 99, true, true, false, false, false, false, false, false);
+            prevOps = getPrecedingOPs(ope.AddressInt, 16, 0);
             postOps = getFollowingOPs(ope.AddressInt, 16, 99, true, true, false, false, false, false, false, false);
 
             ope = null;
@@ -11808,11 +12503,31 @@ namespace SAD806x
                 }
             }
 
+            // Elem Inside another Ext Scalar => KO
+            if (isOtherElemAddressInsideExtScalar(otherElemAddress, initialOtherElemAddress, targetType)) return true;
+
+            // Elem Inside another Ext Function => KO
+            if (isOtherElemAddressInsideExtFunction(otherElemAddress, initialOtherElemAddress, targetType)) return true;
+
+            // Elem Inside another Ext Table => KO
+            if (isOtherElemAddressInsideExtTable(otherElemAddress, initialOtherElemAddress, targetType)) return true;
+
+            // Elem Inside another Ext Structure => KO
+            if (isOtherElemAddressInsideExtStructure(otherElemAddress, initialOtherElemAddress, targetType)) return true;
+
+            // Elem Inside another Operation => KO
+            if (isOtherElemAddressInsideOperation(otherElemAddress)) return true;
+
+            return false;
+        }
+
+        // Elem Inside another Ext Scalar
+        public bool isOtherElemAddressInsideExtScalar(int otherElemAddress, int initialOtherElemAddress, Type targetType)
+        {
             int iIndex = -1;
             int iStep = 0;
             bool bLoopCond = false;
 
-            // Elem Inside another Ext Scalar => KO
             if (Calibration.slExtScalars.Count > 0)
             {
                 if (Calibration.slExtScalars.ContainsKey(Tools.UniqueAddress(Num, otherElemAddress)))
@@ -11835,7 +12550,16 @@ namespace SAD806x
                 }
             }
 
-            // Elem Inside another Ext Function => KO
+            return false;
+        }
+        
+        // Elem Inside another Ext Function
+        public bool isOtherElemAddressInsideExtFunction(int otherElemAddress, int initialOtherElemAddress, Type targetType)
+        {
+            int iIndex = -1;
+            int iStep = 0;
+            bool bLoopCond = false;
+
             if (Calibration.slExtFunctions.Count > 0)
             {
                 if (Calibration.slExtFunctions.ContainsKey(Tools.UniqueAddress(Num, otherElemAddress)))
@@ -11858,7 +12582,16 @@ namespace SAD806x
                 }
             }
 
-            // Elem Inside another Ext Table => KO
+            return false;
+        }
+
+        // Elem Inside another Ext Table
+        public bool isOtherElemAddressInsideExtTable(int otherElemAddress, int initialOtherElemAddress, Type targetType)
+        {
+            int iIndex = -1;
+            int iStep = 0;
+            bool bLoopCond = false;
+
             if (Calibration.slExtTables.Count > 0)
             {
                 if (Calibration.slExtTables.ContainsKey(Tools.UniqueAddress(Num, otherElemAddress)))
@@ -11881,7 +12614,16 @@ namespace SAD806x
                 }
             }
 
-            // Elem Inside another Ext Structure => KO
+            return false;
+        }
+
+        // Elem Inside another Ext Structure
+        public bool isOtherElemAddressInsideExtStructure(int otherElemAddress, int initialOtherElemAddress, Type targetType)
+        {
+            int iIndex = -1;
+            int iStep = 0;
+            bool bLoopCond = false;
+
             if (Calibration.slExtStructures.Count > 0)
             {
                 if (Calibration.slExtStructures.ContainsKey(Tools.UniqueAddress(Num, otherElemAddress)))
@@ -11917,7 +12659,16 @@ namespace SAD806x
                 }
             }
 
-            // Elem Inside another Operation => KO
+            return false;
+        }
+
+        // Elem Inside another Operation
+        public bool isOtherElemAddressInsideOperation(int otherElemAddress)
+        {
+            int iIndex = -1;
+            int iStep = 0;
+            bool bLoopCond = false;
+
             if (slOPs.Count > 0)
             {
                 iIndex = (slOPs.Count - 1) / 2;

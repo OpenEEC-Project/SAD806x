@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Text;
 using System.IO;
 using System.Reflection;
@@ -30,6 +31,12 @@ namespace SAD806x
 
         private string binaryFileName = string.Empty;
 
+        private List<string> lReplacementCoreBaseStrings = null;
+        private SortedList<string, string> slReplacementsCore = null;
+        private string sReplacementCoreStartString = SADDef.ReplacementCoreStartString;
+        private string sReplacementCoreStartStringBis = SADDef.ReplacementCoreStartStringBis;
+        private string sReplacementCoreBitFlagString = SADDef.ReplacementCoreBitFlagString;
+        
         // Generic Settings
         private int lineAddressMinWidth = 6;
 
@@ -85,18 +92,56 @@ namespace SAD806x
         private string typeExtStruct = "ostruct";
         private string typeVector = "Vector";
 
+        private string commentsPrefix = "//";
+        private string commentsSuffixHeader = "\\\\";
+        private int commentsPrefixMargin = 2;
+        private int commentsSuffixMarginHeader = 2;
+        private int commentsHeaderMinWidth = 100;
+
         public int GLOBAL_LINE_ADDRESS_WIDTH { get { return lineAddressMinWidth; } set { lineAddressMinWidth = value; } }
-        public int GLOBAL_LINE_OPS_CENTER_WIDTH { get { return lineCenterOpsMinWidth; } set { lineCenterOpsMinWidth = value; } }
+        public int GLOBAL_LINE_OPS_CENTER_WIDTH
+        {
+            get { return lineCenterOpsMinWidth; }
+            set
+            {
+                lineCenterOpsMinWidth = value;
+                if (lineCenterOpsPart3MinWidth < 1) lineCenterOpsMinWidth = lineCenterOpsPart1MinWidth + lineCenterOpsPart2MinWidth + 1;
+            }
+        }
         public int GLOBAL_LINE_OPS_CENTER_PART1_WIDTH { get { return lineCenterOpsPart1MinWidth; } set { lineCenterOpsPart1MinWidth = value; } }
         public int GLOBAL_LINE_OPS_CENTER_PART2_WIDTH { get { return lineCenterOpsPart2MinWidth; } set { lineCenterOpsPart2MinWidth = value; } }
-        public int GLOBAL_LINE_OPS_RIGHT_WIDTH { get { return lineRightOpsMinWidth; } set { lineRightOpsMinWidth = value; } }
+        public int GLOBAL_LINE_OPS_RIGHT_WIDTH
+        {
+            get { return lineRightOpsMinWidth; }
+            set
+            {
+                lineRightOpsMinWidth = value;
+                if (lineRightOpsPart2MinWidth < 1) lineRightOpsMinWidth = lineRightOpsPart1MinWidth + 1;
+            }
+        }
         public int GLOBAL_LINE_OPS_RIGHT_PART1_WIDTH { get { return lineRightOpsPart1MinWidth; } set { lineRightOpsPart1MinWidth = value; } }
 
-        public int GLOBAL_LINE_CAL_CENTER_WIDTH { get { return lineCenterCalMinWidth; } set { lineCenterCalMinWidth = value; } }
+        public int GLOBAL_LINE_CAL_CENTER_WIDTH
+        {
+            get { return lineCenterCalMinWidth; }
+            set
+            {
+                lineCenterCalMinWidth = value;
+                if (lineCenterCalPart4MinWidth < 1) lineCenterCalMinWidth = lineCenterCalPart1MinWidth + lineCenterCalPart2MinWidth + lineCenterCalPart3MinWidth + 1;
+            }
+        }
         public int GLOBAL_LINE_CAL_CENTER_PART1_WIDTH { get { return lineCenterCalPart1MinWidth; } set { lineCenterCalPart1MinWidth = value; } }
         public int GLOBAL_LINE_CAL_CENTER_PART2_WIDTH { get { return lineCenterCalPart2MinWidth; } set { lineCenterCalPart2MinWidth = value; } }
         public int GLOBAL_LINE_CAL_CENTER_PART3_WIDTH { get { return lineCenterCalPart3MinWidth; } set { lineCenterCalPart3MinWidth = value; } }
-        public int GLOBAL_LINE_CAL_RIGHT_WIDTH { get { return lineRightCalMinWidth; } set { lineRightCalMinWidth = value; } }
+        public int GLOBAL_LINE_CAL_RIGHT_WIDTH
+        {
+            get { return lineRightCalMinWidth; }
+            set
+            {
+                lineRightCalMinWidth = value;
+                if (lineRightCalPart3MinWidth < 1) lineRightCalMinWidth = lineRightCalPart1MinWidth + lineRightCalPart2MinWidth + 1;
+            }
+        }
         public int GLOBAL_LINE_CAL_RIGHT_PART1_WIDTH { get { return lineRightCalPart1MinWidth; } set { lineRightCalPart1MinWidth = value; } }
         public int GLOBAL_LINE_CAL_RIGHT_PART2_WIDTH { get { return lineRightCalPart2MinWidth; } set { lineRightCalPart2MinWidth = value; } }
 
@@ -129,7 +174,13 @@ namespace SAD806x
         public string TYPE_CALELEM_STRUCT { get { return typeCalElemStruct; } set { typeCalElemStruct = value; } }
         public string TYPE_EXT_STRUCT { get { return typeExtStruct; } set { typeExtStruct = value; } }
         public string TYPE_VECTOR { get { return typeVector; } set { typeVector = value; } }
-        
+
+        public string COMMENTS_PREFIX { get { return commentsPrefix; } set { commentsPrefix = value; } }
+        public string COMMENTS_SUFFIX_HEADER { get { return commentsSuffixHeader; } set { commentsSuffixHeader = value; } }
+        public int COMMENTS_PREFIX_MARGIN { get { return commentsPrefixMargin; } set { commentsPrefixMargin = value; } }
+        public int COMMENTS_SUFFIX_MARGIN_HEADER { get { return commentsSuffixMarginHeader; } set { commentsSuffixMarginHeader = value; } }
+        public int COMMENTS_HEADER_MIN_WIDTH { get { return commentsHeaderMinWidth; } set { commentsHeaderMinWidth = value; } }
+
         public OutputTextV(ref SADBin sbSadBin, string textOutputFilePath, ref SettingsLst slToSettings)
         {
             sadBin = sbSadBin;
@@ -184,6 +235,140 @@ namespace SAD806x
             }
         }
 
+        private void OutputReplacementsPrepare(ref SortedList slElements)
+        {
+            lReplacementCoreBaseStrings = new List<string>();
+            lReplacementCoreBaseStrings.Add(sReplacementCoreStartString);
+            lReplacementCoreBaseStrings.Add(sReplacementCoreStartStringBis);
+
+            slReplacementsCore = new SortedList<string, string>();
+            
+            // Registers
+            foreach (S6xRegister s6xReg in S6x.slRegisters.Values)
+            {
+                if (s6xReg.Skip || !s6xReg.Store) continue;
+
+                if (s6xReg.Address == null || s6xReg.Address == string.Empty) continue;
+
+                // BitFlags before for replacement reasons
+                if (s6xReg.isBitFlags)
+                {
+                    if (s6xReg.BitFlags != null)
+                    {
+                        foreach (S6xBitFlag s6xBF in s6xReg.BitFlags)
+                        {
+                            if (s6xBF.Skip) continue;
+                            if (s6xBF.ShortLabel == null || s6xBF.ShortLabel == string.Empty) continue;
+                            if (!slReplacementsCore.ContainsKey(s6xReg.Address + sReplacementCoreBitFlagString + s6xBF.Position.ToString()))
+                            {
+                                slReplacementsCore.Add(s6xReg.Address + sReplacementCoreBitFlagString + s6xBF.Position.ToString(), s6xBF.ShortLabel);
+                            }
+                        }
+                    }
+                }
+                
+                if (s6xReg.Label == null || s6xReg.Label == string.Empty) continue;
+
+                if (!slReplacementsCore.ContainsKey(s6xReg.Address))
+                {
+                    slReplacementsCore.Add(s6xReg.Address, s6xReg.Label);
+                }
+            }
+            
+            // Interesting Elements
+            foreach (Element elem in slElements.Values)
+            {
+                string uniqueAddressHex = string.Empty;
+                string calElemAddressHex = string.Empty;
+                string shortLabel = string.Empty;
+                S6xBitFlag[] s6xBitFlags = null;
+
+                switch (elem.Type)
+                {
+                    case MergedType.ReservedAddress:
+                        uniqueAddressHex = elem.ReservedAddress.UniqueAddressHex;
+                        shortLabel = elem.ReservedAddress.ShortLabel;
+                        break;
+                    case MergedType.Operation:
+                        if (Calibration.alMainCallsUniqueAddresses.Contains(elem.Operation.UniqueAddress))
+                        {
+                            uniqueAddressHex = elem.Operation.UniqueAddressHex;
+                            shortLabel = ((Call)Calibration.slCalls[elem.Operation.UniqueAddress]).ShortLabel;
+                        }
+                        else if (S6x.slProcessRoutines.ContainsKey(elem.Operation.UniqueAddress))
+                        {
+                            uniqueAddressHex = elem.Operation.UniqueAddressHex;
+                            shortLabel = ((S6xRoutine)S6x.slProcessRoutines[elem.Operation.UniqueAddress]).ShortLabel;
+                        }
+                        break;
+                    case MergedType.CalibrationElement:
+                        uniqueAddressHex = elem.CalElement.UniqueAddressHex;
+                        calElemAddressHex = elem.CalElement.Address;
+                        if (elem.CalElement.isScalar)
+                        {
+                            shortLabel = elem.CalElement.ScalarElem.ShortLabel;
+                            if (elem.CalElement.ScalarElem.isBitFlags && elem.CalElement.ScalarElem.S6xScalar != null) s6xBitFlags = elem.CalElement.ScalarElem.S6xScalar.BitFlags;
+                        }
+                        else if (elem.CalElement.isFunction) shortLabel = elem.CalElement.FunctionElem.ShortLabel;
+                        else if (elem.CalElement.isTable) shortLabel = elem.CalElement.TableElem.ShortLabel;
+                        else if (elem.CalElement.isStructure) shortLabel = elem.CalElement.StructureElem.ShortLabel;
+                        break;
+                    case MergedType.ExtScalar:
+                        uniqueAddressHex = elem.ExtScalar.UniqueAddressHex;
+                        shortLabel = elem.ExtScalar.ShortLabel;
+                        if (elem.ExtScalar.isBitFlags && elem.ExtScalar.S6xScalar != null) s6xBitFlags = elem.ExtScalar.S6xScalar.BitFlags;
+                        break;
+                    case MergedType.ExtFunction:
+                        uniqueAddressHex = elem.ExtFunction.UniqueAddressHex;
+                        shortLabel = elem.ExtFunction.ShortLabel;
+                        break;
+                    case MergedType.ExtTable:
+                        uniqueAddressHex = elem.ExtTable.UniqueAddressHex;
+                        shortLabel = elem.ExtTable.ShortLabel;
+                        break;
+                    case MergedType.ExtStructure:
+                        uniqueAddressHex = elem.ExtStructure.UniqueAddressHex;
+                        shortLabel = elem.ExtStructure.ShortLabel;
+                        break;
+                }
+
+                if (uniqueAddressHex == null || uniqueAddressHex == string.Empty) continue;
+
+                // BitFlags before for replacement reasons
+                if (s6xBitFlags != null)
+                {
+                    foreach (S6xBitFlag s6xBF in s6xBitFlags)
+                    {
+                        if (s6xBF.Skip) continue;
+                        if (s6xBF.ShortLabel == null || s6xBF.ShortLabel == string.Empty) continue;
+                        if (!slReplacementsCore.ContainsKey(uniqueAddressHex.Replace(" ", "_") + sReplacementCoreBitFlagString + s6xBF.Position.ToString()))
+                        {
+                            slReplacementsCore.Add(uniqueAddressHex.Replace(" ", "_") + sReplacementCoreBitFlagString + s6xBF.Position.ToString(), s6xBF.ShortLabel);
+                        }
+                        if (calElemAddressHex == null || calElemAddressHex == string.Empty) continue;
+                        if (!slReplacementsCore.ContainsKey(calElemAddressHex + sReplacementCoreBitFlagString + s6xBF.Position.ToString()))
+                        {
+                            slReplacementsCore.Add(calElemAddressHex + sReplacementCoreBitFlagString + s6xBF.Position.ToString(), s6xBF.ShortLabel);
+                        }
+                    }
+                }
+                
+                if (shortLabel == null || shortLabel == string.Empty) continue;
+
+                if (!slReplacementsCore.ContainsKey(uniqueAddressHex.Replace(" ", "_")))
+                {
+                    slReplacementsCore.Add(uniqueAddressHex.Replace(" ", "_"), shortLabel);
+                }
+                
+                if (calElemAddressHex == null || calElemAddressHex == string.Empty) continue;
+
+                if (!slReplacementsCore.ContainsKey(calElemAddressHex))
+                {
+                    slReplacementsCore.Add(calElemAddressHex, shortLabel);
+                }
+            }
+        }
+        
         public void processOutputText()
         {
             SortedList slElements = null;
@@ -385,6 +570,9 @@ namespace SAD806x
                 }
             }
 
+            // Replacements preparation
+            OutputReplacementsPrepare(ref slElements);
+            
             // Included Elements Calculation
             Element[] prevElems = null;
             foreach (Element incElem in slElements.Values)
@@ -647,6 +835,20 @@ namespace SAD806x
             }
             txWriter.WriteLine("</Call with Args>\r\n");
             */
+
+            // Written Header
+            if (S6x.Properties.OutputHeader && S6x.Properties.Header != null && S6x.Properties.Header != string.Empty)
+            {
+                string[] headerLines = Tools.CommentsReplaced(S6x.Properties.Header, ref lReplacementCoreBaseStrings, ref slReplacementsCore).Replace("\r", "\n").Replace("\n\n", "\n").Replace("\n\n", "\n").Split('\n');
+                int iMaxLineLength = 0;
+                foreach (string hLine in headerLines) if (hLine.Length > iMaxLineLength) iMaxLineLength = hLine.Length;
+
+                txWriter.WriteLine(OutputTools.BorderedHeader(iMaxLineLength, true));
+                txWriter.WriteLine(OutputTools.BorderedEmpty(iMaxLineLength, true));
+                foreach (string hLine in headerLines) txWriter.WriteLine(OutputTools.BorderedText(hLine, iMaxLineLength, true));
+                txWriter.WriteLine(OutputTools.BorderedEmpty(iMaxLineLength, true));
+                txWriter.WriteLine(OutputTools.BorderedFooter(iMaxLineLength, true));
+            }
         }
 
         private void processOutputTextFooter(ref TextWriter txWriter)
@@ -796,7 +998,7 @@ namespace SAD806x
         {
             if (label == null || label == string.Empty) return new string[] {};
 
-            return new string[] { string.Empty, label + ":" };
+            return new string[] { label + ":" };
         }
 
         private string[] getOutputTextElementHeaderComments(string comments)
@@ -804,20 +1006,34 @@ namespace SAD806x
             if (comments == null || comments == string.Empty) return new string[] {};
 
             string[] cLines = comments.Replace("\r\n", "\n").Split('\n');
-            int cLineMaxLength = 80;
+            int cLineMaxLength = commentsHeaderMinWidth;
             foreach (string cLine in cLines) if (cLine.Length > cLineMaxLength) cLineMaxLength = cLine.Length;
             for (int iLine = 0; iLine < cLines.Length; iLine++) 
             {
-                cLines[iLine] = string.Format("{0,-4}{1,-" + cLineMaxLength.ToString() + "}{2,4}", "//", cLines[iLine], "//");
+                cLines[iLine] = string.Format("{0,-" + (commentsPrefix.Length + commentsPrefixMargin).ToString() + "}{1,-" + cLineMaxLength.ToString() + "}{2," + (commentsSuffixHeader.Length + commentsSuffixMarginHeader).ToString() + "}", commentsPrefix, cLines[iLine], commentsSuffixHeader);
             }
             return cLines;
         }
 
-        private string[] getOutputTextElementWithComments(string firstLine, string secondLine, string comments)
+        private string[] getOutputTextElementInlineComments(string comments)
+        {
+            if (comments == null || comments == string.Empty) return new string[] { };
+
+            string[] cLines = comments.Replace("\r\n", "\n").Split('\n');
+            for (int iLine = 0; iLine < cLines.Length; iLine++)
+            {
+                cLines[iLine] = string.Format("{0,-" + (commentsPrefix.Length + commentsPrefixMargin).ToString() + "}{1,1}", commentsPrefix, cLines[iLine]);
+            }
+            return cLines;
+        }
+
+        private string[] getOutputTextElementWithComments(string firstLine, string secondLine, string[] commentsLines, bool operationType)
         {
             ArrayList alLines = new ArrayList();
+            ArrayList alCommentsLines = new ArrayList();
 
-            if (comments == null || comments == string.Empty)
+            if (commentsLines != null) if (commentsLines.Length == 0) commentsLines = null;
+            if (commentsLines == null)
             {
                 alLines.Add(firstLine);
                 if (secondLine != string.Empty) alLines.Add(secondLine);
@@ -827,22 +1043,25 @@ namespace SAD806x
             int elemLines = 1;
             if (secondLine != string.Empty) elemLines++;
 
-            int elemLinesMaxLength = firstLine.Length;
+            int elemLinesMaxLength = lineAddressMinWidth + lineAddressBaseFollower.Length;
+
+            if (operationType) elemLinesMaxLength += lineCenterOpsMinWidth + lineRightOpsMinWidth;
+            else elemLinesMaxLength += lineCenterCalMinWidth + lineRightCalMinWidth;
+
+            if (firstLine.Length > elemLinesMaxLength) elemLinesMaxLength = firstLine.Length;
             if (secondLine.Length > elemLinesMaxLength) elemLinesMaxLength = secondLine.Length;
 
-            string[] cLines = comments.Replace("\r\n", "\n").Split('\n');
-            int cLineMaxLength = 0;
-            foreach (string cLine in cLines) if (cLine.Length > cLineMaxLength) cLineMaxLength = cLine.Length;
-            for (int iLine = 0; iLine < cLines.Length; iLine++)
+            // Lines ReMap / Sometimes Comment can be provided directly
+            foreach (string cLine in commentsLines) alCommentsLines.Add(cLine.Replace("\r\n", "\n").Split('\n'));
+            for (int iLine = 0; iLine < commentsLines.Length; iLine++)
             {
                 string elemText = string.Empty;
                 if (iLine == 0) elemText = firstLine;
                 else if (iLine == 1) elemText = secondLine;
 
-                alLines.Add(string.Format("{0,-" + elemLinesMaxLength.ToString() + "}{1,10}{2,-" + cLineMaxLength.ToString() + "}{3,4}", elemText, "//  ", cLines[iLine], "//"));
+                alLines.Add(string.Format("{0,-" + elemLinesMaxLength.ToString() + "}{1,1}", elemText, commentsLines[iLine]));
             }
-            if (cLines.Length < elemLines) alLines.Add(secondLine);
-            cLines = null;
+            if (commentsLines.Length < elemLines) alLines.Add(secondLine);
 
             return (string[])alLines.ToArray(typeof(string));
         }
@@ -897,26 +1116,56 @@ namespace SAD806x
             return new string[] { string.Format(finalFormat, shortLabels), string.Format(finalFormat, values) };
         }
 
-        private string[] getOutputTextElementOtherAddress(string uniqueAddress)
+        private string[] getOutputTextElementOtherAddress(string uniqueAddress, bool headerMode)
         {
             if (uniqueAddress == string.Empty) return new string[] { };
+            if (!S6x.slProcessOtherAddresses.ContainsKey(uniqueAddress)) return new string[] { };
+            S6xOtherAddress other = (S6xOtherAddress)S6x.slOtherAddresses[uniqueAddress];
+            if (other == null) return new string[] { };
 
             ArrayList alLines = new ArrayList();
-            S6xOtherAddress other = null;
 
-            if (!S6x.slProcessOtherAddresses.ContainsKey(uniqueAddress)) return new string[] {};
-
-            other = (S6xOtherAddress)S6x.slOtherAddresses[uniqueAddress];
-
-            if (other.Label != null && other.Label != string.Empty) alLines.Add(getOutputTextElementLabel(other.Label));
-            if (other.OutputComments)
+            // 20200308 - PYM - other.UniqueAddressHex added because now initialized with this value by default, not interest on output.
+            if (headerMode)
             {
-                if (other.Comments != null && other.Comments != string.Empty) alLines.Add(getOutputTextElementHeaderComments(other.Comments));
+                if (other.OutputLabel && other.Label != null && other.Label != string.Empty && !other.hasDefaultLabel) alLines.AddRange(getOutputTextElementLabel(other.Label));
+                if (!other.InlineComments && other.OutputComments)
+                {
+                    if (other.Comments != null && other.Comments != string.Empty) alLines.AddRange(getOutputTextElementHeaderComments(Tools.CommentsReviewed(other.Comments, string.Empty, other.Label, ref lReplacementCoreBaseStrings, ref slReplacementsCore, true, true)));
+                }
+            }
+            else
+            {
+                if (other.InlineComments && other.OutputComments)
+                {
+                    if (other.Comments != null && other.Comments != string.Empty) alLines.AddRange(getOutputTextElementInlineComments(Tools.CommentsReviewed(other.Comments, string.Empty, other.Label, ref lReplacementCoreBaseStrings, ref slReplacementsCore, true, true)));
+                }
             }
 
             other = null;
 
             return (string[])alLines.ToArray(typeof(string));
+        }
+
+        private string getOtherAddressCommentsForOutput(string uniqueAddress, bool removeFirstLineShortLabelLabel)
+        {
+            if (uniqueAddress == string.Empty) return string.Empty;
+
+            if (!S6x.slProcessOtherAddresses.ContainsKey(uniqueAddress)) return string.Empty;
+
+            S6xOtherAddress other = (S6xOtherAddress)S6x.slOtherAddresses[uniqueAddress];
+
+            if (other == null) return string.Empty;
+            
+            if (!other.OutputComments) return string.Empty;
+                
+            if (other.Comments == null || other.Comments == string.Empty) return string.Empty;
+
+            if (other.Comments.Trim() == string.Empty) return string.Empty;
+
+            if (removeFirstLineShortLabelLabel) return Tools.CommentsReviewed(other.Comments.Trim(), string.Empty, other.Label, ref lReplacementCoreBaseStrings, ref slReplacementsCore, true, true);
+
+            return other.Comments.Trim();
         }
 
         private string[] getOutputTextIncludedElements(ref Element elem, int startAddress, int endAddress)
@@ -1048,14 +1297,10 @@ namespace SAD806x
             return (string[])alLines.ToArray(typeof(string));
     }
 
-        private string[] getOutputTextElementUnknownOperationLine(ref Element elem, ref string subType)
+        private string[] getOutputTextElementUnknownOperationLine(ref Element elem, ref string subType, ref bool beginWithSpacerLine)
         {
             if (elem.Type != MergedType.UnknownOperationLine) return new string[] { };
             
-            string[] arrOtherAddressLines = getOutputTextElementOtherAddress(elem.UnknownOpPartLine.UniqueAddress);
-            string[] arrIncludedElementsLines = getOutputTextIncludedElements(ref elem, elem.AddressInt, elem.AddressEndInt);
-            string[] arrElemLines = null;
-
             string[] cellsValues = null;
             int[] cellsMinSizes = null;
             OutputCellAlignment[] cellsAlignments = null;
@@ -1075,36 +1320,25 @@ namespace SAD806x
                 //sFormat = "{0,6} -> {1,-25}{2,-19}{3,-2}";
             }
 
-            arrElemLines = new string[] { OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments) };
+            ArrayList alLines = new ArrayList();
 
-            string[] arrLines = new string[arrOtherAddressLines.Length + arrIncludedElementsLines.Length + arrElemLines.Length];
-            int iLine = 0;
-            foreach (string sLine in arrOtherAddressLines)
-            {
-                arrLines[iLine] = sLine;
-                iLine++;
-            }
-            foreach (string sLine in arrIncludedElementsLines)
-            {
-                arrLines[iLine] = sLine;
-                iLine++;
-            }
-            foreach (string sLine in arrElemLines)
-            {
-                arrLines[iLine] = sLine;
-                iLine++;
-            }
+            // OtherAddress Header if available in header mode
+            alLines.AddRange(getOutputTextElementOtherAddress(elem.UnknownOpPartLine.UniqueAddress, true));
 
-            return arrLines;
+            // Header is present, a line is inserted before
+            beginWithSpacerLine |= (alLines.Count > 0);
+
+            // Included Elements
+            alLines.AddRange(getOutputTextIncludedElements(ref elem, elem.AddressInt, elem.AddressEndInt));
+            // Current Element and its inline OtherAddress comments if available
+            alLines.AddRange(getOutputTextElementWithComments(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments), string.Empty, getOutputTextElementOtherAddress(elem.UnknownOpPartLine.UniqueAddress, false), true));
+
+            return (string[])alLines.ToArray(typeof(string));
         }
 
-        private string[] getOutputTextElementUnknownCalibrationLine(ref Element elem, ref string subType)
+        private string[] getOutputTextElementUnknownCalibrationLine(ref Element elem, ref string subType, ref bool beginWithSpacerLine)
         {
             if (elem.Type != MergedType.UnknownCalibrationLine) return new string[] { };
-
-            string[] arrOtherAddressLines = getOutputTextElementOtherAddress(elem.UnknownCalibPartLine.UniqueAddress);
-            string[] arrIncludedElementsLines = getOutputTextIncludedElements(ref elem, elem.AddressInt, elem.AddressEndInt);
-            string[] arrElemLines = null;
 
             string[] cellsValues = null;
             int[] cellsMinSizes = null;
@@ -1144,35 +1378,25 @@ namespace SAD806x
                 //sFormat = "{0,6} -> {1,-25}{2,-19}{3,-2}";
             }
 
-            arrElemLines = new string[] { OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments) };
+            ArrayList alLines = new ArrayList();
 
-            string[] arrLines = new string[arrOtherAddressLines.Length + arrIncludedElementsLines.Length + arrElemLines.Length];
-            int iLine = 0;
-            foreach (string sLine in arrOtherAddressLines)
-            {
-                arrLines[iLine] = sLine;
-                iLine++;
-            }
-            foreach (string sLine in arrIncludedElementsLines)
-            {
-                arrLines[iLine] = sLine;
-                iLine++;
-            }
-            foreach (string sLine in arrElemLines)
-            {
-                arrLines[iLine] = sLine;
-                iLine++;
-            }
+            // OtherAddress Header if available in header mode
+            alLines.AddRange(getOutputTextElementOtherAddress(elem.UnknownCalibPartLine.UniqueAddress, true));
 
-            return arrLines;
+            // Header is present, a line is inserted before
+            beginWithSpacerLine |= (alLines.Count > 0);
+
+            // Included Elements
+            alLines.AddRange(getOutputTextIncludedElements(ref elem, elem.AddressInt, elem.AddressEndInt));
+            // Current Element and its inline OtherAddress comments if available
+            alLines.AddRange(getOutputTextElementWithComments(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments), string.Empty, getOutputTextElementOtherAddress(elem.UnknownCalibPartLine.UniqueAddress, false), false));
+
+            return (string[])alLines.ToArray(typeof(string));
         }
 
-        private string[] getOutputTextElementReservedAddress(ref Element elem, ref string subType)
+        private string[] getOutputTextElementReservedAddress(ref Element elem, ref string subType, ref bool beginWithSpacerLine)
         {
             if (elem.Type != MergedType.ReservedAddress) return new string[] { };
-
-            string[] arrOtherAddressLines = getOutputTextElementOtherAddress(elem.ReservedAddress.UniqueAddress);
-            string[] arrElemLines = null;
 
             string[] cellsValues = null;
             int[] cellsMinSizes = null;
@@ -1181,7 +1405,18 @@ namespace SAD806x
             string sValues2 = string.Empty;
             Call cCall = null;
             Vector vVect = null;
+            string firstLine = string.Empty;
+            string secondLine = string.Empty;
 
+            ArrayList alLines = new ArrayList();
+
+            // OtherAddress Header if available in header mode
+            // In this place for managing properly Hex/Ascii return
+            alLines.AddRange(getOutputTextElementOtherAddress(elem.ReservedAddress.UniqueAddress, true));
+
+            // Header is present, a line is inserted before
+            beginWithSpacerLine |= (alLines.Count > 0);
+            
             subType = elem.ReservedAddress.Type.ToString();
 
             switch (elem.ReservedAddress.Type)
@@ -1245,41 +1480,28 @@ namespace SAD806x
                 case ReservedAddressType.Hex:
                     cellsValues = new string[] { elem.ReservedAddress.UniqueAddressHex, lineAddressBaseFollower, elem.ReservedAddress.InitialValue };
                     cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterOpsMinWidth };
-                    arrElemLines = new string[] { elem.ReservedAddress.FullLabel + ":", OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments), elem.ReservedAddress.ValueString, string.Empty };
-                    break;
+                    firstLine = OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments);
+                    secondLine = elem.ReservedAddress.ValueString;
+                    alLines.Add(elem.ReservedAddress.FullLabel + ":");
+                    alLines.AddRange(getOutputTextElementWithComments(firstLine, secondLine, getOutputTextElementOtherAddress(elem.ReservedAddress.UniqueAddress, false), true));
+                    alLines.Add(string.Empty);
+                    return (string[])alLines.ToArray(typeof(string));
                 default:
                     cellsValues = new string[] { elem.ReservedAddress.UniqueAddressHex, lineAddressBaseFollower, elem.ReservedAddress.InitialValue, string.Format("{0,4}", elem.ReservedAddress.Value(16)), elem.ReservedAddress.ShortLabel, elem.ReservedAddress.Label };
                     cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterOpsPart1MinWidth, lineCenterOpsPart2MinWidth, lineCenterOpsPart3MinWidth, 1 };
                     //sFormat = "{0,6}: {1,-21}{2,-6}{3,-19}{4,1}";
                     break;
             }
-            
-            // Null except for Ascii & Hex
-            if (arrElemLines == null) arrElemLines = new string[] { OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments) };
 
-            string[] arrLines = new string[arrOtherAddressLines.Length + arrElemLines.Length];
-            int iLine = 0;
-            foreach (string sLine in arrOtherAddressLines)
-            {
-                arrLines[iLine] = sLine;
-                iLine++;
-            }
-            foreach (string sLine in arrElemLines)
-            {
-                arrLines[iLine] = sLine;
-                iLine++;
-            }
+            // Current Element and its inline OtherAddress comments if available
+            alLines.AddRange(getOutputTextElementWithComments(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments), string.Empty, getOutputTextElementOtherAddress(elem.ReservedAddress.UniqueAddress, false), true));
 
-            return arrLines;
+            return (string[])alLines.ToArray(typeof(string));
         }
 
-        private string[] getOutputTextElementOperation(ref Element elem, ref string subType)
+        private string[] getOutputTextElementOperation(ref Element elem, ref string subType, ref bool beginWithSpacerLine)
         {
             if (elem.Type != MergedType.Operation) return new string[] { };
-
-            string[] arrOtherAddressLines = getOutputTextElementOtherAddress(elem.Operation.UniqueAddress);
-            string[] arrLabelLines = getOutputTextElementLabel(elem.Operation.FullLabel);
-            string[] arrElemLines = null;
 
             string[] cellsValues = null;
             int[] cellsMinSizes = null;
@@ -1287,7 +1509,7 @@ namespace SAD806x
 
             string firstLine = string.Empty;
             string secondLine = string.Empty;
-            
+
             if (elem.Operation.isFEConflict)
             {
                 cellsValues = new string[] { "//", elem.Operation.Address, elem.Operation.Instruction, elem.Operation.Translation1 };
@@ -1346,30 +1568,31 @@ namespace SAD806x
                 }
             }
 
-            arrElemLines = getOutputTextElementWithComments(firstLine, secondLine, elem.Operation.Comments);
+            ArrayList alLines = new ArrayList();
+            // OtherAddress Header if available in header mode
+            alLines.AddRange(getOutputTextElementOtherAddress(elem.Operation.UniqueAddress, true));
+            // Element Comments if available in header mode
+            if (elem.Operation.OutputComments && !elem.Operation.InlineComments)
+            {
+                alLines.AddRange(getOutputTextElementHeaderComments(Tools.CommentsReviewed(elem.Operation.Comments, elem.Operation.ShortLabel, elem.Operation.Label, ref lReplacementCoreBaseStrings, ref slReplacementsCore, true, true)));
+            }
+            // Element Label in header mode
+            alLines.AddRange(getOutputTextElementLabel(elem.Operation.FullLabel));
 
-            string[] arrLines = new string[arrOtherAddressLines.Length + arrLabelLines.Length + arrElemLines.Length];
-            int iLine = 0;
-            foreach (string sLine in arrOtherAddressLines)
-            {
-                arrLines[iLine] = sLine;
-                iLine++;
-            }
-            foreach (string sLine in arrLabelLines)
-            {
-                arrLines[iLine] = sLine;
-                iLine++;
-            }
-            foreach (string sLine in arrElemLines)
-            {
-                arrLines[iLine] = sLine;
-                iLine++;
-            }
+            // Header is present, a line is inserted before
+            beginWithSpacerLine |= (alLines.Count > 0);
 
-            return arrLines;
+            string[] arrCommentsInline = new string[] {};
+            if (elem.Operation.OutputComments && elem.Operation.InlineComments) arrCommentsInline = getOutputTextElementInlineComments(Tools.CommentsReviewed(elem.Operation.Comments, elem.Operation.ShortLabel, elem.Operation.Label, ref lReplacementCoreBaseStrings, ref slReplacementsCore, true, true));
+            if (arrCommentsInline.Length == 0) arrCommentsInline = getOutputTextElementOtherAddress(elem.Operation.UniqueAddress, false);
+            // Current Element and its inline comment if available (Current element one or by default OtherAddress one)
+            alLines.AddRange(getOutputTextElementWithComments(firstLine, secondLine, arrCommentsInline, true));
+            arrCommentsInline = null;
+
+            return (string[])alLines.ToArray(typeof(string));
         }
 
-        private string[] getOutputTextElementScalar(ref Element elem, ref string subType)
+        private string[] getOutputTextElementScalar(ref Element elem, ref string subType, ref bool beginWithSpacerLine)
         {
             if (elem.Type != MergedType.CalibrationElement && elem.Type != MergedType.ExtScalar) return new string[] { };
 
@@ -1378,13 +1601,6 @@ namespace SAD806x
             else sScalar = elem.ExtScalar;
 
             if (sScalar == null) return new string[] { };
-
-            string[] arrOtherAddressLines = getOutputTextElementOtherAddress(sScalar.UniqueAddress);
-            string[] arrIncludedElementsLines = getOutputTextIncludedElements(ref elem, elem.AddressInt, elem.AddressEndInt);
-            string[] arrLabelLines = null;
-            string[] arrBitFlagsLines = null;
-            string[] arrElemLines = null;
-            string[] arrLines = null;
 
             string[] cellsValues = null;
             int[] cellsMinSizes = null;
@@ -1404,55 +1620,46 @@ namespace SAD806x
                 if (sScalar.Byte) subType = typeExtScalarByte;
             }
 
-            arrLabelLines = getOutputTextElementLabel(sScalar.FullLabel);
-
-            arrBitFlagsLines = new string[] { };
-            if (sScalar.isBitFlags) arrBitFlagsLines = getOutputValueBitFlagsWithComments(sScalar.ValueBitFlags);
-
             if (sScalar.isScaled) sValues = sScalar.ValueScaled();
             else sValues = sScalar.Value(10);
 
             if (elem.Type == MergedType.CalibrationElement) sVariableValue = elem.CalElement.RBaseCalc + " " + sScalar.ShortLabel;
             else sVariableValue = sScalar.ShortLabel;
                 
+            ArrayList alLines = new ArrayList();
+            // OtherAddress Header if available in header mode
+            alLines.AddRange(getOutputTextElementOtherAddress(sScalar.UniqueAddress, true));
+            // Element Comments in header mode if available
+            if (sScalar.OutputComments && !sScalar.InlineComments)
+            {
+                alLines.AddRange(getOutputTextElementHeaderComments(Tools.CommentsReviewed(sScalar.Comments, sScalar.ShortLabel, sScalar.Label, ref lReplacementCoreBaseStrings, ref slReplacementsCore, true, true)));
+            }
+            // Element Label in header mode
+            alLines.AddRange(getOutputTextElementLabel(sScalar.FullLabel));
+            
+            // Header is present, a line is inserted before
+            beginWithSpacerLine |= (alLines.Count > 0);
+            
+            // Element Bit Flags
+            if (sScalar.isBitFlags) alLines.AddRange(getOutputValueBitFlagsWithComments(sScalar.ValueBitFlags));
+
+            string[] arrCommentsInline = new string[] { };
+            if (sScalar.OutputComments && sScalar.InlineComments) arrCommentsInline = getOutputTextElementInlineComments(Tools.CommentsReviewed(sScalar.Comments, sScalar.ShortLabel, sScalar.Label, ref lReplacementCoreBaseStrings, ref slReplacementsCore, true, true));
+            if (arrCommentsInline.Length == 0) arrCommentsInline = getOutputTextElementOtherAddress(sScalar.UniqueAddress, false);
             cellsValues = new string[] { sScalar.UniqueAddressHex, lineAddressBaseFollower, sScalar.InitialValue, sVariableValue, subType, sScalar.Value(16), sValues };
             cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterCalPart1MinWidth, lineCenterCalPart2MinWidth, lineCenterCalPart3MinWidth, lineCenterCalPart4MinWidth, lineRightCalPart1MinWidth };
             cellsAlignments = new OutputCellAlignment[] { OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Right, OutputCellAlignment.Right };
+            // Current Element and its inline comment if available (Current element one or by default OtherAddress one)
+            alLines.AddRange(getOutputTextElementWithComments(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments), string.Empty, arrCommentsInline, elem.Type == MergedType.ExtScalar));
+            arrCommentsInline = null;
 
-            arrElemLines = getOutputTextElementWithComments(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments), string.Empty, sScalar.Comments);
+            // Element Included Elements
+            alLines.AddRange(getOutputTextIncludedElements(ref elem, elem.AddressInt, elem.AddressEndInt));
 
-            arrLines = new string[arrOtherAddressLines.Length + arrLabelLines.Length + arrBitFlagsLines.Length + arrElemLines.Length + arrIncludedElementsLines.Length];
-            int iLine = 0;
-            foreach (string sLine in arrOtherAddressLines)
-            {
-                arrLines[iLine] = sLine;
-                iLine++;
-            }
-            foreach (string sLine in arrLabelLines)
-            {
-                arrLines[iLine] = sLine;
-                iLine++;
-            }
-            foreach (string sLine in arrBitFlagsLines)
-            {
-                arrLines[iLine] = sLine;
-                iLine++;
-            }
-            foreach (string sLine in arrElemLines)
-            {
-                arrLines[iLine] = sLine;
-                iLine++;
-            }
-            foreach (string sLine in arrIncludedElementsLines)
-            {
-                arrLines[iLine] = sLine;
-                iLine++;
-            }
-
-            return arrLines;
+            return (string[])alLines.ToArray(typeof(string));
         }
 
-        private string[] getOutputTextElementFunction(ref Element elem, ref string subType)
+        private string[] getOutputTextElementFunction(ref Element elem, ref string subType, ref bool beginWithSpacerLine)
         {
             if (elem.Type != MergedType.CalibrationElement && elem.Type != MergedType.ExtFunction) return new string[] { };
 
@@ -1462,13 +1669,20 @@ namespace SAD806x
 
             if (fFunction == null) return new string[] { };
 
-            ArrayList alLines = new ArrayList();
-
             if (elem.Type == MergedType.CalibrationElement) subType = typeCalElemFunction;
             else subType = typeExtFunction;
 
+            ArrayList alLines = new ArrayList();
+
+            // OtherAddress Header if available in header mode
+            alLines.AddRange(getOutputTextElementOtherAddress(fFunction.UniqueAddress, true));
+            // Element Comments in header mode if available
+            if (fFunction.OutputComments) alLines.AddRange(getOutputTextElementHeaderComments(Tools.CommentsReviewed(fFunction.Comments, fFunction.ShortLabel, fFunction.Label, ref lReplacementCoreBaseStrings, ref slReplacementsCore, true, true)));
+            // Element Label in header mode
             alLines.AddRange(getOutputTextElementLabel(fFunction.FullLabel));
-            alLines.AddRange(getOutputTextElementHeaderComments(fFunction.Comments));
+
+            // Header is present, a line is inserted before
+            beginWithSpacerLine |= (alLines.Count > 0);
 
             //sFormat = "{0,6}: {1,-18}{2,-" + (20 - subType.Length).ToString() + "}{3,8},{4,9}{5,20},{6,9}";
 
@@ -1483,17 +1697,21 @@ namespace SAD806x
                 else sValues = scalarLine.Scalars[0].Value(10);
                 if (fFunction.isOutputScaled) sValues2 = scalarLine.Scalars[1].ValueScaled(fFunction.getOutputScaleExpression, fFunction.getOutputScalePrecision);
                 else sValues2 = scalarLine.Scalars[1].Value(10);
-                alLines.AddRange(getOutputTextElementOtherAddress(scalarLine.UniqueAddress));
+
+                // OtherAddress Header if available in header mode
+                alLines.AddRange(getOutputTextElementOtherAddress(scalarLine.UniqueAddress, true));
+                // Element Included Elements
                 alLines.AddRange(getOutputTextIncludedElements(ref elem, scalarLine.AddressInt, scalarLine.AddressEndInt));
 
                 string[] cellsValues = new string[] { scalarLine.UniqueAddressHex, lineAddressBaseFollower, scalarLine.InitialValue, subType, scalarLine.Scalars[0].Value(16), SADDef.GlobalSeparator, scalarLine.Scalars[1].Value(16), sValues, SADDef.GlobalSeparator, sValues2 };
-                alLines.Add(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments));
+                // Current Element and its inline OtherAddress comment if available
+                alLines.AddRange(getOutputTextElementWithComments(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments), string.Empty, getOutputTextElementOtherAddress(scalarLine.UniqueAddress, false), elem.Type == MergedType.ExtFunction));
             }
 
             return (string[])alLines.ToArray(typeof(string));
         }
 
-        private string[] getOutputTextElementTable(ref Element elem, ref string subType)
+        private string[] getOutputTextElementTable(ref Element elem, ref string subType, ref bool beginWithSpacerLine)
         {
             if (elem.Type != MergedType.CalibrationElement && elem.Type != MergedType.ExtTable) return new string[] { };
 
@@ -1503,13 +1721,20 @@ namespace SAD806x
 
             if (tTable == null) return new string[] { };
 
-            ArrayList alLines = new ArrayList();
-
             if (elem.Type == MergedType.CalibrationElement) subType = typeCalElemTable;
             else subType = typeExtTable;
 
+            ArrayList alLines = new ArrayList();
+
+            // OtherAddress Header if available in header mode
+            alLines.AddRange(getOutputTextElementOtherAddress(tTable.UniqueAddress, true));
+            // Element Comments in header mode if available
+            if (tTable.OutputComments) alLines.AddRange(getOutputTextElementHeaderComments(Tools.CommentsReviewed(tTable.Comments, tTable.ShortLabel, tTable.Label, ref lReplacementCoreBaseStrings, ref slReplacementsCore, true, true)));
+            // Element Label in header mode
             alLines.AddRange(getOutputTextElementLabel(tTable.FullLabel));
-            alLines.AddRange(getOutputTextElementHeaderComments(tTable.Comments));
+
+            // Header is present, a line is inserted before
+            beginWithSpacerLine |= (alLines.Count > 0);
 
             int[] cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, -1, subType.Length + tableSeparator2MinWidth, -1, -1 };
             OutputCellAlignment[] cellsAlignments = new OutputCellAlignment[] { OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left };
@@ -1546,16 +1771,21 @@ namespace SAD806x
                 }
                 if (cellsMinSizes[4] < 0) cellsMinSizes[4] = sValues.Length + tableSeparator3MinWidth;
                 if (cellsMinSizes[5] < 0) cellsMinSizes[5] = sValues2.Length;
-                alLines.AddRange(getOutputTextElementOtherAddress(scalarLine.UniqueAddress));
+
+                // OtherAddress Header if available in header mode
+                alLines.AddRange(getOutputTextElementOtherAddress(scalarLine.UniqueAddress, true));
+                // Element Included Elements
                 alLines.AddRange(getOutputTextIncludedElements(ref elem, scalarLine.AddressInt, scalarLine.AddressEndInt));
+                
                 string[] cellsValues = new string[] { scalarLine.UniqueAddressHex, lineAddressBaseFollower, scalarLine.InitialValue, subType, sValues, sValues2 };
+                // Current Element without its inline OtherAddress comment for output reasons
                 alLines.Add(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments));
             }
 
             return (string[])alLines.ToArray(typeof(string));
         }
 
-        private string[] getOutputTextElementStructure(ref Element elem, ref string subType)
+        private string[] getOutputTextElementStructure(ref Element elem, ref string subType, ref bool beginWithSpacerLine)
         {
             if (elem.Type != MergedType.CalibrationElement && elem.Type != MergedType.ExtStructure) return new string[] { };
 
@@ -1566,14 +1796,21 @@ namespace SAD806x
             if (sStruct == null) return new string[] { };
             if (sStruct.ParentStructure != null) return new string[] { };  // Included / Duplicated elements are not generated
             
-            ArrayList alLines = new ArrayList();
-
             if (elem.Type == MergedType.CalibrationElement) subType = typeCalElemStruct;
             else subType = typeExtStruct;
 
+            ArrayList alLines = new ArrayList();
+
+            // OtherAddress Header if available in header mode
+            alLines.AddRange(getOutputTextElementOtherAddress(sStruct.UniqueAddress, true));
+            // Element Comments in header mode if available
+            if (sStruct.OutputComments) alLines.AddRange(getOutputTextElementHeaderComments(Tools.CommentsReviewed(sStruct.Comments, sStruct.ShortLabel, sStruct.Label, ref lReplacementCoreBaseStrings, ref slReplacementsCore, true, true)));
+            // Element Label in header mode
             alLines.AddRange(getOutputTextElementLabel(sStruct.FullLabel));
-            alLines.AddRange(getOutputTextElementHeaderComments(sStruct.Comments));
-            
+
+            // Header is present, a line is inserted before
+            beginWithSpacerLine |= (alLines.Count > 0);
+
             int maxInitialValuesLength = 0;
             int[] maxItemValuesLengths = new int[] { };
             foreach (StructureLine sLine in sStruct.Lines)
@@ -1587,7 +1824,7 @@ namespace SAD806x
                 }
                 for (int iCol = 0; iCol < sLine.Items.Count; iCol++)
                 {
-                    string sValue = ((StructureItem)sLine.Items[iCol]).Value();
+                    string sValue = ((StructureItem)sLine.Items[iCol]).Value(sLine.NumberInStructure);
                     if (sValue.Length > maxItemValuesLengths[iCol]) maxItemValuesLengths[iCol] = sValue.Length;
                 }
             }
@@ -1606,7 +1843,7 @@ namespace SAD806x
                 string sValues = string.Empty;
                 for (int iCol = 0; iCol < sLine.Items.Count; iCol++)
                 {
-                    string sValue = ((StructureItem)sLine.Items[iCol]).Value();
+                    string sValue = ((StructureItem)sLine.Items[iCol]).Value(sLine.NumberInStructure);
                     switch (((StructureItem)sLine.Items[iCol]).Type)
                     {
                         case StructureItemType.String:
@@ -1623,42 +1860,51 @@ namespace SAD806x
                             break;
                     }
                 }
-                alLines.AddRange(getOutputTextElementOtherAddress(sLine.UniqueAddress));
+                // OtherAddress Header if available in header mode
+                alLines.AddRange(getOutputTextElementOtherAddress(sLine.UniqueAddress, true));
+                // Element Included Elements
                 alLines.AddRange(getOutputTextIncludedElements(ref elem, sLine.AddressInt, sLine.AddressEndInt));
+
                 string[] cellsValues = new string[] { sLine.UniqueAddressHex, lineAddressBaseFollower, sLine.InitialValue, subType, sValues };
-                alLines.Add(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments));
+                // Current Element and its inline OtherAddress comment if available
+                alLines.AddRange(getOutputTextElementWithComments(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments), string.Empty, getOutputTextElementOtherAddress(sLine.UniqueAddress, false), elem.Type == MergedType.ExtStructure));
             }
 
             return (string[])alLines.ToArray(typeof(string));
         }
 
-        private string[] getOutputTextElementVector(ref Element elem, ref string subType)
+        private string[] getOutputTextElementVector(ref Element elem, ref string subType, ref bool beginWithSpacerLine)
         {
             if (elem.Type != MergedType.Vector) return new string[] { };
 
-            ArrayList alLines = new ArrayList();
-
             subType = typeVector;
 
-            if (elem.Vector.VectList == null)
+            ArrayList alLines = new ArrayList();
+
+            // OtherAddress Header if available in header mode
+            alLines.AddRange(getOutputTextElementOtherAddress(elem.Vector.UniqueSourceAddress, true));
+
+            // Header is present, a line is inserted before
+            beginWithSpacerLine |= (alLines.Count > 0);
+
+            if (elem.Vector.VectList != null)
             {
-                alLines.AddRange(getOutputTextElementOtherAddress(elem.Vector.UniqueSourceAddress));
-            }
-            else if (elem.Vector.VectList.UniqueAddress == elem.Vector.UniqueSourceAddress)
-            {
-                alLines.AddRange(getOutputTextElementLabel(elem.Vector.VectList.FullLabel));
-                alLines.AddRange(getOutputTextElementHeaderComments(elem.Vector.VectList.Comments));
-            }
-            else
-            {
-                alLines.AddRange(getOutputTextElementOtherAddress(elem.Vector.UniqueSourceAddress));
+                if (elem.Vector.VectList.UniqueAddress == elem.Vector.UniqueSourceAddress)
+                {
+                    // Element Comments in header mode if available
+                    alLines.AddRange(getOutputTextElementHeaderComments(Tools.CommentsReviewed(elem.Vector.VectList.Comments, elem.Vector.VectList.ShortLabel, elem.Vector.VectList.Label, ref lReplacementCoreBaseStrings, ref slReplacementsCore, true, true)));
+                    // Element Label in header mode
+                    alLines.AddRange(getOutputTextElementLabel(elem.Vector.VectList.FullLabel));
+                }
             }
 
             int[] cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterOpsPart1MinWidth, lineCenterOpsPart2MinWidth, lineCenterOpsPart3MinWidth, 1 };
             string[] cellsValues = new string[] { elem.Vector.UniqueSourceAddressHex, lineAddressBaseFollower, elem.Vector.InitialValue, elem.Vector.Address, "Bank " + elem.Vector.ApplyOnBankNum + " " + subType, elem.Vector.FullLabel };
             OutputCellAlignment[] cellsAlignments = new OutputCellAlignment[] { OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left };
-            alLines.Add(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments));
-
+            // Current Element and its inline OtherAddress comment if available
+            alLines.AddRange(getOutputTextElementWithComments(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments), string.Empty, getOutputTextElementOtherAddress(elem.Vector.UniqueSourceAddress, false), true));
+            
+            // Element Included Elements
             alLines.AddRange(getOutputTextIncludedElements(ref elem, elem.Vector.SourceAddressInt, elem.Vector.SourceAddressInt + 1));
 
             return (string[])alLines.ToArray(typeof(string));
@@ -1666,117 +1912,113 @@ namespace SAD806x
 
         private void processOutputTextElement(ref TextWriter txWriter, ref Element elem, ref object[] previousResult)
         {
+            if (elem.isIncluded) return;
+
             MergedType prevType = MergedType.Unknown;
             string subType = string.Empty;
             string prevSubType = string.Empty;
-            string[] arrLines = null;
-
-            if (elem.isIncluded) return;
+            ArrayList alLines = new ArrayList();
+            bool beginWithSpacerLine = false;
+            int lastLinesCount = 0;
 
             if (previousResult != null)
             {
                 prevType = (MergedType)previousResult[0];
                 prevSubType = (string)previousResult[1];
+
+                beginWithSpacerLine |= (prevType != elem.Type);
             }
 
-            if (prevType != elem.Type) txWriter.WriteLine();
             switch (elem.Type)
             {
                 case MergedType.UnknownOperationLine:
-                    arrLines = getOutputTextElementUnknownOperationLine(ref elem, ref subType);
-                    if (subType != prevSubType) txWriter.WriteLine();
-                    foreach (string sLine in arrLines) txWriter.WriteLine(sLine);
+                    alLines.AddRange(getOutputTextElementUnknownOperationLine(ref elem, ref subType, ref beginWithSpacerLine));
                     break;
                 case MergedType.UnknownCalibrationLine:
-                    arrLines = getOutputTextElementUnknownCalibrationLine(ref elem, ref subType);
-                    if (subType != prevSubType) txWriter.WriteLine();
-                    foreach (string sLine in arrLines) txWriter.WriteLine(sLine);
+                    alLines.AddRange(getOutputTextElementUnknownCalibrationLine(ref elem, ref subType, ref beginWithSpacerLine));
                     break;
                 case MergedType.ReservedAddress:
-                    arrLines = getOutputTextElementReservedAddress(ref elem, ref subType);
-                    if (prevSubType != subType) txWriter.WriteLine();
-                    foreach (string sLine in arrLines) txWriter.WriteLine(sLine);
+                    alLines.AddRange(getOutputTextElementReservedAddress(ref elem, ref subType, ref beginWithSpacerLine));
+                    beginWithSpacerLine |= (subType != prevSubType);
                     break;
                 case MergedType.Operation:
+                    lastLinesCount = alLines.Count;
                     if (Calibration.alMainCallsUniqueAddresses.Contains(elem.Operation.UniqueAddress))
                     {
                         Call cCall = (Call)Calibration.slCalls[elem.Operation.UniqueAddress];
-                        arrLines = getOutputTextElementLabel(cCall.FullLabel);
-                        foreach (string sLine in arrLines) txWriter.WriteLine(sLine);
                         if (cCall.S6xRoutine != null)
                         {
                             if (cCall.S6xRoutine.OutputComments)
                             {
-                                arrLines = getOutputTextElementHeaderComments(cCall.Comments);
-                                foreach (string sLine in arrLines) txWriter.WriteLine(sLine);
+                                alLines.AddRange(getOutputTextElementHeaderComments(Tools.CommentsReviewed(cCall.Comments, cCall.ShortLabel, cCall.Label, ref lReplacementCoreBaseStrings, ref slReplacementsCore, true, true)));
                             }
                         }
+                        alLines.AddRange(getOutputTextElementLabel(cCall.FullLabel));
                         cCall = null;
+                        // Added header or label requires a new line at beginning (0)
+                        // Only required when lastLinesCount was at 0, otherwise a new line was already added
+                        beginWithSpacerLine |= (lastLinesCount == 0 && alLines.Count > 0);
                     }
                     else if (S6x.slProcessRoutines.ContainsKey(elem.Operation.UniqueAddress))
                     {
+                        lastLinesCount = alLines.Count;
                         S6xRoutine s6xRoutine = (S6xRoutine)S6x.slProcessRoutines[elem.Operation.UniqueAddress];
-                        arrLines = getOutputTextElementLabel((s6xRoutine.Label != string.Empty && s6xRoutine.ShortLabel != string.Empty && s6xRoutine.Label != s6xRoutine.ShortLabel) ? s6xRoutine.ShortLabel + " - " + s6xRoutine.Label : s6xRoutine.Label);
-                        foreach (string sLine in arrLines) txWriter.WriteLine(sLine);
                         if (s6xRoutine.OutputComments)
                         {
-                            arrLines = getOutputTextElementHeaderComments(s6xRoutine.Comments);
-                            foreach (string sLine in arrLines) txWriter.WriteLine(sLine);
+                            alLines.AddRange(getOutputTextElementHeaderComments(Tools.CommentsReviewed(s6xRoutine.Comments, s6xRoutine.ShortLabel, s6xRoutine.Label, ref lReplacementCoreBaseStrings, ref slReplacementsCore, true, true)));
                         }
+                        alLines.AddRange(getOutputTextElementLabel((s6xRoutine.Label != string.Empty && s6xRoutine.ShortLabel != string.Empty && s6xRoutine.Label != s6xRoutine.ShortLabel) ? s6xRoutine.ShortLabel + " - " + s6xRoutine.Label : s6xRoutine.Label));
                         s6xRoutine = null;
+                        // Added header or label requires a new line at beginning (0)
+                        // Only required when lastLinesCount was at 0, otherwise a new line was already added
+                        beginWithSpacerLine |= (lastLinesCount == 0 && alLines.Count > 0);
                     }
-                    else if (prevSubType == "newLine") txWriter.WriteLine();
+                    else
+                    {
+                        beginWithSpacerLine |= (lastLinesCount == 0 && prevSubType == "newLine");
+                    }
 
-                    arrLines = getOutputTextElementOperation(ref elem, ref subType);
-                    foreach (string sLine in arrLines) txWriter.WriteLine(sLine);
+                    alLines.AddRange(getOutputTextElementOperation(ref elem, ref subType, ref beginWithSpacerLine));
                     break;
                 case MergedType.CalibrationElement:
                     if (elem.CalElement.isScalar)
                     {
-                        arrLines = getOutputTextElementScalar(ref elem, ref subType);
-                        if (subType != prevSubType) txWriter.WriteLine();
-                        foreach (string sLine in arrLines) txWriter.WriteLine(sLine);
+                        alLines.AddRange(getOutputTextElementScalar(ref elem, ref subType, ref beginWithSpacerLine));
+                        beginWithSpacerLine |= (subType != prevSubType);
                     }
                     else if (elem.CalElement.isFunction)
                     {
-                        arrLines = getOutputTextElementFunction(ref elem, ref subType);
-                        foreach (string sLine in arrLines) txWriter.WriteLine(sLine);
+                        alLines.AddRange(getOutputTextElementFunction(ref elem, ref subType, ref beginWithSpacerLine));
                     }
                     else if (elem.CalElement.isTable)
                     {
-                        arrLines = getOutputTextElementTable(ref elem, ref subType);
-                        foreach (string sLine in arrLines) txWriter.WriteLine(sLine);
+                        alLines.AddRange(getOutputTextElementTable(ref elem, ref subType, ref beginWithSpacerLine));
                     }
                     else if (elem.CalElement.isStructure)
                     {
-                        arrLines = getOutputTextElementStructure(ref elem, ref subType);
-                        foreach (string sLine in arrLines) txWriter.WriteLine(sLine);
+                        alLines.AddRange(getOutputTextElementStructure(ref elem, ref subType, ref beginWithSpacerLine));
                     }
                     break;
                 case MergedType.ExtScalar:
-                    arrLines = getOutputTextElementScalar(ref elem, ref subType);
-                    if (subType != prevSubType) txWriter.WriteLine();
-                    foreach (string sLine in arrLines) txWriter.WriteLine(sLine);
+                    alLines.AddRange(getOutputTextElementScalar(ref elem, ref subType, ref beginWithSpacerLine));
+                    beginWithSpacerLine |= (subType != prevSubType);
                     break;
                 case MergedType.ExtFunction:
-                    arrLines = getOutputTextElementFunction(ref elem, ref subType);
-                    foreach (string sLine in arrLines) txWriter.WriteLine(sLine);
+                    alLines.AddRange(getOutputTextElementFunction(ref elem, ref subType, ref beginWithSpacerLine));
                     break;
                 case MergedType.ExtTable:
-                    arrLines = getOutputTextElementTable(ref elem, ref subType);
-                    foreach (string sLine in arrLines) txWriter.WriteLine(sLine);
+                    alLines.AddRange(getOutputTextElementTable(ref elem, ref subType, ref beginWithSpacerLine));
                     break;
                 case MergedType.ExtStructure:
-                    arrLines = getOutputTextElementStructure(ref elem, ref subType);
-                    foreach (string sLine in arrLines) txWriter.WriteLine(sLine);
+                    alLines.AddRange(getOutputTextElementStructure(ref elem, ref subType, ref beginWithSpacerLine));
                     break;
                 case MergedType.Vector:
-                    arrLines = getOutputTextElementVector(ref elem, ref subType);
-                    if (subType != prevSubType) txWriter.WriteLine();
-                    foreach (string sLine in arrLines) txWriter.WriteLine(sLine);
+                    alLines.AddRange(getOutputTextElementVector(ref elem, ref subType, ref beginWithSpacerLine));
                     break;
-
             }
+
+            if (beginWithSpacerLine && alLines.Count > 0) txWriter.WriteLine(string.Empty);
+            foreach (string sLine in alLines) txWriter.WriteLine(sLine);
 
             previousResult = new object[] { elem.Type, subType };
         }

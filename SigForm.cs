@@ -87,25 +87,58 @@ namespace SAD806x
             advElemsContextMenuStrip.Opening += new CancelEventHandler(advElemsContextMenuStrip_Opening);
 
             advSigTextBox.TextChanged += new EventHandler(advSigTextBox_TextChanged);
-            
+
             inputArgPositionTextBox.TextChanged += new EventHandler(inputArgPositionTextBox_TextChanged);
 
             inputArgEncryptionComboBox.DataSource = Enum.GetValues(typeof(CallArgsMode));
             inputArgEncryptionComboBox.SelectedItem = CallArgsMode.Standard;
 
-            advLabelTextBox.Text = s6xSig.Label;
-            advSLabelTextBox.Text = s6xSig.ShortLabel;
+            advLabelTextBox.Text = s6xSig.SignatureLabel;
+            advSLabelTextBox.Text = s6xSig.UniqueKey;
+            
             advSigTextBox.Text = s6xSig.Signature;
+            advSigTextBox.Text = advSigTextBox.Text.Replace("\r\n", "\n").Replace("\n\r", "\n").Replace("\n", "\r\n");
 
-            mainTipPictureBox.Tag = Tools.SignatureTip();
+            routineSLabelTextBox.Text = s6xSig.ShortLabel;
+            routineLabelTextBox.Text = s6xSig.Label;
+            routineCommentsTextBox.Text = s6xSig.Comments;
+            routineCommentsTextBox.Text = routineCommentsTextBox.Text.Replace("\r\n", "\n").Replace("\n\r", "\n").Replace("\n", "\r\n");
+            routineOutputCommentsCheckBox.Checked = s6xSig.OutputComments;
+
+            if (signatureFor806xComboBox.Items.Count == Enum.GetValues(typeof(Signature806xOptions)).Length)
+            {
+                if (s6xSig.for806x != null && s6xSig.for806x != string.Empty)
+                {
+                    try { signatureFor806xComboBox.SelectedIndex = (int)Enum.Parse(typeof(Signature806xOptions), s6xSig.for806x, true); }
+                    catch { signatureFor806xComboBox.SelectedIndex = (int)Signature806xOptions.Undefined; }
+                }
+                else
+                {
+                    signatureFor806xComboBox.SelectedIndex = (int)Signature806xOptions.Undefined;
+                }
+            }
+            if (signatureForBankComboBox.Items.Count == Enum.GetValues(typeof(SignatureBankOptions)).Length)
+            {
+                if (s6xSig.forBankNum != null && s6xSig.forBankNum != string.Empty)
+                {
+                    try { signatureForBankComboBox.SelectedIndex = (int)Enum.Parse(typeof(SignatureBankOptions), s6xSig.forBankNum, true); }
+                    catch { signatureForBankComboBox.SelectedIndex = (int)SignatureBankOptions.Undefined; }
+                }
+                else
+                {
+                    signatureForBankComboBox.SelectedIndex = (int)SignatureBankOptions.Undefined;
+                }
+            }
+
+            mainTipPictureBox.Tag = SharedUI.SignatureTip();
             mainTipPictureBox.MouseHover += new EventHandler(TipPictureBox_MouseHover);
             mainTipPictureBox.Click += new EventHandler(TipPictureBox_Click);
 
-            inputStructureTipPictureBox.Tag = Tools.StructureTip();
+            inputStructureTipPictureBox.Tag = SharedUI.StructureTip();
             inputStructureTipPictureBox.MouseHover += new EventHandler(TipPictureBox_MouseHover);
             inputStructureTipPictureBox.Click += new EventHandler(TipPictureBox_Click);
 
-            internalStructureTipPictureBox.Tag = Tools.StructureTip();
+            internalStructureTipPictureBox.Tag = SharedUI.StructureTip();
             internalStructureTipPictureBox.MouseHover += new EventHandler(TipPictureBox_MouseHover);
             internalStructureTipPictureBox.Click += new EventHandler(TipPictureBox_Click);
 
@@ -144,6 +177,8 @@ namespace SAD806x
             internalTableScalePrecNumericUpDown.Value = SADDef.DefaultScalePrecision;
 
             Control.ControlCollection controls = null;
+            controls = (Control.ControlCollection)routineTabPage.Controls;
+            attachPropertiesEventsControls(ref controls);
             controls = (Control.ControlCollection)inputArgumentTabPage.Controls;
             attachPropertiesEventsControls(ref controls);
             controls = (Control.ControlCollection)inputStructureTabPage.Controls;
@@ -471,6 +506,9 @@ namespace SAD806x
         {
             foreach (TabPage tabPage in elemTabControl.TabPages)
             {
+                // Not for routine
+                if (tabPage == routineTabPage) continue;
+
                 Control.ControlCollection controls = (Control.ControlCollection)tabPage.Controls;
                 clearControls(ref controls);
             }
@@ -727,6 +765,7 @@ namespace SAD806x
                     internalScalarCommentsTextBox.Text = sigIntScal.Comments;
                     internalScalarLabelTextBox.Text = sigIntScal.Label;
                     internalScalarOutputCommentsCheckBox.Checked = sigIntScal.OutputComments;
+                    internalScalarInlineCommentsCheckBox.Checked = sigIntScal.InlineComments;
                     internalScalarScaleTextBox.Text = sigIntScal.ScaleExpression;
                     internalScalarScalePrecNumericUpDown.Value = sigIntScal.ScalePrecision;
                     internalScalarSignedCheckBox.Checked = sigIntScal.Signed;
@@ -817,6 +856,9 @@ namespace SAD806x
 
             switch (elemTabControl.SelectedTab.Name)
             {
+                case "routineTabPage":
+                    updateRoutine();
+                    return;
                 case "inputArgumentTabPage":
                     categ = TreeCategInputArgumentsNodeName;
                     break;
@@ -1128,6 +1170,7 @@ namespace SAD806x
                     sigIntScal.Comments = internalScalarCommentsTextBox.Text;
                     sigIntScal.Label = internalScalarLabelTextBox.Text;
                     sigIntScal.OutputComments = internalScalarOutputCommentsCheckBox.Checked;
+                    sigIntScal.InlineComments = internalScalarInlineCommentsCheckBox.Checked;
                     sigIntScal.ScaleExpression = internalScalarScaleTextBox.Text;
                     sigIntScal.ScalePrecision = (int)internalScalarScalePrecNumericUpDown.Value;
                     sigIntScal.Signed = internalScalarSignedCheckBox.Checked;
@@ -1166,6 +1209,27 @@ namespace SAD806x
             clearElem();
 
             advElemsTreeView.SelectedNode = advElemsTreeView.Nodes[TreeRootNodeName];
+        }
+
+        private void updateRoutine()
+        {
+            s6xSig.ShortLabel = routineSLabelTextBox.Text;
+            s6xSig.Label = routineLabelTextBox.Text;
+            s6xSig.Comments = routineCommentsTextBox.Text;
+
+            s6xSig.OutputComments = routineOutputCommentsCheckBox.Checked;
+
+            if (signatureFor806xComboBox.Items.Count == Enum.GetValues(typeof(Signature806xOptions)).Length)
+            {
+                if (signatureFor806xComboBox.SelectedIndex == (int)Signature806xOptions.Undefined) s6xSig.for806x = null;
+                else s6xSig.for806x = Enum.GetName(typeof(Signature806xOptions), signatureFor806xComboBox.SelectedIndex);
+            }
+
+            if (signatureForBankComboBox.Items.Count == Enum.GetValues(typeof(SignatureBankOptions)).Length)
+            {
+                if (signatureForBankComboBox.SelectedIndex == (int)SignatureBankOptions.Undefined) s6xSig.forBankNum = null;
+                else s6xSig.forBankNum = Enum.GetName(typeof(SignatureBankOptions), signatureForBankComboBox.SelectedIndex);
+            }
         }
 
         private bool checkElem(string categ)
@@ -1344,6 +1408,7 @@ namespace SAD806x
             cnt += slInternalTables.Count;
             cnt += slInternalFunctions.Count;
             cnt += slInternalScalars.Count;
+            cnt += slInputArguments.Count;
             cnt += slInputStructures.Count;
             cnt += slInputTables.Count;
             cnt += slInputFunctions.Count;

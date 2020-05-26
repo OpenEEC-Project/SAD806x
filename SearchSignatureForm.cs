@@ -24,7 +24,7 @@ namespace SAD806x
             //searchTreeView.NodeMouseClick += new TreeNodeMouseClickEventHandler(searchTreeView_NodeMouseClick);
             //searchTreeView.AfterSelect += new TreeViewEventHandler(searchTreeView_AfterSelect);
 
-            mainTipPictureBox.Tag = Tools.ElementSignatureTip();
+            mainTipPictureBox.Tag = SharedUI.ElementSignatureTip();
             mainTipPictureBox.MouseHover += new EventHandler(TipPictureBox_MouseHover);
             mainTipPictureBox.Click += new EventHandler(TipPictureBox_Click);
         }

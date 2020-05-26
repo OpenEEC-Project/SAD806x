@@ -32,7 +32,7 @@ namespace SAD806x
             repoRepository.isSaved = true;
 
             bindingSource = new BindingSource();
-            bindingSource.DataSource = repoRepository.Items;
+            bindingSource.DataSource = repoRepository.Items.FindAll(searchRepositoryConversionItem);
 
             repoListBox.DisplayMember = "Title";
             repoListBox.DataSource = bindingSource;
@@ -84,6 +84,23 @@ namespace SAD806x
             }
         }
 
+        private bool searchRepositoryConversionItem(RepositoryConversionItem rItem)
+        {
+            string search = searchTextBox.Text.ToUpper();
+
+            if (search == string.Empty) return true;
+
+            string[] searchedValues = new string[] { rItem.Title, rItem.Comments, rItem.Information, rItem.InternalFormula };
+            
+            foreach (string searchedValue in searchedValues)
+            {
+                if (searchedValue == null || searchedValue == string.Empty) continue;
+                if (searchedValue.ToUpper().Contains(search)) return true;
+            }
+
+            return false;
+        }
+
         private void saveButton_Click(object sender, EventArgs e)
         {
             try
@@ -103,43 +120,24 @@ namespace SAD806x
 
         private void searchTextBox_KeyPress(object sender, KeyPressEventArgs e)
         {
-            string search = searchTextBox.Text.ToUpper();
-            int startIndex = 0;
-            bool secondRun = false;
+            if (e.KeyChar != 13) return;
 
-            if (search == string.Empty) return;
-            if (repoRepository.Items.Count == 0) return;
+            RepositoryConversionItem prevSelectedRepoItem = selectedRepoItem;
 
-            if (repoListBox.SelectedItem != null) startIndex = repoListBox.SelectedIndex;
+            bindingSource.DataSource = repoRepository.Items.FindAll(searchRepositoryConversionItem);
 
-            for (int index = startIndex + 1; index < repoListBox.Items.Count; index++)
+            if (prevSelectedRepoItem != null)
             {
-                bool match = false;
-                if (((RepositoryConversionItem)repoListBox.Items[index]).Title.ToUpper().Contains(search)) match = true;
-
-                if (!match)
+                if (repoListBox.Items.Contains(prevSelectedRepoItem))
                 {
-                    if (index == repoListBox.Items.Count - 1 && startIndex > 0) secondRun = true;
-                    continue;
+                    repoListBox.SelectedItem = prevSelectedRepoItem;
                 }
-
-                secondRun = false;
-                repoListBox.SelectedIndex = index;
-                break;
-            }
-
-            if (secondRun)
-            {
-                for (int index = 0; index < startIndex; index++)
+                else
                 {
-                    bool match = false;
-                    if (((RepositoryConversionItem)repoListBox.Items[index]).Title.ToUpper().Contains(search)) match = true;
-
-                    if (!match) continue;
-
-                    repoListBox.SelectedIndex = index;
-                    break;
+                    repoListBox.SelectedItem = null;
+                    selectedRepoItem = null;
                 }
+                prevSelectedRepoItem = null;
             }
         }
 

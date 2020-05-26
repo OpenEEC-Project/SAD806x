@@ -42,10 +42,18 @@ namespace SAD806x
                     labelTextBox.Visible = false;
                     sLabelLabel.Text = labelLabel.Text;
                     break;
+                case "OBDIERRORS":
+                    sLabelLabel.Text = SADDef.repoLabelOBDIErrorsShortLabel;
+                    sLabelLabel.MouseMove += new MouseEventHandler(ShortLabelLabel_MouseMove);
+                    break;
+                case "OBDIIERRORS":
+                    sLabelLabel.Text = SADDef.repoLabelOBDIIErrorsShortLabel;
+                    sLabelLabel.MouseMove += new MouseEventHandler(ShortLabelLabel_MouseMove);
+                    break;
             }
-            
+
             bindingSource = new BindingSource();
-            bindingSource.DataSource = repoRepository.Items;
+            bindingSource.DataSource = repoRepository.Items.FindAll(searchRepositoryItem);
 
             repoListBox.DisplayMember = "ShortLabel";
             repoListBox.DataSource = bindingSource;
@@ -98,6 +106,23 @@ namespace SAD806x
             }
         }
 
+        private bool searchRepositoryItem(RepositoryItem rItem)
+        {
+            string search = searchTextBox.Text.ToUpper();
+
+            if (search == string.Empty) return true;
+
+            string[] searchedValues = new string[] { rItem.ShortLabel, rItem.Label, rItem.Comments, rItem.Information };
+
+            foreach (string searchedValue in searchedValues)
+            {
+                if (searchedValue == null || searchedValue == string.Empty) continue;
+                if (searchedValue.ToUpper().Contains(search)) return true;
+            }
+
+            return false;
+        }
+
         private void saveButton_Click(object sender, EventArgs e)
         {
             try
@@ -117,45 +142,24 @@ namespace SAD806x
 
         private void searchTextBox_KeyPress(object sender, KeyPressEventArgs e)
         {
-            string search = searchTextBox.Text.ToUpper();
-            int startIndex = 0;
-            bool secondRun = false;
+            if (e.KeyChar != 13) return;
 
-            if (search == string.Empty) return;
-            if (repoRepository.Items.Count == 0) return;
+            RepositoryItem prevSelectedRepoItem = selectedRepoItem;
+            
+            bindingSource.DataSource = repoRepository.Items.FindAll(searchRepositoryItem);
 
-            if (repoListBox.SelectedItem != null) startIndex = repoListBox.SelectedIndex;
-
-            for (int index = startIndex + 1; index < repoListBox.Items.Count; index++)
+            if (prevSelectedRepoItem != null)
             {
-                bool match = false;
-                if (((RepositoryItem)repoListBox.Items[index]).ShortLabel.ToUpper().Contains(search)) match = true;
-                else if (((RepositoryItem)repoListBox.Items[index]).Label.ToUpper().Contains(search)) match = true;
-
-                if (!match)
+                if (repoListBox.Items.Contains(prevSelectedRepoItem))
                 {
-                    if (index == repoListBox.Items.Count - 1 && startIndex > 0) secondRun = true;
-                    continue;
+                    repoListBox.SelectedItem = prevSelectedRepoItem;
                 }
-
-                secondRun = false;
-                repoListBox.SelectedIndex = index;
-                break;
-            }
-
-            if (secondRun)
-            {
-                for (int index = 0; index < startIndex; index++)
+                else
                 {
-                    bool match = false;
-                    if (((RepositoryItem)repoListBox.Items[index]).ShortLabel.ToUpper().Contains(search)) match = true;
-                    else if (((RepositoryItem)repoListBox.Items[index]).Label.ToUpper().Contains(search)) match = true;
-
-                    if (!match) continue;
-
-                    repoListBox.SelectedIndex = index;
-                    break;
+                    repoListBox.SelectedItem = null;
+                    selectedRepoItem = null;
                 }
+                prevSelectedRepoItem = null;
             }
         }
 
@@ -291,6 +295,25 @@ namespace SAD806x
 
             repoRepository.isSaved = false;
             bindingSource.ResetBindings(false);
+        }
+
+        private void ShortLabelLabel_MouseMove(object sender, MouseEventArgs e)
+        {
+            string newTip = string.Empty;
+            
+            switch (specificType)
+            {
+                case "OBDIERRORS":
+                    newTip = SADDef.repoToolTipOBDIErrorsShortLabel;
+                    break;
+                case "OBDIIERRORS":
+                    newTip = SADDef.repoToolTipOBDIIErrorsShortLabel;
+                    break;
+            }
+
+            if (newTip == string.Empty) return;
+
+            if (repoToolTip.GetToolTip(sLabelLabel) != newTip) repoToolTip.SetToolTip(sLabelLabel, newTip);
         }
 
         private void repoListBox_MouseMove(object sender, MouseEventArgs e)
