@@ -416,10 +416,10 @@ namespace SAD806x
 
                     symLine = string.Format(sSymFormat, "sym", s6xElem.Address, s6xElem.BankNum, "\"" + s6xElem.ShortLabel.Replace(" ", "_") + "\"").Trim();
                     elemLine = string.Empty;
-                    if (s6xElem.ColsNumber > 0)
+                    if (s6xElem.ColsNumber > 0 && s6xElem.RowsNumber > 0)
                     {
                         endAddress = SADDef.EecBankStartAddress + s6xElem.AddressInt - 1;
-                        if (s6xElem.WordOutput) endAddress += s6xElem.ColsNumber * 2; else endAddress += s6xElem.ColsNumber * 2;
+                        if (s6xElem.WordOutput) endAddress += s6xElem.ColsNumber * s6xElem.RowsNumber * 2; else endAddress += s6xElem.ColsNumber * s6xElem.RowsNumber;
                         scale1 = string.Empty;
                         if (s6xElem.CellsScaleExpression != null && s6xElem.CellsScaleExpression != string.Empty)
                         {
