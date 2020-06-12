@@ -292,7 +292,6 @@ namespace SAD806x
             bool bParamPartsProcessed = false;
             string sReg = string.Empty;
             int iValue = -1;
-            int iParamForParameters = 0;
             ArrayList arrCleanedParams = null;
 
             ope = new Operation(callBankNum, opAddress);
@@ -370,8 +369,9 @@ namespace SAD806x
             for (int iParam = 0; iParam < ope.OperationParams.Length; iParam++)
             {
                 // Predefined Parameters for OP Code are not in line for variable parameters (should be 1 less), the last value is used in this case.
-                iParamForParameters = iParam;
-                if (iParam >= parameters.Length) iParamForParameters = parameters.Length - 1;
+                int iParamValue = 0;
+                int iParamForParameters = iParam;
+                if (iParamForParameters >= parameters.Length) iParamForParameters = parameters.Length - 1;
                 switch (parameters[iParamForParameters].Type)
                 {
                     case OPCodeParamsTypes.Bank:
@@ -386,22 +386,30 @@ namespace SAD806x
                         if (ope.OperationParams[iParam].InstructedParam == "00")
                         {
                             ope.OperationParams[iParam].InstructedParam = "0";
+                            break;
                         }
-                        else
+                        // Register auto Increment for Pointers
+                        //  Multiple of 2 (B0 = 0), this is a direct register, no increment.
+                        //                (B0 = 1), 1 has to be removed from this register, increment is applied.
+                        if (parameters[iParamForParameters].isPointer)
                         {
-                            // Register auto Increment for Pointers
-                            //  Multiple of 2 (B0 = 0), this is a direct register, no increment.
-                            //                (B0 = 1), 1 has to be removed from this register, increment is applied.
-                            if (parameters[iParamForParameters].isPointer)
-                            {
-                                if (Convert.ToByte(ope.OperationParams[iParam].InstructedParam, 16) % 2 != 0)
-                                {
-                                    ope.OperationParams[iParam].InstructedParam = string.Format("{0:x2}" + SADDef.IncrementSuffix, Convert.ToInt32(ope.OperationParams[iParam].InstructedParam, 16) - 1);
-                                }
-                            }
+                            iParamValue = Convert.ToInt32(ope.OperationParams[iParam].InstructedParam, 16);
+                            if (iParamValue % 2 != 0) ope.OperationParams[iParam].InstructedParam = string.Format("{0:x2}" + SADDef.IncrementSuffix, iParamValue - 1);
                             ope.OperationParams[iParam].InstructedParam = SADDef.ShortRegisterPrefix + ope.OperationParams[iParam].InstructedParam;
                             if (parameters[iParamForParameters].isPointer) ope.OperationParams[iParam].InstructedParam = Tools.PointerTranslation(ope.OperationParams[iParam].InstructedParam);
+                            break;
                         }
+                        // 20200612 - PYM    
+                        // Odd Word / Shortcut +0x100 for Word Instructions on first parameter
+                        if (iParam == 0 && parameters[iParamForParameters].Type == OPCodeParamsTypes.RegisterWord)
+                        {
+                            iParamValue = Convert.ToInt32(ope.OperationParams[iParam].InstructedParam, 16);
+                            if (iParamValue % 2 != 0) ope.OperationParams[iParam].InstructedParam = string.Format("{0:x3}", 0x100 + iParamValue - 1);
+                            ope.OperationParams[iParam].InstructedParam = Tools.RegisterInstruction(ope.OperationParams[iParam].InstructedParam);
+                            break;
+                        }
+                        // Default
+                        ope.OperationParams[iParam].InstructedParam = SADDef.ShortRegisterPrefix + ope.OperationParams[iParam].InstructedParam;
                         break;
                     case OPCodeParamsTypes.ValueByte:
                         // 20171118 - Remove Leading 0

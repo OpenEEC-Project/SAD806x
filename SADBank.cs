@@ -5512,7 +5512,6 @@ namespace SAD806x
             RoutineIOFunction ioFunction = null;
             RoutineIOStructure ioStructure = null;
             RoutineIOScalar ioScalar = null;
-            bool bAddCalElem = false;
 
             bool preferPrecedingProcess = true;
             int preferPrecedingProcessCount = -1;
@@ -5525,22 +5524,40 @@ namespace SAD806x
 
                 foreach (CalibrationElement opeCalElem in ope.alCalibrationElems)
                 {
-                    bAddCalElem = false;
-
-                    calibrationElem = null;
-                    if (Calibration.slCalibrationElements.ContainsKey(Tools.UniqueAddress(opeCalElem.BankNum, opeCalElem.AddressInt)))
-                    {
-                        calibrationElem = (CalibrationElement)Calibration.slCalibrationElements[Tools.UniqueAddress(opeCalElem.BankNum, opeCalElem.AddressInt)];
-                    }
-                    else
+                    calibrationElem = (CalibrationElement)Calibration.slCalibrationElements[Tools.UniqueAddress(opeCalElem.BankNum, opeCalElem.AddressInt)];
+                    if (calibrationElem == null)
                     {
                         // Normally it should never be
                         //  Addition to Operation.alCalibrationElems should always be done after creation in Calibration.slCalibrationElements
                         calibrationElem = opeCalElem;
-                        bAddCalElem = true;
+                        Calibration.slCalibrationElements.Add(calibrationElem.UniqueAddress, calibrationElem);
                     }
 
                     if (!calibrationElem.RelatedOpsUniqueAddresses.Contains(ope.UniqueAddress)) calibrationElem.RelatedOpsUniqueAddresses.Add(ope.UniqueAddress);
+
+                    // To Know if Element is coming from S6x Definition
+                    bool hasS6xDefinition = false;
+
+                    // 20200612 - S6xDefinition detection or use
+                    if (calibrationElem.isTypeIdentified)
+                    {
+                        if (calibrationElem.isTable && calibrationElem.TableElem.S6xTable != null) hasS6xDefinition = true;
+                        else if (calibrationElem.isFunction && calibrationElem.FunctionElem.S6xFunction != null) hasS6xDefinition = true;
+                        else if (calibrationElem.isScalar && calibrationElem.ScalarElem.S6xScalar != null) hasS6xDefinition = true;
+                        else if (calibrationElem.isStructure && calibrationElem.StructureElem.S6xStructure != null) hasS6xDefinition = true;
+                    }
+                    else
+                    {
+                        if (S6x.slProcessTables.ContainsKey(calibrationElem.UniqueAddress)) calibrationElem.TableElem = new Table((S6xTable)S6x.slProcessTables[calibrationElem.UniqueAddress]);
+                        else if (S6x.slProcessFunctions.ContainsKey(calibrationElem.UniqueAddress)) calibrationElem.FunctionElem = new Function((S6xFunction)S6x.slProcessFunctions[calibrationElem.UniqueAddress]);
+                        else if (S6x.slProcessScalars.ContainsKey(calibrationElem.UniqueAddress)) calibrationElem.ScalarElem = new Scalar((S6xScalar)S6x.slProcessScalars[calibrationElem.UniqueAddress]);
+                        else if (S6x.slProcessStructures.ContainsKey(calibrationElem.UniqueAddress)) calibrationElem.StructureElem = new Structure((S6xStructure)S6x.slProcessStructures[calibrationElem.UniqueAddress]);
+
+                        hasS6xDefinition = calibrationElem.isTypeIdentified;
+                    }
+                    // 20181106 - Process is added for MAF Transfer essentially
+                    // Predefined signatures parsing
+                    if (!hasS6xDefinition) processCalibrationElementSignatureIdentification(ref calibrationElem, ref ope, ref S6x);
 
                     if (!calibrationElem.isFullyIdentified)
                     {
@@ -5755,24 +5772,6 @@ namespace SAD806x
                         // Table / Function Identification not directly using Table / Function Address Registers
                         if (!calibrationElem.isTypeIdentified) processCalibrationElementSub(ref ope, ref calibrationElem, ref S6x);
 
-                        // To Know if Element is coming from S6x Definition and if it will be necessary to process it with Signatures
-                        bool hasS6xDefinition = false;
-
-                        // Identification using S6x Definition, when Type was in Conflict or nothing was detected
-                        if (!calibrationElem.isTypeIdentified)
-                        {
-                            if (S6x.slProcessTables.ContainsKey(calibrationElem.UniqueAddress)) calibrationElem.TableElem = new Table((S6xTable)S6x.slProcessTables[calibrationElem.UniqueAddress]);
-                            else if (S6x.slProcessFunctions.ContainsKey(calibrationElem.UniqueAddress)) calibrationElem.FunctionElem = new Function((S6xFunction)S6x.slProcessFunctions[calibrationElem.UniqueAddress]);
-                            else if (S6x.slProcessScalars.ContainsKey(calibrationElem.UniqueAddress)) calibrationElem.ScalarElem = new Scalar((S6xScalar)S6x.slProcessScalars[calibrationElem.UniqueAddress]);
-                            else if (S6x.slProcessStructures.ContainsKey(calibrationElem.UniqueAddress)) calibrationElem.StructureElem = new Structure((S6xStructure)S6x.slProcessStructures[calibrationElem.UniqueAddress]);
-
-                            hasS6xDefinition = calibrationElem.isTypeIdentified;
-                        }
-
-                        // 20181106 - Process is added for MAF Transfer essentially
-                        // Last Non Identified Elements will be parsed through predefined signatures
-                        if (!hasS6xDefinition) processCalibrationElementSignatureIdentification(ref calibrationElem, ref ope, ref S6x);
-
                         // Last Non Identified Elements will be identified as Structures
                         //  They are coming from Op Code 45 essentially to be used later on, no way to know their usage now
                         if (!calibrationElem.isTypeIdentified)
@@ -5819,8 +5818,6 @@ namespace SAD806x
                             }
                         }
                     }
-
-                    if (bAddCalElem) Calibration.slCalibrationElements.Add(calibrationElem.UniqueAddress, calibrationElem);
                 }
                 ope = null;
             }
