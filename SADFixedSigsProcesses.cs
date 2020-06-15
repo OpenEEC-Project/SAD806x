@@ -616,6 +616,7 @@ namespace SAD806x
 
             int codesNumber = 0;
             int regsNumber = 0;
+            int regsSvcNumber = 0;
             int partialBitsNumber = 0;
 
             S6xScalar s6xNoFault = null;
@@ -718,12 +719,8 @@ namespace SAD806x
             regsNumber = (codesNumber - partialBitsNumber) / 8;
             if (partialBitsNumber > 0) regsNumber++;
 
-            // Normally Regs Number should match with already detected structures for Reg and Reg Svc
-            if (Calibration.slExtStructures.ContainsKey(s6xRegs.UniqueAddress)) s6xRegs.Number = ((Structure)Calibration.slExtStructures[s6xRegs.UniqueAddress]).Number;
-            if (regsNumber != s6xRegs.Number) return;       // Not Matching - Nothing will be done
-
-            if (Calibration.slExtStructures.ContainsKey(s6xRegsSvc.UniqueAddress)) s6xRegsSvc.Number = ((Structure)Calibration.slExtStructures[s6xRegsSvc.UniqueAddress]).Number;
-            if (s6xRegsSvc.Number == 0) return;             // Not Matching - Nothing will be done
+            regsSvcNumber = (int)((double)regsNumber / 2);
+            if (regsNumber % 2 > 0) regsSvcNumber++;
 
             // Reading Repository
             Repository repoOBDIErrors = (Repository)ToolsXml.DeserializeFile(Application.StartupPath + "\\" + SADDef.repoFileNameOBDIErrors, typeof(Repository));
@@ -733,8 +730,8 @@ namespace SAD806x
             repoOBDIErrors = null;
 
             // Reading registers (outside of structure, much more simple)
-            arrRegs = Bank8.getBytesArray(s6xRegs.AddressInt, s6xRegs.Number);
-            arrRegsSvc = Bank8.getBytesArray(s6xRegsSvc.AddressInt, s6xRegsSvc.Number);
+            arrRegs = Bank8.getBytesArray(s6xRegs.AddressInt, regsNumber);
+            arrRegsSvc = Bank8.getBytesArray(s6xRegsSvc.AddressInt, regsSvcNumber);
 
             SortedList slRegs = new SortedList();
             // Registers mngt and creation

@@ -3,7 +3,7 @@
   <Profiles />
   <Settings>
     <Setting Name="VersionDate" Type="System.String" Scope="User">
-      <Value Profile="(Default)">2020-06-12</Value>
+      <Value Profile="(Default)">2020-06-15</Value>
     </Setting>
   </Settings>
 </SettingsFile>

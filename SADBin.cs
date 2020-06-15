@@ -696,6 +696,7 @@ namespace SAD806x
             {
                 // 20200512 - PYM
                 // Added to S6xRegisters
+                if (rBase.Code.ToLower() == "si") continue;
                 S6xRegister s6xReg = (S6xRegister)S6x.slRegisters[Tools.RegisterUniqueAddress(rBase.Code)];
                 if (s6xReg == null)
                 {
