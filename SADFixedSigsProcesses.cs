@@ -268,6 +268,7 @@ namespace SAD806x
                                         s6xReg.ScaleExpression = s6xRegTmp.ScaleExpression;
                                         s6xReg.ScalePrecision = s6xRegTmp.ScalePrecision;
                                         s6xReg.Units = s6xRegTmp.Units;
+                                        s6xReg.Store = true;
                                         s6xRegTmp = null;
                                         alS6xRegisters.Add(s6xReg);
                                         s6xReg = null;
@@ -315,6 +316,7 @@ namespace SAD806x
                                     s6xReg.ScaleExpression = s6xRegTmp.ScaleExpression;
                                     s6xReg.ScalePrecision = s6xRegTmp.ScalePrecision;
                                     s6xReg.Units = s6xRegTmp.Units;
+                                    s6xReg.Store = true;
                                     s6xRegTmp = null;
                                     alS6xRegisters.Add(s6xReg);
                                     s6xReg = null;
@@ -411,6 +413,7 @@ namespace SAD806x
                                     s6xReg.ScaleExpression = s6xRegTmp.ScaleExpression;
                                     s6xReg.ScalePrecision = s6xRegTmp.ScalePrecision;
                                     s6xReg.Units = s6xRegTmp.Units;
+                                    s6xReg.Store = true;
                                     s6xRegTmp = null;
                                     alS6xRegisters.Add(s6xReg);
                                     s6xReg = null;
@@ -433,6 +436,7 @@ namespace SAD806x
                                     s6xReg.ScaleExpression = s6xRegTmp.ScaleExpression;
                                     s6xReg.ScalePrecision = s6xRegTmp.ScalePrecision;
                                     s6xReg.Units = s6xRegTmp.Units;
+                                    s6xReg.Store = true;
                                     s6xRegTmp = null;
                                     alS6xRegisters.Add(s6xReg);
                                     s6xReg = null;
@@ -455,6 +459,7 @@ namespace SAD806x
                                     s6xReg.ScaleExpression = s6xRegTmp.ScaleExpression;
                                     s6xReg.ScalePrecision = s6xRegTmp.ScalePrecision;
                                     s6xReg.Units = s6xRegTmp.Units;
+                                    s6xReg.Store = true;
                                     s6xRegTmp = null;
                                     alS6xRegisters.Add(s6xReg);
                                     s6xReg = null;
@@ -501,6 +506,7 @@ namespace SAD806x
                                         s6xReg.ScaleExpression = s6xRegTmp.ScaleExpression;
                                         s6xReg.ScalePrecision = s6xRegTmp.ScalePrecision;
                                         s6xReg.Units = s6xRegTmp.Units;
+                                        s6xReg.Store = true;
                                         s6xRegTmp = null;
                                         alS6xRegisters.Add(s6xReg);
                                         s6xReg = null;
@@ -533,6 +539,7 @@ namespace SAD806x
                                         s6xScal.ScaleExpression = s6xScalTmp.ScaleExpression;
                                         s6xScal.ScalePrecision = s6xScalTmp.ScalePrecision;
                                         s6xScal.Units = s6xScalTmp.Units;
+                                        s6xScal.Store = true;
                                         s6xScalTmp = null;
                                         alS6xScalars.Add(s6xScal);
                                         s6xScal = null;
@@ -561,6 +568,7 @@ namespace SAD806x
                                         s6xFunc.OutputScaleExpression = s6xFuncTmp.OutputScaleExpression;
                                         s6xFunc.OutputScalePrecision = s6xFuncTmp.OutputScalePrecision;
                                         s6xFunc.OutputUnits = s6xFuncTmp.OutputUnits;
+                                        s6xFunc.Store = true;
                                         s6xFuncTmp = null;
                                         alS6xFunctions.Add(s6xFunc);
                                         s6xFunc = null;
@@ -759,6 +767,7 @@ namespace SAD806x
                     s6xReg.AddBitFlag(s6xBF);
                     s6xReg.Comments += "\r\nB" + iBf.ToString() + " is for " + s6xBF.ShortLabel + " - " + s6xBF.Label;
                 }
+                s6xReg.Store = true;
                 addRegister(s6xReg, ref Calibration, ref S6x);
                 if (!slRegs.ContainsKey(s6xReg.Address)) slRegs.Add(s6xReg.Address, s6xReg);
             }
@@ -788,6 +797,7 @@ namespace SAD806x
                     s6xReg.AddBitFlag(s6xBF);
                     s6xReg.Comments += "\r\nB" + iBf.ToString() + " is for " + s6xBF.ShortLabel + " - " + s6xBF.Label;
                 }
+                s6xReg.Store = true;
                 addRegister(s6xReg, ref Calibration, ref S6x);
                 if (!slRegs.ContainsKey(s6xReg.Address)) slRegs.Add(s6xReg.Address, s6xReg);
             }
@@ -799,6 +809,7 @@ namespace SAD806x
                 s6xNoFault.Label = "OBDI No Fault Code";
                 s6xNoFault.Byte = true;
                 s6xNoFault.Comments = s6xNoFault.ShortLabel + " - " + s6xNoFault.Label;
+                s6xNoFault.Store = true;
                 addScalar(s6xNoFault, ref Calibration);
                 s6xNoFault = null;
             }
@@ -825,6 +836,7 @@ namespace SAD806x
             s6xCodes.Comments += "\r\n8th code is for B7 for the same register.";
             s6xCodes.Comments += "\r\n9th code is for B0 for the second register in structure OBDIEREG2D or OBDIESREG2D";
             s6xCodes.Comments += "\r\nand so on...";
+            s6xCodes.Store = true;
             arrBytes = Bank8.getBytesArray(s6xCodes.AddressInt, codesNumber);
             addStructure(s6xCodes, ref Calibration, ref arrBytes);
             s6xCodes = null;
@@ -842,6 +854,7 @@ namespace SAD806x
             s6xRegs.StructDef = RegsDefString;
             s6xRegs.Number = 1;
             s6xRegs.Comments = s6xRegs.ShortLabel + " - " + s6xRegs.Label;
+            s6xRegs.Store = true;
             arrBytes = Bank8.getBytesArray(s6xRegs.AddressInt, arrRegs.Length);
             addStructure(s6xRegs, ref Calibration, ref arrBytes);
             s6xRegs = null;
@@ -859,6 +872,7 @@ namespace SAD806x
             s6xRegsSvc.StructDef = RegsSvcDefString;
             s6xRegsSvc.Number = 1;
             s6xRegsSvc.Comments = s6xRegsSvc.ShortLabel + " - " + s6xRegsSvc.Label;
+            s6xRegsSvc.Store = true;
             arrBytes = Bank8.getBytesArray(s6xRegsSvc.AddressInt, arrRegsSvc.Length);
             addStructure(s6xRegsSvc, ref Calibration, ref arrBytes);
             s6xRegsSvc = null;
@@ -911,6 +925,7 @@ namespace SAD806x
                     s6xTimingStep.Number = 5;               // Size is fixed
                     s6xTimingStep.Comments = s6xTimingStep.ShortLabel + " - " + s6xTimingStep.Label;
                     s6xTimingStep.Comments += "\r\nIn mSecs.";
+                    s6xTimingStep.Store = true;
                     arrBytes = Bank8.getBytesArray(s6xTimingStep.AddressInt, 5 * 2);
                     addStructure(s6xTimingStep, ref Calibration, ref arrBytes);
                     arrBytes = null;
@@ -1038,6 +1053,7 @@ namespace SAD806x
             s6xCodes.Comments = s6xCodes.ShortLabel + " - " + s6xCodes.Label;
             s6xCodes.Comments += "\r\nWhen different from 0, will appear as 3 digits like hexadecimal value.";
             s6xCodes.Comments += "\r\n0x244 will be 2 long long, 4 long and 4 short.";
+            s6xCodes.Store = true;
             addStructure(s6xCodes, ref Calibration, ref arrBytes);
             s6xCodes = null;
             arrBytes = null;
@@ -1119,6 +1135,7 @@ namespace SAD806x
                             if (repoItem.Comments != repoItem.FullLabel) s6xCount.Comments += "\r\n" + repoItem.Comments;
                             repoItem = null;
                         }
+                        s6xCount.Store = true;
                         addScalar(s6xCount, ref Calibration);
                         s6xCount = null;
                     }
@@ -1146,6 +1163,7 @@ namespace SAD806x
                             if (repoItem.Comments != repoItem.FullLabel) s6xCount.Comments += "\r\n" + repoItem.Comments;
                             repoItem = null;
                         }
+                        s6xCount.Store = true;
                         addScalar(s6xCount, ref Calibration);
                         s6xCount = null;
                     }
@@ -1301,6 +1319,7 @@ namespace SAD806x
                         s6xReg.ScaleExpression = s6xTmp.ScaleExpression;
                         s6xReg.ScalePrecision = s6xTmp.ScalePrecision;
                         s6xReg.Units = s6xTmp.Units;
+                        s6xReg.Store = true;
                         addRegister(s6xReg, ref Calibration, ref S6x);
                         s6xReg = (S6xRegister)S6x.slRegisters[regUAddr];
                     }
@@ -1611,6 +1630,7 @@ namespace SAD806x
             s6xCodes.Comments = s6xCodes.ShortLabel + " - " + s6xCodes.Label;
             s6xCodes.Comments += "\r\nValue is P0 + X (P0420 for example).";
             s6xCodes.Comments += "\r\nValue is related to register [" + rFirst.Address + " + RowNumber]. RowNumber starts at 0.";
+            s6xCodes.Store = true;
             addStructure(s6xCodes, ref Calibration, ref arrBytes);
             s6xCodes = null;
             arrBytes = null;
@@ -1628,6 +1648,7 @@ namespace SAD806x
                     if (repoItem.Comments != repoItem.FullLabel) s6xReg.Comments += "\r\n" + repoItem.Comments;
                     repoItem = null;
                 }
+                s6xReg.Store = true;
                 addRegister(s6xReg, ref Calibration, ref S6x);
                 if (!slRegistersUAddrOBDCodes.ContainsKey(s6xReg.UniqueAddress)) slRegistersUAddrOBDCodes.Add(s6xReg.UniqueAddress, arrCodes[iNum]);
             }
@@ -1646,6 +1667,7 @@ namespace SAD806x
                 s6xSwitches.Comments = s6xSwitches.ShortLabel + " - " + s6xSwitches.Label;
                 s6xSwitches.Comments += "\r\nValue is the address where mode is set.";
                 s6xSwitches.Comments += "\r\nValue is related to register [" + rFirst.Address + " + RowNumber]. RowNumber starts at 0.";
+                s6xSwitches.Store = true;
                 addStructure(s6xSwitches, ref Calibration, ref arrBytes);
                 s6xSwitches = null;
                 arrBytes = null;
@@ -1667,6 +1689,7 @@ namespace SAD806x
                         if (repoItem.Comments != repoItem.FullLabel) s6xSwitch.Comments += "\r\n" + repoItem.Comments;
                         repoItem = null;
                     }
+                    s6xSwitch.Store = true;
                     addScalar(s6xSwitch, ref Calibration);
                 }
             }
@@ -1678,6 +1701,7 @@ namespace SAD806x
                 s6xFlags.StructDef = "\"ID \",ByteHex,\"REG \",NumHex(X*2+" + rFirst.AddressInt + ")";
                 s6xFlags.Comments = s6xFlags.ShortLabel + " - " + s6xFlags.Label;
                 s6xFlags.Comments += "\r\nValue is related to register [" + rFirst.Address + " + RowNumber]. RowNumber starts at 0.";
+                s6xFlags.Store = true;
                 arrBytes = calibrationBank.getBytesArray(s6xFlags.AddressInt, s6xFlags.Number);
                 addStructure(s6xFlags, ref Calibration, ref arrBytes);
                 s6xFlags = null;
@@ -1768,6 +1792,7 @@ namespace SAD806x
                                         s6xCMReg = SADFixedRegisters.GetFixedRegisterTemplate((ope.OriginalInstruction.ToLower() == "stb") ? SADFixedRegisters.FixedRegisters.ACT : SADFixedRegisters.FixedRegisters.ACT_WORD);
                                         s6xCMReg.AddressInt = (int)arrPointersValues[2];
                                         if (arrPointersValues.Length > 3) s6xCMReg.AdditionalAddress10 = ((int)arrPointersValues[4]).ToString();
+                                        s6xCMReg.Store = true;
                                         addRegister(s6xCMReg, ref Calibration, ref S6x);
                                         break;
                                 }
@@ -1804,6 +1829,7 @@ namespace SAD806x
                                             s6xCMReg = SADFixedRegisters.GetFixedRegisterTemplate(SADFixedRegisters.FixedRegisters.FPUMP_DC);
                                             s6xCMReg.AddressInt = (int)arrPointersValues[2];
                                             if (arrPointersValues.Length > 3) s6xCMReg.AdditionalAddress10  = ((int)arrPointersValues[4]).ToString();
+                                            s6xCMReg.Store = true;
                                             addRegister(s6xCMReg, ref Calibration, ref S6x);
                                             s6xCMReg = null;
                                         }
@@ -1816,6 +1842,7 @@ namespace SAD806x
                                             s6xCMReg = SADFixedRegisters.GetFixedRegisterTemplate(SADFixedRegisters.FixedRegisters.VBAT);
                                             s6xCMReg.AddressInt = (int)arrPointersValues[2];
                                             if (arrPointersValues.Length > 3) s6xCMReg.AdditionalAddress10  = ((int)arrPointersValues[4]).ToString();
+                                            s6xCMReg.Store = true;
                                             addRegister(s6xCMReg, ref Calibration, ref S6x);
                                         }
                                         break;
@@ -1878,6 +1905,7 @@ namespace SAD806x
                                             }
                                             s6xCMReg.AddressInt = (int)arrPV[2];
                                             if (arrPV.Length > 3) s6xCMReg.AdditionalAddress10 = ((int)arrPV[4]).ToString();
+                                            s6xCMReg.Store = true;
                                             addRegister(s6xCMReg, ref Calibration, ref S6x);
                                             s6xCMReg = null;
                                             iCHTsArrPointersValues++;
@@ -1906,6 +1934,7 @@ namespace SAD806x
                                             s6xCMReg = SADFixedRegisters.GetFixedRegisterTemplate(SADFixedRegisters.FixedRegisters.CHT_ER_TMR);
                                             s6xCMReg.AddressInt = (int)arrPointersValues[2];
                                             if (arrPointersValues.Length > 3) s6xCMReg.AdditionalAddress10 = ((int)arrPointersValues[4]).ToString();
+                                            s6xCMReg.Store = true;
                                             addRegister(s6xCMReg, ref Calibration, ref S6x);
                                             s6xCMReg = null;
                                             foundCHT_ER_TMR = true;
@@ -1927,6 +1956,7 @@ namespace SAD806x
                                             s6xCMReg = SADFixedRegisters.GetFixedRegisterTemplate(SADFixedRegisters.FixedRegisters.CHT_ENG);
                                             s6xCMReg.AddressInt = (int)arrPointersValues[2];
                                             if (arrPointersValues.Length > 3) s6xCMReg.AdditionalAddress10 = ((int)arrPointersValues[4]).ToString();
+                                            s6xCMReg.Store = true;
                                             addRegister(s6xCMReg, ref Calibration, ref S6x);
                                             s6xCMReg = null;
                                             bBreak = true;

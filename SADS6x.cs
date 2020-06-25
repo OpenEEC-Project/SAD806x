@@ -5433,6 +5433,8 @@ namespace SAD806x
             return clone;
         }
 
+        // Match Signature for each operation related with an element
+        // Normally not used anymore and replaced with a global process
         public bool matchSignature(ref Operation elementUseOpe, SADBank elementUseOpeBank, bool is8061)
         {
             if (Skip || Found || Ignore) return false;
@@ -5448,12 +5450,12 @@ namespace SAD806x
                     break;
             }
 
-            string preparedSignature = Tools.getPreparedSignature(Signature);
+            string preparedSignature = Tools.getPreparedSignature(Signature.ToUpper());
 
             int startPos = elementUseOpe.AddressInt;
-            if (preparedSignature.Contains(SignatureOpeIncludingElemAddress)) startPos -= preparedSignature.IndexOf(SignatureOpeIncludingElemAddress) / 2;
+            if (preparedSignature.StartsWith(SignatureOpeIncludingElemAddress.ToUpper())) startPos -= preparedSignature.IndexOf(SignatureOpeIncludingElemAddress) / 2;
 
-            preparedSignature = preparedSignature.Replace(SignatureOpeIncludingElemAddress, elementUseOpe.OriginalOp.Replace(SADDef.GlobalSeparator, string.Empty).ToUpper());
+            preparedSignature = preparedSignature.Replace(SignatureOpeIncludingElemAddress.ToUpper(), elementUseOpe.OriginalOp.Replace(SADDef.GlobalSeparator, string.Empty).ToUpper());
 
             string sBytes = elementUseOpeBank.getBytes(startPos, preparedSignature.Length / 2);
             object[] oBytes = Tools.getBytesFromSignature(preparedSignature, ref sBytes);

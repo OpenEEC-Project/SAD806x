@@ -742,7 +742,80 @@ namespace SAD806x
                 alParams = null;
             }
         }
-        
+
+        // Process Elements Signatures
+        public void processElementsSignatures(ref SADS6x S6x)
+        {
+            foreach (S6xElementSignature eSig in S6x.slProcessElementsSignatures.Values)
+            {
+                if (eSig.Signature == null || eSig.Signature == string.Empty) continue;
+
+                if (eSig.Skip || eSig.Found || eSig.Ignore) continue;
+                if (eSig.Signature == null) continue;
+                if (eSig.Signature.Contains("*") || eSig.Signature.Contains("{")) continue; // Not authorized for elements, based on operation location
+                if (!eSig.Signature.ToUpper().Contains(SADFixedSigs.Fixed_String_OpeIncludingElemAddress.ToUpper())) continue; // Not working without #EAOP#
+                if (eSig.for8061 && !is8061) continue;
+                switch (eSig.forBankNum)
+                {
+                    case "0":
+                    case "1":
+                    case "8":
+                    case "9":
+                        if (Convert.ToInt32(eSig.forBankNum) != Num) continue;
+                        break;
+                }
+
+                string cleanedSignature = Tools.getPreparedSignature(eSig.Signature.ToUpper());
+                string cleanedSignatureWithEAOP = cleanedSignature;
+                bool eaopStart = cleanedSignature.StartsWith(SADFixedSigs.Fixed_String_OpeIncludingElemAddress.ToUpper());
+                bool eaopEnd = cleanedSignature.EndsWith(SADFixedSigs.Fixed_String_OpeIncludingElemAddress.ToUpper());
+                
+                cleanedSignature = cleanedSignature.Replace(SADFixedSigs.Fixed_String_OpeIncludingElemAddress.ToUpper(), "(.{0,12})");
+
+                if (eSig.Information == null) eSig.Information = string.Empty;
+
+                try
+                {
+                    object[] oMatches = getBytesFromSignature(cleanedSignature);
+                    foreach (object[] oMatch in oMatches)
+                    {
+                        int matchingStartAddress = (int)oMatch[0];
+                        string matchingBytes = oMatch[1].ToString();
+                        string eaopBytes = string.Empty;
+                        if (((string[])oMatch[2]).Length > 0) eaopBytes = ((string[])oMatch[2])[0];
+
+                        if (!eaopStart && !eaopEnd && eaopBytes == string.Empty) continue;  // #EAOP# is not in result, no interest
+
+                        // EAOP Address calculation
+                        int matchingEAOPAddress = matchingStartAddress + (int)(cleanedSignatureWithEAOP.IndexOf(SADFixedSigs.Fixed_String_OpeIncludingElemAddress.ToUpper()) / 2.0);
+                        // For eaopStart, address will be the AddressNextInt for the related operation, but we do not know its address
+                        if (eaopStart) matchingStartAddress += (int)(eaopBytes.Length / 2.0);
+
+                        if (eSig.Information != string.Empty) eSig.Information += "\r\n";
+                        eSig.Information += "Element Signature matches on Bank " + Num + " at " + Convert.ToString(matchingStartAddress + SADDef.EecBankStartAddress, 16);
+
+                        MatchingElementSignature mesMES = new MatchingElementSignature(Num, matchingEAOPAddress, matchingStartAddress, matchingBytes, eaopStart, eaopEnd, eaopBytes, eSig);
+                        ArrayList alMES = (ArrayList)Calibration.slMatchingElementsSignatures[mesMES.UniqueMatchingAddress];
+                        if (alMES == null)
+                        {
+                            alMES = new ArrayList();
+                            Calibration.slMatchingElementsSignatures.Add(mesMES.UniqueMatchingAddress, alMES);
+                        }
+                        alMES.Add(mesMES);
+                        
+                        alMES = null;
+                        mesMES = null;
+                    }
+                    oMatches = null;
+                }
+                catch
+                {
+                    if (eSig.Information != string.Empty) eSig.Information += "\r\n";
+                    eSig.Information += "Invalid Element Signature";
+                }
+            }
+        }
+
         // Process Operations
         private void processOperations(int startAddress, int endAddress, CallType callType, bool intVectorCall, bool addVectorCall, int callerBankNum, int callerAddressInt, ref GotoOpParams gopParams, ref SADBank Bank0, ref SADBank Bank1, ref SADBank Bank8, ref SADBank Bank9, ref SADS6x S6x)
         {
@@ -5535,29 +5608,18 @@ namespace SAD806x
 
                     if (!calibrationElem.RelatedOpsUniqueAddresses.Contains(ope.UniqueAddress)) calibrationElem.RelatedOpsUniqueAddresses.Add(ope.UniqueAddress);
 
-                    // To Know if Element is coming from S6x Definition
-                    bool hasS6xDefinition = false;
-
                     // 20200612 - S6xDefinition detection or use
-                    if (calibrationElem.isTypeIdentified)
-                    {
-                        if (calibrationElem.isTable && calibrationElem.TableElem.S6xTable != null) hasS6xDefinition = true;
-                        else if (calibrationElem.isFunction && calibrationElem.FunctionElem.S6xFunction != null) hasS6xDefinition = true;
-                        else if (calibrationElem.isScalar && calibrationElem.ScalarElem.S6xScalar != null) hasS6xDefinition = true;
-                        else if (calibrationElem.isStructure && calibrationElem.StructureElem.S6xStructure != null) hasS6xDefinition = true;
-                    }
-                    else
+                    if (!calibrationElem.isTypeIdentified)
                     {
                         if (S6x.slProcessTables.ContainsKey(calibrationElem.UniqueAddress)) calibrationElem.TableElem = new Table((S6xTable)S6x.slProcessTables[calibrationElem.UniqueAddress]);
                         else if (S6x.slProcessFunctions.ContainsKey(calibrationElem.UniqueAddress)) calibrationElem.FunctionElem = new Function((S6xFunction)S6x.slProcessFunctions[calibrationElem.UniqueAddress]);
                         else if (S6x.slProcessScalars.ContainsKey(calibrationElem.UniqueAddress)) calibrationElem.ScalarElem = new Scalar((S6xScalar)S6x.slProcessScalars[calibrationElem.UniqueAddress]);
                         else if (S6x.slProcessStructures.ContainsKey(calibrationElem.UniqueAddress)) calibrationElem.StructureElem = new Structure((S6xStructure)S6x.slProcessStructures[calibrationElem.UniqueAddress]);
-
-                        hasS6xDefinition = calibrationElem.isTypeIdentified;
                     }
+                    
                     // 20181106 - Process is added for MAF Transfer essentially
-                    // Predefined signatures parsing
-                    if (!hasS6xDefinition) processCalibrationElementSignatureIdentification(ref calibrationElem, ref ope, ref S6x);
+                    // Predefined signatures parsing, at least for signature information
+                    processCalibrationElementSignatureIdentification(ref calibrationElem, ref ope, ref S6x);
 
                     if (!calibrationElem.isFullyIdentified)
                     {
@@ -6089,13 +6151,47 @@ namespace SAD806x
         private void processCalibrationElementSignatureIdentification(ref CalibrationElement calibrationElem, ref Operation ope, ref SADS6x S6x)
         {
             S6xElementSignature foundSignature = null;
+            ArrayList alMES = null;
+            string eaopSig = string.Empty;
 
-            foreach (S6xElementSignature elementSignature in S6x.slProcessElementsSignatures.Values)
+            // #EAOP# included inside or at the end of the signature
+            alMES = (ArrayList)Calibration.slMatchingElementsSignatures[Tools.UniqueAddress(ope.BankNum, ope.AddressInt)];
+            if (alMES != null)
             {
-                if (elementSignature.matchSignature(ref ope, this, is8061))
+                eaopSig = ope.OriginalOp.Replace(SADDef.GlobalSeparator, string.Empty).ToUpper();
+                foreach (MatchingElementSignature mesMES in alMES)
                 {
-                    foundSignature = elementSignature;
+                    if (mesMES.S6xElementSignature.Skip || mesMES.S6xElementSignature.Ignore || mesMES.S6xElementSignature.Found) continue;
+                    if (mesMES.EAOPStart) continue; // Not here
+                    if (mesMES.EAOPEnd && !mesMES.EAOPBytes.ToUpper().StartsWith(eaopSig)) continue; // Not the right signature
+                    if (!mesMES.EAOPEnd && mesMES.EAOPBytes.ToUpper() != eaopSig) continue; // Not the right signature
+                    
+                    // Right Signature
+                    foundSignature = mesMES.S6xElementSignature;
                     break;
+                }
+
+                alMES = null;
+            }
+
+            // #EAOP# starts the signature, if Signature was not validated
+            if (foundSignature == null)
+            {
+                alMES = (ArrayList)Calibration.slMatchingElementsSignatures[Tools.UniqueAddress(ope.BankNum, ope.AddressNextInt)];
+                if (alMES != null)
+                {
+                    eaopSig = ope.OriginalOp.Replace(SADDef.GlobalSeparator, string.Empty).ToUpper();
+                    foreach (MatchingElementSignature mesMES in alMES)
+                    {
+                        if (!mesMES.EAOPStart) continue; // Not here
+                        if (!mesMES.EAOPBytes.ToUpper().EndsWith(eaopSig)) continue; // Not the right signature
+
+                        // Right Signature
+                        foundSignature = mesMES.S6xElementSignature;
+                        break;
+                    }
+
+                    alMES = null;
                 }
             }
 
@@ -6108,6 +6204,26 @@ namespace SAD806x
                 if (foundSignature.UniqueKey == elementSignature.UniqueKey) elementSignature.Found = true;
                 // otherwise set Element Signature to be ignore, if it has the same Signature Key (Element Short Label), it will not be processed anymore too.
                 else if (foundSignature.SignatureKey == elementSignature.SignatureKey) elementSignature.Ignore = true;
+            }
+
+            // S6x known elements
+            //      Just to mark signature
+            bool hasS6xDefinition = false;
+            if (calibrationElem.isTypeIdentified)
+            {
+                if (calibrationElem.isTable && calibrationElem.TableElem.S6xTable != null) hasS6xDefinition = true;
+                else if (calibrationElem.isFunction && calibrationElem.FunctionElem.S6xFunction != null) hasS6xDefinition = true;
+                else if (calibrationElem.isScalar && calibrationElem.ScalarElem.S6xScalar != null) hasS6xDefinition = true;
+                else if (calibrationElem.isStructure && calibrationElem.StructureElem.S6xStructure != null) hasS6xDefinition = true;
+                if (hasS6xDefinition)
+                {
+                    if (foundSignature.Information == null) foundSignature.Information = string.Empty;
+                    if (foundSignature.Information != string.Empty) foundSignature.Information += "\r\n";
+                    foundSignature.Information += "Signature has linked element at address " + calibrationElem.UniqueAddressHex;
+
+                    foundSignature = null;
+                    return;
+                }
             }
 
             if (foundSignature.Scalar != null)
@@ -8728,13 +8844,47 @@ namespace SAD806x
         private void findOtherElementSignatureIdentification(int address, ref Operation ope, ref SADS6x S6x)
         {
             S6xElementSignature foundSignature = null;
+            ArrayList alMES = null;
+            string eaopSig = string.Empty;
 
-            foreach (S6xElementSignature elementSignature in S6x.slProcessElementsSignatures.Values)
+            // #EAOP# included inside or at the end of the signature
+            alMES = (ArrayList)Calibration.slMatchingElementsSignatures[Tools.UniqueAddress(ope.BankNum, ope.AddressInt)];
+            if (alMES != null)
             {
-                if (elementSignature.matchSignature(ref ope, this, is8061))
+                eaopSig = ope.OriginalOp.Replace(SADDef.GlobalSeparator, string.Empty).ToUpper();
+                foreach (MatchingElementSignature mesMES in alMES)
                 {
-                    foundSignature = elementSignature;
+                    if (mesMES.S6xElementSignature.Skip || mesMES.S6xElementSignature.Ignore || mesMES.S6xElementSignature.Found) continue;
+                    if (mesMES.EAOPStart) continue; // Not here
+                    if (mesMES.EAOPEnd && !mesMES.EAOPBytes.ToUpper().StartsWith(eaopSig)) continue; // Not the right signature
+                    if (!mesMES.EAOPEnd && mesMES.EAOPBytes.ToUpper() != eaopSig) continue; // Not the right signature
+
+                    // Right Signature
+                    foundSignature = mesMES.S6xElementSignature;
                     break;
+                }
+
+                alMES = null;
+            }
+
+            // #EAOP# starts the signature, if Signature was not validated
+            if (foundSignature == null)
+            {
+                alMES = (ArrayList)Calibration.slMatchingElementsSignatures[Tools.UniqueAddress(ope.BankNum, ope.AddressNextInt)];
+                if (alMES != null)
+                {
+                    eaopSig = ope.OriginalOp.Replace(SADDef.GlobalSeparator, string.Empty).ToUpper();
+                    foreach (MatchingElementSignature mesMES in alMES)
+                    {
+                        if (!mesMES.EAOPStart) continue; // Not here
+                        if (!mesMES.EAOPBytes.ToUpper().EndsWith(eaopSig)) continue; // Not the right signature
+
+                        // Right Signature
+                        foundSignature = mesMES.S6xElementSignature;
+                        break;
+                    }
+
+                    alMES = null;
                 }
             }
 
@@ -8742,8 +8892,11 @@ namespace SAD806x
 
             foreach (S6xElementSignature elementSignature in S6x.slProcessElementsSignatures.Values)
             {
-                if (elementSignature.Skip || elementSignature.Found) continue;
+                if (elementSignature.Skip || elementSignature.Found || elementSignature.Ignore) continue;
+                // Set Element Signature as found, if it is the right one, it will not be processed anymore
                 if (foundSignature.UniqueKey == elementSignature.UniqueKey) elementSignature.Found = true;
+                // otherwise set Element Signature to be ignore, if it has the same Signature Key (Element Short Label), it will not be processed anymore too.
+                else if (foundSignature.SignatureKey == elementSignature.SignatureKey) elementSignature.Ignore = true;
             }
 
             bool isCalElement = false;

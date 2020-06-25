@@ -26,6 +26,7 @@ namespace SAD806x
         private bool is8061 = false;
         private bool isEarly = false;
         private bool isPilot = false;
+        private bool is8065SingleBank = false;
 
         private string binaryFileName = string.Empty;
 
@@ -49,6 +50,7 @@ namespace SAD806x
             is8061 = sadBin.is8061;
             isEarly = sadBin.isEarly;
             isPilot = sadBin.isPilot;
+            is8065SingleBank = sadBin.is8065SingleBank;
         }
 
         public void processOutputText()
@@ -364,6 +366,7 @@ namespace SAD806x
             if (isCorrupted) col1 += "!";
             if (isEarly) col1 += "β";
             if (isPilot) col1 += "α";
+            if (is8065SingleBank) col1 += "SB";
             col1 += " Disassembly";
 
             txWriter.WriteLine(OutputTools.BorderedHeader());

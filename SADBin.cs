@@ -27,6 +27,7 @@ namespace SAD806x
         private bool bis8061 = false;
         private bool bisEarly = false;
         private bool bisPilot = false;
+        private bool bis8065SingleBank = false;
 
         private bool loaded = false;
         private bool disassembled = false;
@@ -49,6 +50,7 @@ namespace SAD806x
         public bool is8061 { get { return bis8061; } }
         public bool isEarly { get { return bisEarly; } }
         public bool isPilot { get { return bisPilot; } }
+        public bool is8065SingleBank { get { return bis8065SingleBank; } }
 
         public bool isLoaded { get { return loaded; } }
         public bool isDisassembled { get { return disassembled; } }
@@ -71,7 +73,7 @@ namespace SAD806x
             {
                 if (Bank8 == null) return false;
                 if (is8061) return true;
-                if (Bank1 == null) return false;
+                if (Bank1 == null) return is8065SingleBank;
                 if (Bank0 == null && Bank9 == null) return true;
                 if (Bank0 != null && Bank9 != null) return true;
                 return false;
@@ -519,7 +521,10 @@ namespace SAD806x
                     }
                 }
             }
-            
+
+            // 20200624 - PYM - 8065 Single Bank (Dev Only) management
+            if (!is8061 && !foundBank1 && !foundBank0 && !foundBank9) bis8065SingleBank = binaryFileSize >= SADDef.Bank_Min_Size && binaryFileSize <= SADDef.Bank_Max_Size;
+                
             // Creating Bank objects
             for (int iBankPos = 0; iBankPos < banksInfos.Count; iBankPos++)
             {
@@ -568,6 +573,7 @@ namespace SAD806x
             Calibration.Info.is8061 = is8061;
             Calibration.Info.isEarly = isEarly;
             Calibration.Info.isPilot = isPilot;
+            Calibration.Info.is8065SingleBank = is8065SingleBank;
 
             slRbases = new SortedList();
 
@@ -671,7 +677,7 @@ namespace SAD806x
                         // 8061 && 8065 Pilot - Calibration in Bank 8
                         // 8065 - RBases defined in Bank 8 for Calibration in Bank 1
                         // 8061 & 8065 - First value of Calibration Part is next Calibration Part Address - End is next Part Address - 1
-                        if (is8061 || isPilot)
+                        if (is8061 || isPilot || is8065SingleBank)
                         {
                             rBase.BankNum = 8;
                             rBase.AddressBinInt = rBase.AddressBankInt + Bank8.AddressBinInt;
@@ -695,15 +701,22 @@ namespace SAD806x
             foreach (RBase rBase in slRbases.Values)
             {
                 // 20200512 - PYM
-                // Added to S6xRegisters
+                // Added to S6xRegisters except for Rsi
                 if (rBase.Code.ToLower() == "si") continue;
                 S6xRegister s6xReg = (S6xRegister)S6x.slRegisters[Tools.RegisterUniqueAddress(rBase.Code)];
                 if (s6xReg == null)
                 {
-                    s6xReg = new S6xRegister(rBase.Code);
-                    s6xReg.Label = Tools.RegisterInstruction(rBase.Code);
-                    s6xReg.Comments = "Base register (RBase) " + s6xReg.Label;
-                    S6x.slRegisters.Add(s6xReg.UniqueAddress, s6xReg);
+                    try
+                    {
+                        s6xReg = new S6xRegister(rBase.Code);
+                        s6xReg.Label = Tools.RegisterInstruction(rBase.Code);
+                        s6xReg.Comments = "Base register (RBase) " + s6xReg.Label;
+                        S6x.slRegisters.Add(s6xReg.UniqueAddress, s6xReg);
+                    }
+                    catch
+                    {
+                        continue;   // Unmanaged Error
+                    }
                 }
                 s6xReg.isRBase = true;
                 s6xReg.isRConst = false;
@@ -711,7 +724,7 @@ namespace SAD806x
                 s6xReg.AutoConstValue = true;
             }
 
-            if (is8061 || isPilot) Calibration.Load(slRbases, ref Bank8, is8061, isEarly, isPilot, ref arrBytes);
+            if (is8061 || isPilot || is8065SingleBank) Calibration.Load(slRbases, ref Bank8, is8061, isEarly, isPilot, ref arrBytes);
             else Calibration.Load(slRbases, ref Bank1, is8061, isEarly, isPilot, ref arrBytes);
         }
 
@@ -1588,12 +1601,18 @@ namespace SAD806x
             
             // Starting with S6x Signature detection
             foreach (S6xSignature s6xSig in S6x.slProcessSignatures.Values) s6xSig.Information = null;
+            foreach (S6xElementSignature s6xESig in S6x.slProcessElementsSignatures.Values) s6xESig.Information = null;
             
             //  On All Banks instead of doing it Bank after Bank, to be sure Matching Signatures are filled before cross Banks Calls
             if (Bank8 != null) Bank8.processSignatures(ref S6x);
             if (Bank1 != null) Bank1.processSignatures(ref S6x);
             if (Bank9 != null) Bank9.processSignatures(ref S6x);
             if (Bank0 != null) Bank0.processSignatures(ref S6x);
+
+            if (Bank8 != null) Bank8.processElementsSignatures(ref S6x);
+            if (Bank1 != null) Bank1.processElementsSignatures(ref S6x);
+            if (Bank9 != null) Bank9.processElementsSignatures(ref S6x);
+            if (Bank0 != null) Bank0.processElementsSignatures(ref S6x);
 
             // Signatures to be Ignored - Detected more than one time in one Bank or Globally
             foreach (MatchingSignature msMS in Calibration.slMatchingSignatures.Values)

@@ -277,6 +277,10 @@
             this.label25 = new System.Windows.Forms.Label();
             this.opeLabelTextBox = new System.Windows.Forms.TextBox();
             this.elemRegisterTabPage = new System.Windows.Forms.TabPage();
+            this.label40 = new System.Windows.Forms.Label();
+            this.regConstValueTextBox = new System.Windows.Forms.TextBox();
+            this.regRConstCheckBox = new System.Windows.Forms.CheckBox();
+            this.regRBaseCheckBox = new System.Windows.Forms.CheckBox();
             this.regUnitsTextBox = new System.Windows.Forms.TextBox();
             this.label36 = new System.Windows.Forms.Label();
             this.regScalePrecNumericUpDown = new System.Windows.Forms.NumericUpDown();
@@ -394,10 +398,6 @@
             this.saveFileDialogSQLite = new System.Windows.Forms.SaveFileDialog();
             this.openFileDialogSQLite = new System.Windows.Forms.OpenFileDialog();
             this.saveFileDialogCmt = new System.Windows.Forms.SaveFileDialog();
-            this.regRBaseCheckBox = new System.Windows.Forms.CheckBox();
-            this.regRConstCheckBox = new System.Windows.Forms.CheckBox();
-            this.label40 = new System.Windows.Forms.Label();
-            this.regConstValueTextBox = new System.Windows.Forms.TextBox();
             this.menuStripMain.SuspendLayout();
             this.statusStripMain.SuspendLayout();
             this.mainPanel.SuspendLayout();
@@ -2770,7 +2770,43 @@
             this.elemRegisterTabPage.TabIndex = 7;
             this.elemRegisterTabPage.Text = "Register Properties";
             this.elemRegisterTabPage.UseVisualStyleBackColor = true;
-            this.elemRegisterTabPage.Click += new System.EventHandler(this.elemRegisterTabPage_Click);
+            // 
+            // label40
+            // 
+            this.label40.AutoSize = true;
+            this.label40.Location = new System.Drawing.Point(276, 82);
+            this.label40.Name = "label40";
+            this.label40.Size = new System.Drawing.Size(49, 13);
+            this.label40.TabIndex = 49;
+            this.label40.Text = "Constant";
+            // 
+            // regConstValueTextBox
+            // 
+            this.regConstValueTextBox.Location = new System.Drawing.Point(250, 98);
+            this.regConstValueTextBox.Name = "regConstValueTextBox";
+            this.regConstValueTextBox.Size = new System.Drawing.Size(75, 20);
+            this.regConstValueTextBox.TabIndex = 7;
+            this.regConstValueTextBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            // 
+            // regRConstCheckBox
+            // 
+            this.regRConstCheckBox.AutoSize = true;
+            this.regRConstCheckBox.Location = new System.Drawing.Point(331, 101);
+            this.regRConstCheckBox.Name = "regRConstCheckBox";
+            this.regRConstCheckBox.Size = new System.Drawing.Size(61, 17);
+            this.regRConstCheckBox.TabIndex = 9;
+            this.regRConstCheckBox.Text = "RConst";
+            this.regRConstCheckBox.UseVisualStyleBackColor = true;
+            // 
+            // regRBaseCheckBox
+            // 
+            this.regRBaseCheckBox.AutoSize = true;
+            this.regRBaseCheckBox.Location = new System.Drawing.Point(331, 82);
+            this.regRBaseCheckBox.Name = "regRBaseCheckBox";
+            this.regRBaseCheckBox.Size = new System.Drawing.Size(58, 17);
+            this.regRBaseCheckBox.TabIndex = 8;
+            this.regRBaseCheckBox.Text = "RBase";
+            this.regRBaseCheckBox.UseVisualStyleBackColor = true;
             // 
             // regUnitsTextBox
             // 
@@ -3778,43 +3814,6 @@
             // saveFileDialogCmt
             // 
             this.saveFileDialogCmt.Filter = "Comments File|*.cmt|Text File|*.txt|All Files|*.*";
-            // 
-            // regRBaseCheckBox
-            // 
-            this.regRBaseCheckBox.AutoSize = true;
-            this.regRBaseCheckBox.Location = new System.Drawing.Point(331, 82);
-            this.regRBaseCheckBox.Name = "regRBaseCheckBox";
-            this.regRBaseCheckBox.Size = new System.Drawing.Size(58, 17);
-            this.regRBaseCheckBox.TabIndex = 8;
-            this.regRBaseCheckBox.Text = "RBase";
-            this.regRBaseCheckBox.UseVisualStyleBackColor = true;
-            // 
-            // regRConstCheckBox
-            // 
-            this.regRConstCheckBox.AutoSize = true;
-            this.regRConstCheckBox.Location = new System.Drawing.Point(331, 101);
-            this.regRConstCheckBox.Name = "regRConstCheckBox";
-            this.regRConstCheckBox.Size = new System.Drawing.Size(61, 17);
-            this.regRConstCheckBox.TabIndex = 9;
-            this.regRConstCheckBox.Text = "RConst";
-            this.regRConstCheckBox.UseVisualStyleBackColor = true;
-            // 
-            // label40
-            // 
-            this.label40.AutoSize = true;
-            this.label40.Location = new System.Drawing.Point(276, 82);
-            this.label40.Name = "label40";
-            this.label40.Size = new System.Drawing.Size(49, 13);
-            this.label40.TabIndex = 49;
-            this.label40.Text = "Constant";
-            // 
-            // regConstValueTextBox
-            // 
-            this.regConstValueTextBox.Location = new System.Drawing.Point(250, 98);
-            this.regConstValueTextBox.Name = "regConstValueTextBox";
-            this.regConstValueTextBox.Size = new System.Drawing.Size(75, 20);
-            this.regConstValueTextBox.TabIndex = 7;
-            this.regConstValueTextBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
             // MainForm
             // 

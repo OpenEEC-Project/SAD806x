@@ -729,6 +729,10 @@ namespace SAD806x
                 case Keys.R:
                     if (e.Control) showRepository((Control)sender);
                     break;
+                // Register Address Calculation
+                case Keys.G:
+                    if (e.Control) calcRegisterAddress((Control)sender);
+                    break;
             }
         }
 
@@ -1601,6 +1605,7 @@ namespace SAD806x
                 if (sadBin.isCorrupted) status += "!";
                 if (sadBin.Calibration.Info.isEarly) status += "β";
                 if (sadBin.Calibration.Info.isPilot) status += "α";
+                if (sadBin.Calibration.Info.is8065SingleBank) status += "SB";
                 status += " Binary - " + sadBin.BinaryFileSize.ToString() + " Bytes";
 
                 if (sadBin.Calibration.Info.VidStrategy != string.Empty) status += "\r\n" + sadBin.Calibration.Info.VidStrategy + "(" + sadBin.Calibration.Info.VidStrategyVersion + ") Strategy";
@@ -1632,6 +1637,7 @@ namespace SAD806x
             if (sadBin.isCorrupted) status += " Corrupted";
             if (sadBin.Calibration.Info.isEarly) status += " Early";
             if (sadBin.Calibration.Info.isPilot) status += " Pilot";
+            if (sadBin.Calibration.Info.is8065SingleBank) status += " Single Bank (Dev Only)";
             status += " Binary - " + sadBin.BinaryFileSize.ToString() + " Bytes";
             if (sadBin.Calibration.Info.VidStrategy != string.Empty) status += "\r\nStrategy : " + sadBin.Calibration.Info.VidStrategy + "(" + sadBin.Calibration.Info.VidStrategyVersion + ")";
             if (sadBin.Calibration.Info.VidSerial != string.Empty) status += "\r\nPart Number : " + sadBin.Calibration.Info.VidSerial;
@@ -2226,18 +2232,25 @@ namespace SAD806x
                                 {
                                     tnNode.Text = SADDef.ShortRegisterPrefix + rBase.Code.ToLower();
                                     tnNode.ToolTipText = rBase.AddressBank;
-                                    // Added to S6xRegisters in the same time
-                                    S6xRegister s6xReg = (S6xRegister)sadS6x.slRegisters[Tools.RegisterUniqueAddress(rBase.Code)];
-                                    if (s6xReg == null)
+                                    // Added to S6xRegisters in the same time, except for Rsi.
+                                    if (rBase.Code.ToLower() != "si")
                                     {
-                                        s6xReg = new S6xRegister(rBase.Code);
-                                        s6xReg.isRBase = true;
-                                        s6xReg.isRConst = false;
-                                        s6xReg.ConstValue = Convert.ToString(SADDef.EecBankStartAddress + rBase.AddressBankInt, 16);
-                                        s6xReg.AutoConstValue = true;
-                                        s6xReg.Label = Tools.RegisterInstruction(rBase.Code);
-                                        s6xReg.Comments = "RBase " + s6xReg.Label;
-                                        sadS6x.slRegisters.Add(s6xReg.UniqueAddress, s6xReg);
+                                        S6xRegister s6xReg = (S6xRegister)sadS6x.slRegisters[Tools.RegisterUniqueAddress(rBase.Code)];
+                                        if (s6xReg == null)
+                                        {
+                                            try
+                                            {
+                                                s6xReg = new S6xRegister(rBase.Code);
+                                                s6xReg.isRBase = true;
+                                                s6xReg.isRConst = false;
+                                                s6xReg.ConstValue = Convert.ToString(SADDef.EecBankStartAddress + rBase.AddressBankInt, 16);
+                                                s6xReg.AutoConstValue = true;
+                                                s6xReg.Label = Tools.RegisterInstruction(rBase.Code);
+                                                s6xReg.Comments = "RBase " + s6xReg.Label;
+                                                sadS6x.slRegisters.Add(s6xReg.UniqueAddress, s6xReg);
+                                            }
+                                            catch { } // Unmanaged Error
+                                        }
                                     }
                                     break;
                                 }
@@ -6150,11 +6163,13 @@ namespace SAD806x
             if (sadBin.isLoaded && sadBin.isDisassembled)
             {
                 Call cCall = (Call)sadBin.Calibration.slCalls[s6xRoutine.UniqueAddress];
-
-                if (cCall.Callers.Count > 1)
+                if (cCall != null)
                 {
-                    if (s6xRoutine.Information != string.Empty) s6xRoutine.Information += "\r\n";
-                    s6xRoutine.Information += "Called " + cCall.Callers.Count.ToString() + " times.";
+                    if (cCall.Callers.Count > 1)
+                    {
+                        if (s6xRoutine.Information != string.Empty) s6xRoutine.Information += "\r\n";
+                        s6xRoutine.Information += "Called " + cCall.Callers.Count.ToString() + " times.";
+                    }
                 }
             }
 
@@ -6967,8 +6982,8 @@ namespace SAD806x
                     else
                     {
                         s6xReg.AddressInt = Convert.ToInt32(regAddressTextBox.Text, 16);
+                        s6xReg.AdditionalAddress10 = string.Empty;
                     }
-
 
                     s6xReg.isRBase = regRBaseCheckBox.Checked;
                     s6xReg.isRConst = regRConstCheckBox.Checked;
@@ -11988,9 +12003,51 @@ namespace SAD806x
             sadProcessManager.SetProcessFailed("Binary extraction is not implemented.");
         }
 
-        private void elemRegisterTabPage_Click(object sender, EventArgs e)
+        // 20200616 - PYM
+        // calcRegisterAddress
+        //  Calculate address when a RConst is used (Rec+12 => 1133 + 12 = 1145)
+        //  Started from elemProperties_TextBox_KeyDown, using Ctrl-G
+        private void calcRegisterAddress(Control sender)
         {
+            if (sadBin == null) return;
 
+            if (sender == null) return;
+            if (sender.Parent == null) return;
+
+            switch (sender.Name)
+            {
+                case "regAddressTextBox":
+                    break;
+                default:
+                    return;
+            }
+
+            if (!regAddressTextBox.Text.Contains(SADDef.AdditionSeparator)) return;
+
+            string regPart1 = regAddressTextBox.Text.Substring(0, regAddressTextBox.Text.IndexOf(SADDef.AdditionSeparator)).Trim();
+            if (regPart1.Length != 2) return;
+
+
+            if (!sadBin.S6x.slRegisters.ContainsKey(Tools.RegisterUniqueAddress(regPart1))) return;
+
+            S6xRegister rConst = (S6xRegister)sadBin.S6x.slRegisters[Tools.RegisterUniqueAddress(regPart1)];
+            if (!rConst.isRConst) return;
+            
+            int rConstValue = 0;
+            try { rConstValue = Convert.ToInt32(rConst.ConstValue, 16); }
+            catch { return; }
+
+            string regPart2 = regAddressTextBox.Text.Replace(regPart1 + SADDef.AdditionSeparator, string.Empty).Trim();
+            int adderValue = 0;
+            try
+            {
+                if (regPart2.Length > 2) adderValue = Convert.ToInt32(regPart2, 16);
+                else adderValue = (int)Convert.ToSByte(regPart2, 16);
+            }
+            catch { return; }
+
+            regAddressTextBox.Text = string.Format("{0:x2}", rConstValue + adderValue);
+            regAddressTextBox.Modified = true;
         }
     }
 }

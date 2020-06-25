@@ -1329,208 +1329,196 @@ namespace SAD806x
         }
 
         // Registers Translation applied on Operation Translated Params
+        //  20200618 - PYM - Reviewed
         private void applyGotoOpParams(ref Operation ope, ref GotoOpParams gopParams)
         {
-            int elemBankNum = -1;
-            int elemAddressInt = -1;
-            int cyOpeBankNum = -1;
-            int cyOpeAddressInt = -1;
-            CarryMode cyMode = CarryMode.Default;
-            object cyEP1 = null;
-            object cyEP2 = null;
-            string cyP1 = string.Empty;
-            string cyP2 = string.Empty;
+            // GotoOpParams are updated only by non Goto operations
+            if (ope.CallType != CallType.Unknown) return;
 
+            if (gopParams == null) gopParams = new GotoOpParams(ope.BankNum, ope.AddressInt);
+
+            gopParams.OpeBankNum = ope.BankNum;
+            gopParams.OpeAddressInt = ope.AddressInt;
+
+            bool foundElement = false;            
             if (ope.alCalibrationElems != null)
             {
                 foreach (CalibrationElement opeCalElem in ope.alCalibrationElems)
                 {
-                    elemBankNum = opeCalElem.BankNum;
-                    elemAddressInt = opeCalElem.AddressInt;
-                    // First Calibration Element is enought for this process
+                    gopParams.ElemBankNum = opeCalElem.BankNum;
+                    gopParams.ElemAddressInt = opeCalElem.AddressInt;
+                    foundElement = true;
+                    // First Calibration Element is enough for this process
                     break;
                 }
             }
-            if (elemBankNum == -1 && ope.OtherElemAddress != string.Empty)
+            if (!foundElement && ope.OtherElemAddress != string.Empty)
             {
-                elemBankNum = ope.ApplyOnBankNum;
-                elemAddressInt = Convert.ToInt32(ope.OtherElemAddress, 16) - SADDef.EecBankStartAddress;
+                gopParams.ElemBankNum = ope.ApplyOnBankNum;
+                gopParams.ElemAddressInt = Convert.ToInt32(ope.OtherElemAddress, 16) - SADDef.EecBankStartAddress;
             }
 
-            // Goto Ops Params Mngt
-            // GotoOpParams[Params Ope UniqueAddress, Params Ope Elem UniqueAddress, P1, P2, CY Ope UniqueAddress, CY Mode, CY P1, CY P2]
-            switch (ope.CallType)
+            if (ope.OperationParams.Length >= 1)
             {
-                case CallType.Unknown:
-                    if (gopParams == null) gopParams = new GotoOpParams(ope.BankNum, ope.AddressInt);
+                gopParams.OpeDefaultParamTranslation1 = ope.OperationParams[0].DefaultTranslatedParam;
+                gopParams.OpeEmbeddedParam1 = ope.OperationParams[0].EmbeddedParam;
+            }
+            if (ope.OperationParams.Length >= 2)
+            {
+                gopParams.OpeDefaultParamTranslation2 = ope.OperationParams[1].DefaultTranslatedParam;
+                gopParams.OpeEmbeddedParam2 = ope.OperationParams[1].EmbeddedParam;
+            }
 
-                    gopParams.OpeBankNum = ope.BankNum;
-                    gopParams.OpeAddressInt = ope.AddressInt;
-                    gopParams.ElemBankNum = elemBankNum;
-                    gopParams.ElemAddressInt = elemAddressInt;
-                    if (ope.OperationParams.Length >= 1)
-                    {
-                        gopParams.OpeDefaultParamTranslation1 = ope.OperationParams[0].DefaultTranslatedParam;
-                        gopParams.OpeEmbeddedParam1 = ope.OperationParams[0].EmbeddedParam;
-                    }
+            int cyOpeBankNum = gopParams.CarryOpeBankNum;
+            int cyOpeAddressInt = gopParams.CarryOpeAddressInt;
+            CarryMode cyMode = gopParams.CarryOpeMode;
+            object cyEP1 = gopParams.CarryOpeEmbeddedParam1;
+            object cyEP2 = gopParams.CarryOpeEmbeddedParam2;
+            string cyP1 = gopParams.CarryOpeDefaultParamTranslation1;
+            string cyP2 = gopParams.CarryOpeDefaultParamTranslation2;
+            switch (Instruction.ToLower())
+            {
+                // Carry Flag operations
+                case "clc":
+                case "stc":
+                    cyOpeBankNum = ope.BankNum;
+                    cyOpeAddressInt = ope.AddressInt;
+                    cyMode = CarryMode.Carry;
+                    break;
+                // Comparison operations
+                case "cmpb":
+                case "cmpw":
+                    cyOpeBankNum = ope.BankNum;
+                    cyOpeAddressInt = ope.AddressInt;
+                    cyMode = CarryMode.Comparison;
                     if (ope.OperationParams.Length >= 2)
                     {
-                        gopParams.OpeDefaultParamTranslation2 = ope.OperationParams[1].DefaultTranslatedParam;
-                        gopParams.OpeEmbeddedParam2 = ope.OperationParams[1].EmbeddedParam;
+                        cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                        cyEP2 = ope.OperationParams[1].EmbeddedParam;
+                        cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                        cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
                     }
-
-                    cyOpeBankNum = gopParams.CarryOpeBankNum;
-                    cyOpeAddressInt = gopParams.CarryOpeAddressInt;
-                    cyMode = gopParams.CarryOpeMode;
-                    cyEP1 = gopParams.CarryOpeEmbeddedParam1;
-                    cyEP1 = gopParams.CarryOpeEmbeddedParam2;
-                    cyP1 = gopParams.CarryOpeDefaultParamTranslation1;
-                    cyP2 = gopParams.CarryOpeDefaultParamTranslation2;
-                    switch (Instruction.ToLower())
+                    break;
+                // Arithmetic operations
+                case "sbbb":
+                case "sb2b":
+                case "sb3b":
+                case "sbbw":
+                case "sb2w":
+                case "sb3w":
+                    cyOpeBankNum = ope.BankNum;
+                    cyOpeAddressInt = ope.AddressInt;
+                    cyMode = CarryMode.Substract;
+                    if (ope.OperationParams.Length >= 2)
                     {
-                        // Carry Flag operations
-                        case "clc":
-                        case "stc":
-                            cyOpeBankNum = ope.BankNum;
-                            cyOpeAddressInt = ope.AddressInt;
-                            cyMode = CarryMode.Carry;
-                            break;
-                        // Comparison operations
-                        case "cmpb":
-                        case "cmpw":
-                            cyOpeBankNum = ope.BankNum;
-                            cyOpeAddressInt = ope.AddressInt;
-                            cyMode = CarryMode.Comparison;
-                            if (ope.OperationParams.Length >= 2)
-                            {
-                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
-                                cyEP2 = ope.OperationParams[1].EmbeddedParam;
-                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
-                                cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
-                            }
-                            break;
-                        // Arithmetic operations
-                        case "sbbb":
-                        case "sb2b":
-                        case "sb3b":
-                        case "sbbw":
-                        case "sb2w":
-                        case "sb3w":
-                            cyOpeBankNum = ope.BankNum;
-                            cyOpeAddressInt = ope.AddressInt;
-                            cyMode = CarryMode.Substract;
-                            if (ope.OperationParams.Length >= 2)
-                            {
-                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
-                                cyEP2 = ope.OperationParams[1].EmbeddedParam;
-                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
-                                cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
-                            }
-                            break;
-                        case "adcb":
-                        case "ad2b":
-                        case "ad3b":
-                            cyOpeBankNum = ope.BankNum;
-                            cyOpeAddressInt = ope.AddressInt;
-                            cyMode = CarryMode.AddBytes;
-                            if (ope.OperationParams.Length >= 2)
-                            {
-                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
-                                cyEP2 = ope.OperationParams[1].EmbeddedParam;
-                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
-                                cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
-                            }
-                            break;
-                        case "adcw":
-                        case "ad2w":
-                        case "ad3w":
-                            cyOpeBankNum = ope.BankNum;
-                            cyOpeAddressInt = ope.AddressInt;
-                            cyMode = CarryMode.AddWords;
-                            if (ope.OperationParams.Length >= 2)
-                            {
-                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
-                                cyEP2 = ope.OperationParams[1].EmbeddedParam;
-                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
-                                cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
-                            }
-                            break;
-                        case "ml2b":
-                        case "ml3b":
-                        case "shlb":
-                            cyOpeBankNum = ope.BankNum;
-                            cyOpeAddressInt = ope.AddressInt;
-                            cyMode = CarryMode.MultiplyBytes;
-                            if (ope.OperationParams.Length >= 2)
-                            {
-                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
-                                cyEP2 = ope.OperationParams[1].EmbeddedParam;
-                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
-                                cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
-                            }
-                            break;
-                        case "ml2w":
-                        case "ml3w":
-                        case "shlw":
-                        case "shldw":
-                            cyOpeBankNum = ope.BankNum;
-                            cyOpeAddressInt = ope.AddressInt;
-                            cyMode = CarryMode.MultiplyWords;
-                            if (ope.OperationParams.Length >= 2)
-                            {
-                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
-                                cyEP2 = ope.OperationParams[1].EmbeddedParam;
-                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
-                                cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
-                            }
-                            break;
-                        case "decb":
-                        case "decw":
-                            cyOpeBankNum = ope.BankNum;
-                            cyOpeAddressInt = ope.AddressInt;
-                            cyMode = CarryMode.Substract;
-                            if (ope.OperationParams.Length >= 1)
-                            {
-                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
-                                cyEP2 = "1";
-                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
-                                cyP2 = "1";
-                            }
-                            break;
-                        case "incb":
-                            cyOpeBankNum = ope.BankNum;
-                            cyOpeAddressInt = ope.AddressInt;
-                            cyMode = CarryMode.AddBytes;
-                            if (ope.OperationParams.Length >= 1)
-                            {
-                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
-                                cyEP2 = "1";
-                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
-                                cyP2 = "1";
-                            }
-                            break;
-                        case "incw":
-                            cyOpeBankNum = ope.BankNum;
-                            cyOpeAddressInt = ope.AddressInt;
-                            cyMode = CarryMode.AddWords;
-                            if (ope.OperationParams.Length >= 1)
-                            {
-                                cyEP1 = ope.OperationParams[0].EmbeddedParam;
-                                cyEP2 = "1";
-                                cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
-                                cyP2 = "1";
-                            }
-                            break;
+                        cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                        cyEP2 = ope.OperationParams[1].EmbeddedParam;
+                        cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                        cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
                     }
-                    gopParams.CarryOpeBankNum = cyOpeBankNum;
-                    gopParams.CarryOpeAddressInt = cyOpeAddressInt;
-                    gopParams.CarryOpeMode = cyMode;
-                    gopParams.CarryOpeEmbeddedParam1 = cyEP1;
-                    gopParams.CarryOpeEmbeddedParam2 = cyEP2;
-                    gopParams.CarryOpeDefaultParamTranslation1 = cyP1;
-                    gopParams.CarryOpeDefaultParamTranslation2 = cyP2;
+                    break;
+                case "adcb":
+                case "ad2b":
+                case "ad3b":
+                    cyOpeBankNum = ope.BankNum;
+                    cyOpeAddressInt = ope.AddressInt;
+                    cyMode = CarryMode.AddBytes;
+                    if (ope.OperationParams.Length >= 2)
+                    {
+                        cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                        cyEP2 = ope.OperationParams[1].EmbeddedParam;
+                        cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                        cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
+                    }
+                    break;
+                case "adcw":
+                case "ad2w":
+                case "ad3w":
+                    cyOpeBankNum = ope.BankNum;
+                    cyOpeAddressInt = ope.AddressInt;
+                    cyMode = CarryMode.AddWords;
+                    if (ope.OperationParams.Length >= 2)
+                    {
+                        cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                        cyEP2 = ope.OperationParams[1].EmbeddedParam;
+                        cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                        cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
+                    }
+                    break;
+                case "ml2b":
+                case "ml3b":
+                case "shlb":
+                    cyOpeBankNum = ope.BankNum;
+                    cyOpeAddressInt = ope.AddressInt;
+                    cyMode = CarryMode.MultiplyBytes;
+                    if (ope.OperationParams.Length >= 2)
+                    {
+                        cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                        cyEP2 = ope.OperationParams[1].EmbeddedParam;
+                        cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                        cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
+                    }
+                    break;
+                case "ml2w":
+                case "ml3w":
+                case "shlw":
+                case "shldw":
+                    cyOpeBankNum = ope.BankNum;
+                    cyOpeAddressInt = ope.AddressInt;
+                    cyMode = CarryMode.MultiplyWords;
+                    if (ope.OperationParams.Length >= 2)
+                    {
+                        cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                        cyEP2 = ope.OperationParams[1].EmbeddedParam;
+                        cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                        cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
+                    }
+                    break;
+                case "decb":
+                case "decw":
+                    cyOpeBankNum = ope.BankNum;
+                    cyOpeAddressInt = ope.AddressInt;
+                    cyMode = CarryMode.Substract;
+                    if (ope.OperationParams.Length >= 1)
+                    {
+                        cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                        cyEP2 = "1";
+                        cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                        cyP2 = "1";
+                    }
+                    break;
+                case "incb":
+                    cyOpeBankNum = ope.BankNum;
+                    cyOpeAddressInt = ope.AddressInt;
+                    cyMode = CarryMode.AddBytes;
+                    if (ope.OperationParams.Length >= 1)
+                    {
+                        cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                        cyEP2 = "1";
+                        cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                        cyP2 = "1";
+                    }
+                    break;
+                case "incw":
+                    cyOpeBankNum = ope.BankNum;
+                    cyOpeAddressInt = ope.AddressInt;
+                    cyMode = CarryMode.AddWords;
+                    if (ope.OperationParams.Length >= 1)
+                    {
+                        cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                        cyEP2 = "1";
+                        cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                        cyP2 = "1";
+                    }
                     break;
             }
+            gopParams.CarryOpeBankNum = cyOpeBankNum;
+            gopParams.CarryOpeAddressInt = cyOpeAddressInt;
+            gopParams.CarryOpeMode = cyMode;
+            gopParams.CarryOpeEmbeddedParam1 = cyEP1;
+            gopParams.CarryOpeEmbeddedParam2 = cyEP2;
+            gopParams.CarryOpeDefaultParamTranslation1 = cyP1;
+            gopParams.CarryOpeDefaultParamTranslation2 = cyP2;
         }
 
         public string TranslateInstruction(Operation ope)

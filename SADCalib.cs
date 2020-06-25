@@ -44,6 +44,8 @@ namespace SAD806x
         public SortedList slMatchingSignatures = null;
         public SortedList slUnMatchedSignatures = null;
 
+        public SortedList slMatchingElementsSignatures = null;
+
         public ArrayList alTablesScalers = null;
         
         // Accelerators
@@ -99,6 +101,8 @@ namespace SAD806x
 
             slMatchingSignatures = new SortedList();
             slUnMatchedSignatures = new SortedList();
+
+            slMatchingElementsSignatures = new SortedList();
 
             alTablesScalers = new ArrayList();
 
@@ -239,6 +243,8 @@ namespace SAD806x
 
             slMatchingSignatures = new SortedList();
             slUnMatchedSignatures = new SortedList();
+
+            slMatchingElementsSignatures = new SortedList();
 
             alTablesScalers = new ArrayList();
 

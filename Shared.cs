@@ -28,6 +28,7 @@ namespace SAD806x
         public bool is8061 = false;
         public bool isEarly = false;
         public bool isPilot = false;
+        public bool is8065SingleBank = false;
 
         public bool isCheckSumConfirmed = false;
         public bool isCheckSumValid = false;
@@ -825,6 +826,40 @@ namespace SAD806x
             MatchingBytes = matchingBytes;
             slMatchingParameters = new SortedList();
             S6xSignature = s6xSignature;
+        }
+    }
+
+    public class MatchingElementSignature
+    {
+        public int BankNum = -1;
+
+        public int MatchingEAOPAddressInt = -1;
+        public int MatchingStartAddressInt = -1;
+
+        public string MatchingBytes = string.Empty;
+
+        public bool EAOPStart = false;
+        public bool EAOPEnd = false;
+        public string EAOPBytes = string.Empty;
+
+        public S6xElementSignature S6xElementSignature = null;
+
+        public string MatchingEAOPAddress { get { return string.Format("{0:x4}", SADDef.EecBankStartAddress + MatchingEAOPAddressInt); } }
+        public string MatchingStartAddress { get { return string.Format("{0:x4}", SADDef.EecBankStartAddress + MatchingStartAddressInt); } }
+
+        public string UniqueMatchingAddress { get { return string.Format("{0,1} {1,5}", BankNum, EAOPStart ? MatchingStartAddressInt : MatchingEAOPAddressInt); } }
+        public string UniqueMatchingAddressHex { get { return string.Format("{0,1} {1,4}", BankNum, EAOPStart ? MatchingStartAddress : MatchingEAOPAddress); } }
+
+        public MatchingElementSignature(int bankNum, int matchingEAOPAddressInt, int matchingStartAddressInt, string matchingBytes, bool eaopStart, bool eaopEnd, string eaopBytes, S6xElementSignature s6xElementSignature)
+        {
+            BankNum = bankNum;
+            MatchingEAOPAddressInt = matchingEAOPAddressInt;
+            MatchingStartAddressInt = matchingStartAddressInt;
+            MatchingBytes = matchingBytes;
+            EAOPStart = eaopStart;
+            EAOPEnd = eaopEnd;
+            EAOPBytes = eaopBytes;
+            S6xElementSignature = s6xElementSignature;
         }
     }
 
