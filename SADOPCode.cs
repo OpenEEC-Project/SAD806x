@@ -401,12 +401,20 @@ namespace SAD806x
                         }
                         // 20200612 - PYM    
                         // Odd Word / Shortcut +0x100 for Word Instructions on first parameter
-                        if (iParam == 0 && parameters[iParamForParameters].Type == OPCodeParamsTypes.RegisterWord)
+                        // 20200711 - PYM
+                        // Tested on 8061, it only applies to 8065 starting on step D
+                        // 20200813 - PYM
+                        // Extended to all parameters
+                        if (!is8061)
                         {
-                            iParamValue = Convert.ToInt32(ope.OperationParams[iParam].InstructedParam, 16);
-                            if (iParamValue % 2 != 0) ope.OperationParams[iParam].InstructedParam = string.Format("{0:x3}", 0x100 + iParamValue - 1);
-                            ope.OperationParams[iParam].InstructedParam = Tools.RegisterInstruction(ope.OperationParams[iParam].InstructedParam);
-                            break;
+                            //if (iParam == 0 && parameters[iParamForParameters].Type == OPCodeParamsTypes.RegisterWord)
+                            if (parameters[iParamForParameters].Type == OPCodeParamsTypes.RegisterWord)
+                            {
+                                iParamValue = Convert.ToInt32(ope.OperationParams[iParam].InstructedParam, 16);
+                                if (iParamValue % 2 != 0) ope.OperationParams[iParam].InstructedParam = string.Format("{0:x3}", 0x100 + iParamValue - 1);
+                                ope.OperationParams[iParam].InstructedParam = Tools.RegisterInstruction(ope.OperationParams[iParam].InstructedParam);
+                                break;
+                            }
                         }
                         // Default
                         ope.OperationParams[iParam].InstructedParam = SADDef.ShortRegisterPrefix + ope.OperationParams[iParam].InstructedParam;
@@ -1196,6 +1204,26 @@ namespace SAD806x
                                     break;
                                 }
                             }
+                            else
+                            {
+                                // 20200827 - RConst can be directly used without addition separator - R32 = [Rd6]; Rd6 is a RConst => R32 = [380];
+                                //              Instructed Param starts with [R and RConst is always 2 chars so, 5 chars length.
+                                if (ope.OperationParams[iParam].InstructedParam.StartsWith(SADDef.LongRegisterPointerPrefix + SADDef.ShortRegisterPrefix) && ope.OperationParams[iParam].InstructedParam.Length == 5)
+                                {
+                                    rConst = (RConst)Calibration.slRconst[arrPointersValues[1].ToString()];
+                                    if (rConst != null)
+                                    {
+                                        if (rConst.isValue)
+                                        {
+                                            ope.OperationParams[iParam].CalculatedParam = Tools.PointerTranslation(rConst.Value);
+                                            ope.OperationParams[iParam].DefaultTranslatedParam = Tools.PointerTranslation(rConst.Value);
+                                            ope.OperationParams[iParam].EmbeddedParam = rConst.ValueInt;
+                                        }
+                                        rConst = null;
+                                        break;
+                                    }
+                                }
+                            }
 
                             // Possible Non Calibration Element
                             switch (Instruction.ToLower())
@@ -1256,24 +1284,47 @@ namespace SAD806x
                     continue;
                 }
 
+                // 20200816
+                // No Register to manage - Probably Calibartion Element or Other Element
+                if (ope.OperationParams[iParam].EmbeddedParam != null)
+                {
+                    // For non null EmbeddedParam, only type int can be register
+                    //      String is for Other Element
+                    if (ope.OperationParams[iParam].EmbeddedParam.GetType() != typeof(int))
+                    {
+                        continue;
+                    }
+                }
+
+                object regParam = null;
                 // Embedded Params Register linking
                 if (arrPointersValues.Length == 3)
                 {
-                    ope.OperationParams[iParam].EmbeddedParam = Calibration.slRegisters[Tools.RegisterUniqueAddress((int)arrPointersValues[2])];
+                    regParam = Calibration.slRegisters[Tools.RegisterUniqueAddress((int)arrPointersValues[2])];
+                    if (regParam != null) ope.OperationParams[iParam].EmbeddedParam = regParam;
                 }
                 else
                 {
-                    ope.OperationParams[iParam].EmbeddedParam = Calibration.slRegisters[Tools.RegisterUniqueAddress((int)arrPointersValues[2]) + SADDef.AdditionSeparator + arrPointersValues[4].ToString()];
-                    if (ope.OperationParams[iParam].EmbeddedParam == null)
+                    regParam = Calibration.slRegisters[Tools.RegisterUniqueAddress((int)arrPointersValues[2]) + SADDef.AdditionSeparator + arrPointersValues[4].ToString()];
+                    if (regParam != null)
                     {
+                        ope.OperationParams[iParam].EmbeddedParam = regParam;
+                    }
+                    else
+                    {
+                        // 20200816 - No need to exclude registers, the first value will always be properly managed.
+                        /*
                         // 0x24 to 0x58 to keep only real adders
                         // 0x100 to prevent basic registers to be calculated or shown for second part
                         if ((int)arrPointersValues[2] >= 0x24 && (int)arrPointersValues[2] <= 0x58 && (int)arrPointersValues[4] >= 0x100)
                         {
-                            ope.OperationParams[iParam].EmbeddedParam = new object[] { Calibration.slRegisters[Tools.RegisterUniqueAddress((int)arrPointersValues[2])], arrPointersValues[3] };
+                        ope.OperationParams[iParam].EmbeddedParam = new object[] { Calibration.slRegisters[Tools.RegisterUniqueAddress((int)arrPointersValues[2])], arrPointersValues[3] };
                         }
+                        */
+                        ope.OperationParams[iParam].EmbeddedParam = new object[] { Calibration.slRegisters[Tools.RegisterUniqueAddress((int)arrPointersValues[2])], arrPointersValues[3] };
                     }
                 }
+                regParam = null;
                 
                 // 8061 KAM / CC / EC Additional Detection and Flags
                 //if (is8061) set8061KamCcEc(ref ope, ope.OperationParams[iParam].CalculatedParam);
@@ -1567,6 +1618,7 @@ namespace SAD806x
         {
             string sTranslation = sTemplate;
             Register rReg = null;
+            Register rRegCpy = null;
             S6xRegister s6xReg = null;
 
             if (sTranslation == string.Empty) return sTranslation;
@@ -1585,6 +1637,38 @@ namespace SAD806x
                         s6xReg = rReg.S6xRegister;
                     }
                 }
+
+                // 20200903 - Mangement for register copy to use temporary bit flag register
+                //            rReg should be the same than ope.initialGotoOpParams.OpeEmbeddedParam2
+                //            s6xReg becomes also ope.initialGotoOpParams.OpeEmbeddedParam1.S6xRegister
+                //            rRegCpy becomes rReg
+                if (s6xReg != null)
+                {
+                    if (!s6xReg.isBitFlags || s6xReg.BitFlags == null) s6xReg = null;
+                }
+                if (rReg != null && s6xReg == null)
+                {
+                    if (ope.initialGotoOpParams != null)
+                    {
+                        if (ope.initialGotoOpParams.OpeEmbeddedParam1 != null && ope.initialGotoOpParams.OpeEmbeddedParam2 != null)
+                        {
+                            if (ope.initialGotoOpParams.OpeEmbeddedParam1.GetType() == typeof(Register) && ope.initialGotoOpParams.OpeEmbeddedParam2.GetType() == typeof(Register))
+                            {
+                                if (((Register)ope.initialGotoOpParams.OpeEmbeddedParam2).UniqueAddress == rReg.UniqueAddress)
+                                {
+                                    s6xReg = ((Register)ope.initialGotoOpParams.OpeEmbeddedParam1).S6xRegister;
+                                    if (s6xReg != null)
+                                    {
+                                        if (s6xReg.isBitFlags && s6xReg.BitFlags != null) rRegCpy = rReg;
+                                        else s6xReg = null;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                rReg = null;
+
                 if (s6xReg != null)
                 {
                     if (s6xReg.isBitFlags && s6xReg.BitFlags != null)
@@ -1598,6 +1682,7 @@ namespace SAD806x
                             // jnb / jb
                             {
                                 string regTranslation = string.Empty;
+                                string regCpyTranslation = string.Empty;
                                 string sValue = string.Empty;
                                 string bfTranslation = string.Empty;
 
@@ -1619,6 +1704,23 @@ namespace SAD806x
                                     else regTranslation = Tools.PointerTranslation(s6xReg.Label);
 
                                     bfTranslation = regTranslation + SADDef.BitByteGotoOPAltSeparator + bitFlag.ShortLabel;
+
+                                    // 20200903 - Mangement for register copy to use temporary bit flag register
+                                    if (rRegCpy != null)
+                                    {
+                                        if (rRegCpy.S6xRegister == null)
+                                        {
+                                            regCpyTranslation = Tools.PointerTranslation(rRegCpy.Address);
+                                        }
+                                        else
+                                        {
+                                            if (rRegCpy.S6xRegister.MultipleMeanings && rRegCpy.S6xRegister.ByteLabel != null) regCpyTranslation = Tools.PointerTranslation(rRegCpy.S6xRegister.Labels(true));
+                                            else if (rRegCpy.S6xRegister.Label == null) regCpyTranslation = Tools.PointerTranslation(rRegCpy.S6xRegister.Address);
+                                            else regCpyTranslation = Tools.PointerTranslation(rRegCpy.S6xRegister.Label);
+                                        }
+
+                                        bfTranslation = regCpyTranslation + SADDef.BitByteGotoOPAltCopySeparator + bfTranslation;
+                                    }
                                 }
                                 // Based on existing template, if updated this code should be updated too
                                 if (sValue == string.Empty)
@@ -1672,7 +1774,6 @@ namespace SAD806x
                             fOperation = true;
                             break;
                     }
-
                 }
                 if (fOperation)
                 {
@@ -1686,6 +1787,38 @@ namespace SAD806x
                             s6xReg = rReg.S6xRegister;
                         }
                     }
+
+                    // 20200903 - Mangement for register copy to use temporary bit flag register
+                    //            rReg should be the same than ope.initialGotoOpParams.OpeEmbeddedParam1
+                    //            s6xReg becomes also ope.initialGotoOpParams.OpeEmbeddedParam2.S6xRegister
+                    //            rRegCpy becomes rReg
+                    if (s6xReg != null)
+                    {
+                        if (!s6xReg.isBitFlags || s6xReg.BitFlags == null) s6xReg = null;
+                    }
+                    if (rReg != null && s6xReg == null)
+                    {
+                        if (ope.initialGotoOpParams != null)
+                        {
+                            if (ope.initialGotoOpParams.OpeEmbeddedParam1 != null && ope.initialGotoOpParams.OpeEmbeddedParam2 != null)
+                            {
+                                if (ope.initialGotoOpParams.OpeEmbeddedParam1.GetType() == typeof(Register) && ope.initialGotoOpParams.OpeEmbeddedParam2.GetType() == typeof(Register))
+                                {
+                                    if (((Register)ope.initialGotoOpParams.OpeEmbeddedParam2).UniqueAddress == rReg.UniqueAddress)
+                                    {
+                                        s6xReg = ((Register)ope.initialGotoOpParams.OpeEmbeddedParam1).S6xRegister;
+                                        if (s6xReg != null)
+                                        {
+                                            if (s6xReg.isBitFlags && s6xReg.BitFlags != null) rRegCpy = rReg;
+                                            else s6xReg = null;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    rReg = null;
+                    
                     if (s6xReg != null)
                     {
                         if (s6xReg.isBitFlags && s6xReg.BitFlags != null)
@@ -1701,6 +1834,7 @@ namespace SAD806x
                                 if ((OPCodeInt == 0x91 && bitArray.Get(bitFlag.Position)) || (OPCodeInt == 0x71 && !bitArray.Get(bitFlag.Position)))
                                 {
                                     string regTranslation = string.Empty;
+                                    string regCpyTranslation = string.Empty;
                                     string sValue = string.Empty;
                                     string bfTranslation = string.Empty;
 
@@ -1721,6 +1855,23 @@ namespace SAD806x
                                         else regTranslation = Tools.PointerTranslation(s6xReg.Label);
 
                                         bfTranslation = regTranslation + SADDef.BitByteGotoOPAltSeparator + bitFlag.ShortLabel;
+
+                                        // 20200903 - Mangement for register copy to use temporary bit flag register
+                                        if (rRegCpy != null)
+                                        {
+                                            if (rRegCpy.S6xRegister == null)
+                                            {
+                                                regCpyTranslation = Tools.PointerTranslation(rRegCpy.Address);
+                                            }
+                                            else
+                                            {
+                                                if (rRegCpy.S6xRegister.MultipleMeanings && rRegCpy.S6xRegister.ByteLabel != null) regCpyTranslation = Tools.PointerTranslation(rRegCpy.S6xRegister.Labels(true));
+                                                else if (rRegCpy.S6xRegister.Label == null) regCpyTranslation = Tools.PointerTranslation(rRegCpy.S6xRegister.Address);
+                                                else regCpyTranslation = Tools.PointerTranslation(rRegCpy.S6xRegister.Label);
+                                            }
+
+                                            bfTranslation = regCpyTranslation + SADDef.BitByteGotoOPAltCopySeparator + bfTranslation;
+                                        }
                                     }
 
                                     sTranslation = SADDef.BitByteSetOPAltTemplate.Replace("%1%", bfTranslation).Replace("%2%", sValue);
@@ -1833,18 +1984,45 @@ namespace SAD806x
 
             if (oParam.GetType() == typeof(Call)) return ((Call)oParam).ShortLabel;
 
+            // 20200818 - PYM - To manage missing brackets around Calibration Elements / Elements
+            //  When defaultTranslation or CalculatedParam are including brackets, param translation should too.
+            string elementParamTranslation = string.Empty;
+            bool elementPointerUse = false;
             if (oParam.GetType() == typeof(CalibrationElement))
             {
-                if (((CalibrationElement)oParam).isScalar) return ((CalibrationElement)oParam).ScalarElem.ShortLabel;
-                else if (((CalibrationElement)oParam).isFunction) return ((CalibrationElement)oParam).FunctionElem.ShortLabel;
-                else if (((CalibrationElement)oParam).isTable) return ((CalibrationElement)oParam).TableElem.ShortLabel;
-                else if (((CalibrationElement)oParam).isStructure) return ((CalibrationElement)oParam).StructureElem.ShortLabel;
+                elementPointerUse = (defaultTranslation != ((CalibrationElement)oParam).Address);
+                if (((CalibrationElement)oParam).isScalar) elementParamTranslation = ((CalibrationElement)oParam).ScalarElem.ShortLabel;
+                else if (((CalibrationElement)oParam).isFunction) elementParamTranslation = ((CalibrationElement)oParam).FunctionElem.ShortLabel;
+                else if (((CalibrationElement)oParam).isTable) elementParamTranslation = ((CalibrationElement)oParam).TableElem.ShortLabel;
+                else if (((CalibrationElement)oParam).isStructure) elementParamTranslation= ((CalibrationElement)oParam).StructureElem.ShortLabel;
             }
 
-            if (oParam.GetType() == typeof(Scalar)) return ((Scalar)oParam).ShortLabel;
-            if (oParam.GetType() == typeof(Function)) return ((Function)oParam).ShortLabel;
-            if (oParam.GetType() == typeof(Table)) return ((Table)oParam).ShortLabel;
-            if (oParam.GetType() == typeof(Structure)) return ((Structure)oParam).ShortLabel;
+            if (oParam.GetType() == typeof(Scalar))
+            {
+                elementPointerUse = (defaultTranslation != ((Scalar)oParam).Address);
+                elementParamTranslation = ((Scalar)oParam).ShortLabel;
+            }
+            if (oParam.GetType() == typeof(Function))
+            {
+                elementPointerUse = (defaultTranslation != ((Function)oParam).Address);
+                elementParamTranslation = ((Function)oParam).ShortLabel;
+            }
+            if (oParam.GetType() == typeof(Table))
+            {
+                elementPointerUse = (defaultTranslation != ((Table)oParam).Address);
+                elementParamTranslation = ((Table)oParam).ShortLabel;
+            }
+            if (oParam.GetType() == typeof(Structure))
+            {
+                elementPointerUse = (defaultTranslation != ((Structure)oParam).Address);
+                elementParamTranslation = ((Structure)oParam).ShortLabel;
+            }
+
+            if (elementParamTranslation != string.Empty)
+            {
+                if (elementPointerUse) return Tools.PointerTranslation(elementParamTranslation);
+                else return elementParamTranslation;
+            }
 
             if (oParam.GetType() == typeof(Register)) return getRegisterTranslation((Register)oParam, defaultTranslation, writeModeForParam);
 

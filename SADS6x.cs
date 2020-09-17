@@ -2947,6 +2947,23 @@ namespace SAD806x
 
         [XmlIgnore]
         public string UniqueKey { get { return string.Format("{0:d2}", Position); } }
+
+        public S6xBitFlag Clone()
+        {
+            S6xBitFlag clone = new S6xBitFlag();
+            clone.Position = Position;
+            clone.Skip = Skip;
+
+            clone.ShortLabel = Label;
+            clone.Label = Label;
+            clone.Comments = Comments;
+
+            clone.SetValue = SetValue;
+            clone.NotSetValue = NotSetValue;
+            clone.HideParent = HideParent;
+
+            return clone;
+        }
     }
 
     [Serializable]
@@ -4806,6 +4823,24 @@ namespace SAD806x
             }
 
             ScalePrecision = SADDef.DefaultScalePrecision;
+        }
+
+        public S6xBitFlag GetBitFlag(int bitFlagPosition)
+        {
+            if (BitFlags == null) return null;
+            foreach (S6xBitFlag bF in BitFlags) if (bF.Position == bitFlagPosition) return bF;
+            return null;
+        }
+
+        public void RemoveBitFlag(int bitFlagPosition)
+        {
+            SortedList slBitFlags = new SortedList();
+            if (BitFlags != null) foreach (S6xBitFlag bF in BitFlags) if (bF.Position != bitFlagPosition) slBitFlags.Add(bF.UniqueKey, bF);
+
+            BitFlags = new S6xBitFlag[slBitFlags.Count];
+            slBitFlags.Values.CopyTo(BitFlags, 0);
+
+            slBitFlags = null;
         }
 
         public void AddBitFlag(S6xBitFlag s6xBitFlag)

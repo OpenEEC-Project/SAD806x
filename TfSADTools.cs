@@ -280,7 +280,10 @@ namespace SAD806x
                 if (sadBin.Calibration.Info.is8061) sWri.WriteLine("opts   :C P N S"); else sWri.WriteLine("opts   :C P N S H");
 
                 singleBank = (sadBin.Calibration.Info.slBanksInfos.Count == 1);
-                foreach (string[] bankInfos in sadBin.Calibration.Info.slBanksInfos.Values) sWri.WriteLine(string.Format("{0} {1,4} {2,4} {3}", "bank", bankInfos[1], bankInfos[2], bankInfos[0]));
+                // 20200711 - PYM - Format as changed for Banks directive since version 3
+                if (tfSADVersion == TFST_SAD_VER_0) sFormat = "{0} {1,4} {2,4} {3}";
+                else sFormat = "{0} {3} {1,4} {2,4}";
+                foreach (string[] bankInfos in sadBin.Calibration.Info.slBanksInfos.Values) sWri.WriteLine(string.Format(sFormat, "bank", bankInfos[1], bankInfos[2], bankInfos[0]));
                 sWri.WriteLine();
 
                 foreach (RBase rBase in sadBin.Calibration.slRbases.Values) sWri.WriteLine(string.Format("{0} {1} {2,4}", "rbase", rBase.Code, rBase.AddressBank));

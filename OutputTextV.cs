@@ -1592,6 +1592,9 @@ namespace SAD806x
             alLines.AddRange(getOutputTextElementWithComments(firstLine, secondLine, arrCommentsInline, true));
             arrCommentsInline = null;
 
+            // Element Included Elements
+            alLines.AddRange(getOutputTextIncludedElements(ref elem, elem.AddressInt, elem.AddressEndInt));
+
             return (string[])alLines.ToArray(typeof(string));
         }
 

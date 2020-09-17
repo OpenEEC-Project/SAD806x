@@ -57,6 +57,8 @@ namespace SAD806x
         private Repository repoOBDIIErrors = null;
 
         private SearchForm searchForm = null;
+        private CompareForm compareForm = null;
+        private CompareRoutinesForm compareRoutinesForm = null;
         
         // Start Options
         private bool autoDisassembly = false;
@@ -369,7 +371,8 @@ namespace SAD806x
 
             GC.Collect();
 
-            Application.Exit();
+            try { Application.Exit(); }
+            catch { }
             System.Diagnostics.Process.GetCurrentProcess().Kill();
         }
 
@@ -1109,6 +1112,10 @@ namespace SAD806x
 
             initForm();
 
+            if (compareForm != null) compareForm.Close();
+            if (compareRoutinesForm != null) compareRoutinesForm.Close();
+            if (searchForm != null) searchForm.Close();
+            
             toolStripProgressBarMain.Visible = true;
 
             selectBinaryToolStripMenuItem.Enabled = false;
@@ -1866,7 +1873,9 @@ namespace SAD806x
             elemsTreeView.EndUpdate();
         }
 
+        // 20200909 - Replaced with SADCalib.RemapS6x
         // Automatic S6xObjects Creation without Store Property and without link to parent object
+        /*
         private void showElementsTreeRemapS6x()
         {
             if (sadBin == null) return;
@@ -2175,6 +2184,7 @@ namespace SAD806x
                 cCall = null;
             }
         }
+        */
         
         private void ShowElementsTreeLoad()
         {
@@ -2308,7 +2318,8 @@ namespace SAD806x
             TreeNode tnNode = null;
 
             // Automatic S6xObjects Creation without Store Property and without link to parent object
-            showElementsTreeRemapS6x();
+            // 20200909 - Now managed on disassembly
+            //showElementsTreeRemapS6x();
 
             elemsTreeView.BeginUpdate();
 
@@ -10536,17 +10547,58 @@ namespace SAD806x
 
         private void compareBinariesToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            new CompareForm(ref sadBin, ref sadS6x, ref elemsTreeView, ref elemsContextMenuStrip, true, true).ShowDialog();
+            compareBinariesToolStripMenuItem.Enabled = false;
+            compareBinariesDifDefToolStripMenuItem.Enabled = false;
+            compareS6xToolStripMenuItem.Enabled = false;
+
+            if (compareForm == null)
+            {
+                compareForm = new CompareForm(ref sadBin, ref sadS6x, ref elemsTreeView, ref elemsContextMenuStrip, true, true);
+                compareForm.FormClosed += new FormClosedEventHandler(compareForm_FormClosed);
+            }
+            compareForm.Show();
+            compareForm.Focus();
+
+            //new CompareForm(ref sadBin, ref sadS6x, ref elemsTreeView, ref elemsContextMenuStrip, true, true).ShowDialog();
         }
 
         private void compareBinariesDifDefToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            new CompareForm(ref sadBin, ref sadS6x, ref elemsTreeView, ref elemsContextMenuStrip, true, false).ShowDialog();
+            compareBinariesToolStripMenuItem.Enabled = false;
+            compareBinariesDifDefToolStripMenuItem.Enabled = false;
+            compareS6xToolStripMenuItem.Enabled = false;
+
+            if (compareForm == null)
+            {
+                compareForm = new CompareForm(ref sadBin, ref sadS6x, ref elemsTreeView, ref elemsContextMenuStrip, true, false);
+                compareForm.FormClosed += new FormClosedEventHandler(compareForm_FormClosed);
+            }
+            compareForm.Show();
+            compareForm.Focus();
+
+            //new CompareForm(ref sadBin, ref sadS6x, ref elemsTreeView, ref elemsContextMenuStrip, true, false).ShowDialog();
         }
 
         private void compareS6xToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            new CompareForm(ref sadBin, ref sadS6x, ref elemsTreeView, ref elemsContextMenuStrip, false, false).ShowDialog();
+            compareBinariesToolStripMenuItem.Enabled = false;
+            compareBinariesDifDefToolStripMenuItem.Enabled = false;
+            compareS6xToolStripMenuItem.Enabled = false;
+
+            if (compareForm == null)
+            {
+                compareForm = new CompareForm(ref sadBin, ref sadS6x, ref elemsTreeView, ref elemsContextMenuStrip, false, false);
+                compareForm.FormClosed += new FormClosedEventHandler(compareForm_FormClosed);
+            }
+            compareForm.Show();
+            compareForm.Focus();
+
+            //new CompareForm(ref sadBin, ref sadS6x, ref elemsTreeView, ref elemsContextMenuStrip, false, false).ShowDialog();
+        }
+
+        private void compareForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            compareForm = null;
         }
 
         private void searchSignatureToolStripMenuItem_Click(object sender, EventArgs e)
@@ -10588,12 +10640,42 @@ namespace SAD806x
 
         private void routinesComparisonSkeletonsCompareToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            new CompareRoutinesForm(ref sadBin, ref elemsTreeView, ref elemsContextMenuStrip, true).ShowDialog();
+            routinesComparisonBinariesCompareToolStripMenuItem.Enabled = false;
+            routinesComparisonSkeletonsCompareToolStripMenuItem.Enabled = false;
+            
+            if (compareRoutinesForm == null)
+            {
+                compareRoutinesForm = new CompareRoutinesForm(ref sadBin, ref elemsTreeView, ref elemsContextMenuStrip, true);
+                compareRoutinesForm.FormClosed += new FormClosedEventHandler(compareRoutinesForm_FormClosed);
+            }
+            compareRoutinesForm.Show();
+            compareRoutinesForm.Focus();
+
+            //new CompareRoutinesForm(ref sadBin, ref elemsTreeView, ref elemsContextMenuStrip, true).ShowDialog();
         }
 
         private void routinesComparisonBinariesCompareToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            new CompareRoutinesForm(ref sadBin, ref elemsTreeView, ref elemsContextMenuStrip, false).ShowDialog();
+            routinesComparisonBinariesCompareToolStripMenuItem.Enabled = false;
+            routinesComparisonSkeletonsCompareToolStripMenuItem.Enabled = false;
+
+            if (compareRoutinesForm == null)
+            {
+                compareRoutinesForm = new CompareRoutinesForm(ref sadBin, ref elemsTreeView, ref elemsContextMenuStrip, false);
+                compareRoutinesForm.FormClosed += new FormClosedEventHandler(compareRoutinesForm_FormClosed);
+            }
+            compareRoutinesForm.Show();
+            compareRoutinesForm.Focus();
+
+            //new CompareRoutinesForm(ref sadBin, ref elemsTreeView, ref elemsContextMenuStrip, false).ShowDialog();
+        }
+
+        private void compareRoutinesForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            compareRoutinesForm = null;
+
+            routinesComparisonBinariesCompareToolStripMenuItem.Enabled = true;
+            routinesComparisonSkeletonsCompareToolStripMenuItem.Enabled = true;
         }
 
         private void calibChartViewToolStripMenuItem_Click(object sender, EventArgs e)

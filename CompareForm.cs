@@ -20,6 +20,8 @@ namespace SAD806x
         private TreeView elemsTreeView = null;
         private ContextMenuStrip elemsContextMenuStrip = null;
 
+        private System.Windows.Forms.Timer mainUpdateTimer = null;
+
         public CompareForm(ref SADBin mainSadBin, ref SADS6x mainSadS6x, ref TreeView mainElemsTreeView, ref ContextMenuStrip mainElemsContextMenuStrip, bool bBinaryComparison, bool bBinariesSameDefinition)
         {
             compareMode = bBinaryComparison ? "Bin" : "S6x";
@@ -33,6 +35,13 @@ namespace SAD806x
 
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
             catch { }
+
+            this.FormClosing += new FormClosingEventHandler(Form_FormClosing);
+
+            mainUpdateTimer = new System.Windows.Forms.Timer();
+            mainUpdateTimer.Enabled = false;
+            mainUpdateTimer.Interval = 500;
+            mainUpdateTimer.Tick += new EventHandler(mainUpdateTimer_Tick);
 
             if (compareMode == "Bin")
             {
@@ -48,6 +57,59 @@ namespace SAD806x
             
             searchTreeView.NodeMouseClick += new TreeNodeMouseClickEventHandler(searchTreeView_NodeMouseClick);
             searchTreeView.AfterSelect += new TreeViewEventHandler(searchTreeView_AfterSelect);
+        }
+
+        private void Form_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            mainUpdateTimer.Enabled = false;
+        }
+
+        private void mainUpdateTimer_Tick(object sender, EventArgs e)
+        {
+            mainUpdateTimer.Enabled = false;
+
+            try
+            {
+                bool refreshCount = false;
+
+                TreeNodeCollection[] tnCollections = new TreeNodeCollection[] { };
+                if (compareMode == "Bin") tnCollections = new TreeNodeCollection[] { searchTreeView.Nodes };
+                else if (compareMode == "S6x") tnCollections = new TreeNodeCollection[] { searchTreeView.Nodes["MISSING_IN_COMPARED"].Nodes, searchTreeView.Nodes["DIFFERENCES"].Nodes };
+
+                foreach (TreeNodeCollection tnCollection in tnCollections)
+                {
+                    foreach (TreeNode tnCateg in tnCollection)
+                    {
+                        S6xNavInfo niMFHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[tnCateg.Name]);
+                        if (!niMFHeaderCateg.isValid)
+                        {
+                            tnCateg.Nodes.Clear();
+                            continue;
+                        }
+
+                        List<TreeNode> lsRemoval = new List<TreeNode>();
+
+                        foreach (TreeNode tnNode in tnCateg.Nodes)
+                        {
+                            TreeNode tnMainNode = niMFHeaderCateg.FindElement(tnNode.Name);
+                            if (tnMainNode == null)
+                            {
+                                lsRemoval.Add(tnNode);
+                                continue;
+                            }
+                            if (tnMainNode.Text != tnNode.Text) tnNode.Text = tnMainNode.Text;
+                            if (tnMainNode.ToolTipText != tnNode.ToolTipText) tnNode.ToolTipText = tnMainNode.ToolTipText;
+                        }
+
+                        foreach (TreeNode tnNode in lsRemoval) tnCateg.Nodes.Remove(tnNode);
+                        refreshCount |= lsRemoval.Count > 0;
+                    }
+                }
+
+                if (refreshCount) searchTreeViewCount(compareMode);
+                mainUpdateTimer.Enabled = true;
+            }
+            catch { }
         }
 
         private void searchTreeView_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
@@ -70,7 +132,9 @@ namespace SAD806x
 
         private void searchButton_Click(object sender, EventArgs e)
         {
+            mainUpdateTimer.Enabled = false;
             Compare(compareMode);
+            mainUpdateTimer.Enabled = true;
         }
 
         private void Compare(string Mode)
@@ -101,6 +165,8 @@ namespace SAD806x
 
             if (results == null) return;
 
+            searchTreeView.BeginUpdate();
+            
             searchTreeViewInit(Mode);
 
             switch (Mode)
@@ -282,6 +348,8 @@ namespace SAD806x
             }
 
             searchTreeViewCount(Mode);
+
+            searchTreeView.EndUpdate();
         }
 
         private List<object[]> CompareNewBinary()
@@ -1399,6 +1467,8 @@ namespace SAD806x
                 s6xNode.ToolTipText = cmpNode.ToolTipText;
                 s6xNode.ForeColor = Color.Purple;
             }
+            try { elemsTreeView.SelectedNode = s6xNode; }
+            catch { }
 
             switch (S6xNav.getHeaderCateg(parentNode.Name))
             {

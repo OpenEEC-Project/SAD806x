@@ -148,7 +148,10 @@ namespace SAD806x
                     break;
             }
 
-            mainUpdateTimer.Enabled = false; 
+            mainUpdateTimer.Enabled = false;
+
+            searchTreeView.BeginUpdate();
+            
             searchTreeViewInit();
 
             foreach (string[] result in results)
@@ -171,6 +174,9 @@ namespace SAD806x
             }
 
             searchTreeViewCount();
+
+            searchTreeView.EndUpdate();
+
             mainUpdateTimer.Enabled = true;
         }
 

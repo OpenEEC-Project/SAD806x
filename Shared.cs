@@ -4619,13 +4619,12 @@ namespace SAD806x
 
         public ArrayList alMatches = null;
 
+        // Only provided related with a Binary file, not a skeleton file
         public ArrayList alOperations = null;
-        public ArrayList alCalElements = null;
-        public ArrayList alOtherElements = null;
+        public ArrayList alMixedElements = null;
 
         public SortedList slPossibleMatchingRegisters = null;
-        public SortedList slPossibleMatchingCalElements = null;
-        public SortedList slPossibleMatchingOtherElements = null;
+        public SortedList slPossibleMatchingMixedElements = null;
 
         public string Address { get { return string.Format("{0:x4}", AddressInt + SADDef.EecBankStartAddress); } }
 
@@ -4656,6 +4655,152 @@ namespace SAD806x
             get { return opsNumber; }
         }
 
+        // 20200908 - Created as base for everything
+        public string getOperationSkeleton(Operation ope)
+        {
+            if (ope == null) return null;
+            if (ope.OriginalOpArr.Length <= 0) return null;
+            string opeCode = ope.OriginalOpArr[0];
+            bool signedOpe = (ope.OriginalOpArr.Length > 1 && opeCode == "fe");
+            if (signedOpe) opeCode = ope.OriginalOpArr[1];
+            // Short Call becomes Call and Short Jump becomes Jump
+            switch (opeCode)
+            {
+                case "20":
+                case "21":
+                case "22":
+                case "23":
+                case "24":
+                case "25":
+                case "26":
+                case "27":
+                    opeCode = "e7";
+                    break;
+                case "28":
+                case "29":
+                case "2a":
+                case "2b":
+                case "2c":
+                case "2d":
+                case "2e":
+                case "2f":
+                    opeCode = "ef";
+                    break;
+            }
+            // JB/JNB cases BitFlags can be inverted between registers
+            switch (opeCode)
+            {
+                case "30":
+                case "31":
+                case "32":
+                case "33":
+                case "34":
+                case "35":
+                case "36":
+                case "37":
+                    opeCode = "30";
+                    break;
+                case "38":
+                case "39":
+                case "3a":
+                case "3b":
+                case "3c":
+                case "3d":
+                case "3e":
+                case "3f":
+                    opeCode = "38";
+                    break;
+            }
+            // Other equivalences
+            switch (opeCode)
+            {
+                case "c3":  // Storing based on RConst c3, replaced by equivalent store c0
+                    opeCode = "c0";
+                    break;
+                case "c7":  // Storing based on RConst c3, replaced by equivalent store c0
+                    opeCode = "c4";
+                    break;
+                // Other Hard coded values ops, replaced by equivalent Calibration Element ops
+                case "a0":
+                case "a1":
+                    opeCode = "a3";
+                    break;
+                case "ac":
+                case "ad":
+                    opeCode = "af";
+                    break;
+                case "b0":
+                case "b1":
+                    opeCode = "b3";
+                    break;
+                case "bc":
+                case "bd":
+                    opeCode = "bf";
+                    break;
+                case "88":
+                case "89":
+                    opeCode = "8b";
+                    break;
+                case "98":
+                case "99":
+                    opeCode = "9b";
+                    break;
+                case "44": // Calibration Element loaded through 45, replaced by equivalent Calibration Element load through a3
+                case "45":
+                case "47":
+                    opeCode = "a3";
+                    break;
+                case "48":
+                case "49":
+                    opeCode = "4b";
+                    break;
+                case "4c":
+                case "4d":
+                    opeCode = "4f";
+                    break;
+                case "54":
+                case "55":
+                    opeCode = "57";
+                    break;
+                case "58":
+                case "59":
+                    opeCode = "5b";
+                    break;
+                case "5c":
+                case "5d":
+                    opeCode = "5f";
+                    break;
+                case "64":
+                case "65":
+                    opeCode = "67";
+                    break;
+                case "68":
+                case "69":
+                    opeCode = "6b";
+                    break;
+                case "6c":
+                case "6d":
+                    opeCode = "6f";
+                    break;
+                case "74":
+                case "75":
+                    opeCode = "77";
+                    break;
+                case "78":
+                case "79":
+                    opeCode = "7b";
+                    break;
+                case "7c":
+                case "7d":
+                    opeCode = "7f";
+                    break;
+            }
+            // 0xFE case
+            if (signedOpe) opeCode = "fe" + SADDef.GlobalSeparator + opeCode;
+            return opeCode;
+        }
+
+        // 20200908 - Reviewed by using getOperationSkeleton
         public void setSkeleton()
         {
             opsSkeleton = string.Empty;
@@ -4669,36 +4814,8 @@ namespace SAD806x
                 opsSkeleton = string.Empty;
                 foreach (Operation currentOpe in alOperations)
                 {
-                    if (currentOpe == null) continue;
-                    if (currentOpe.OriginalOpArr.Length <= 0) continue;
-                    string opeCode = currentOpe.OriginalOpArr[0];
-                    // JB/JNB cases BitFlags can be inverted between registers
-                    switch (opeCode)
-                    {
-                        case "30":
-                        case "31":
-                        case "32":
-                        case "33":
-                        case "34":
-                        case "35":
-                        case "36":
-                        case "37":
-                            opeCode = "30";
-                            break;
-                        case "38":
-                        case "39":
-                        case "3a":
-                        case "3b":
-                        case "3c":
-                        case "3d":
-                        case "3e":
-                        case "3f":
-                            opeCode = "38";
-                            break;
-                    }
-                    // 0xFE case
-                    if (currentOpe.OriginalOpArr.Length > 1 && opeCode == "fe") opeCode += SADDef.GlobalSeparator + currentOpe.OriginalOpArr[1];
-                    opsSkeleton += "\t" + opeCode + "\n";
+                    string opSkeleton = getOperationSkeleton(currentOpe);
+                    if (opSkeleton != null) opsSkeleton += "\t" + opSkeleton + "\n";
                 }
                 opsNumber = alOperations.Count;
                 opsBytes = ToolsRoutinesComp.skeletonToBytes(opsSkeleton);
@@ -4729,19 +4846,106 @@ namespace SAD806x
             clone.Label = Label;
             clone.Comments = Comments;
 
-            clone.alMatches = new ArrayList();
-            foreach (object oObj in alMatches) clone.alMatches.Add(oObj);
+            if (alMatches != null)
+            {
+                clone.alMatches = new ArrayList();
+                foreach (object oObj in alMatches) clone.alMatches.Add(oObj);
+            }
 
-            clone.alOperations = new ArrayList();
-            foreach (object oObj in alOperations) clone.alOperations.Add(oObj);
+            if (alOperations != null)
+            {
+                clone.alOperations = new ArrayList();
+                foreach (object oObj in alOperations) clone.alOperations.Add(oObj);
+            }
 
-            clone.alCalElements = new ArrayList();
-            foreach (object oObj in alCalElements) clone.alCalElements.Add(oObj);
-
-            clone.alOtherElements = new ArrayList();
-            foreach (object oObj in alOtherElements) clone.alOtherElements.Add(oObj);
+            if (alMixedElements != null)
+            {
+                clone.alMixedElements = new ArrayList();
+                foreach (object oObj in alMixedElements) clone.alMixedElements.Add(oObj);
+            }
 
             return clone;
+        }
+    }
+
+    public class RoutineSkeletonAnalysisMatchedObject
+    {
+        public string MatchedKey = string.Empty;
+        public string MatchedValue = string.Empty;
+        public SortedList slMatchings = null;
+        
+        public SortedList slSubMatched = null;
+
+        public RoutineSkeletonAnalysisMatchedObject ParentMatchedObject = null;
+
+        public bool UniqueMatching = true;
+        public bool UniqueCounterMatching = true;
+
+        public bool SubMatchingCompatibility = true;
+
+        public RoutineSkeletonAnalysisMatchedObject(string matchedKey)
+        {
+            MatchedKey = matchedKey;
+            MatchedValue = matchedKey;
+
+            slMatchings = new SortedList();
+        }
+
+        public RoutineSkeletonAnalysisMatchingObject AddMatching(string matchingKey, int addedOccurences)
+        {
+            RoutineSkeletonAnalysisMatchingObject rsaMGO = (RoutineSkeletonAnalysisMatchingObject)slMatchings[matchingKey];
+            if (rsaMGO == null)
+            {
+                rsaMGO = new RoutineSkeletonAnalysisMatchingObject(MatchedKey, matchingKey);
+                slMatchings.Add(rsaMGO.MatchingKey, rsaMGO);
+            }
+            rsaMGO.AddOccurences(addedOccurences);
+
+            return rsaMGO;
+        }
+
+        public RoutineSkeletonAnalysisMatchedObject AddSubMatched(string subMatchedKey)
+        {
+            if (slSubMatched == null) slSubMatched = new SortedList();
+
+            RoutineSkeletonAnalysisMatchedObject rsaSubMDO = (RoutineSkeletonAnalysisMatchedObject)slSubMatched[subMatchedKey];
+            if (rsaSubMDO == null)
+            {
+                rsaSubMDO = new RoutineSkeletonAnalysisMatchedObject(subMatchedKey);
+                rsaSubMDO.ParentMatchedObject = this;
+                slSubMatched.Add(rsaSubMDO.MatchedKey, rsaSubMDO);
+            }
+            return rsaSubMDO;
+        }
+    }
+
+    public class RoutineSkeletonAnalysisMatchingObject
+    {
+        public string MatchedKey = string.Empty;
+        public string MatchingKey = string.Empty;
+        public string MatchingValue = string.Empty;
+
+        public string ParentMatchingKey = string.Empty;
+
+        public int Occurences = 0;
+
+        public int CounterMatchingCount = 1;
+
+        public bool UniqueCounterMatching
+        {
+            get { return CounterMatchingCount == 1; }
+        }
+
+        public RoutineSkeletonAnalysisMatchingObject(string matchedKey, string matchingKey)
+        {
+            MatchedKey = matchedKey;
+            MatchingKey = matchingKey;
+            MatchingValue = matchingKey;
+        }
+
+        public void AddOccurences(int addedOccurences)
+        {
+            Occurences += addedOccurences;
         }
     }
 }

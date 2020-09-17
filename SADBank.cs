@@ -11519,15 +11519,23 @@ namespace SAD806x
                         string elemUniqueAddress = string.Empty;
                         if (relOpe != null)
                         {
-                            try
+                            // 20200903 - Works only with Address used as pointer in related operation.
+                            foreach (OperationParam relOpeParam in relOpe.OperationParams)
                             {
-                                calElemUniqueAddress = Tools.UniqueAddress(relOpe.ReadDataBankNum, Convert.ToInt32(elemAddress, 16) - SADDef.EecBankStartAddress);
-                                elemUniqueAddress = Tools.UniqueAddress(relOpe.ApplyOnBankNum, Convert.ToInt32(elemAddress, 16) - SADDef.EecBankStartAddress);
-                            }
-                            catch
-                            {
-                                calElemUniqueAddress = string.Empty;
-                                elemUniqueAddress = string.Empty;
+                                if (relOpeParam.CalculatedParam == Tools.PointerTranslation(elemAddress))
+                                {
+                                    try
+                                    {
+                                        calElemUniqueAddress = Tools.UniqueAddress(relOpe.ReadDataBankNum, Convert.ToInt32(elemAddress, 16) - SADDef.EecBankStartAddress);
+                                        elemUniqueAddress = Tools.UniqueAddress(relOpe.ApplyOnBankNum, Convert.ToInt32(elemAddress, 16) - SADDef.EecBankStartAddress);
+                                    }
+                                    catch
+                                    {
+                                        calElemUniqueAddress = string.Empty;
+                                        elemUniqueAddress = string.Empty;
+                                    }
+                                    break;
+                                }
                             }
                         }
                         relOpe = null;

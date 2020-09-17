@@ -72,8 +72,7 @@ namespace SAD806x
                             rsSkt.ShortLabel = (cCall == null) ? string.Empty : cCall.ShortLabel;
                             rsSkt.Label = (cCall == null) ? string.Empty : cCall.Label;
                             rsSkt.alOperations = new ArrayList();
-                            rsSkt.alCalElements = new ArrayList();
-                            rsSkt.alOtherElements = new ArrayList();
+                            rsSkt.alMixedElements = new ArrayList();
                             sSkeleton = string.Empty;
                             newCall = false;
                         }
@@ -149,14 +148,31 @@ namespace SAD806x
 
                         if (currentOpe.alCalibrationElems != null)
                         {
-                            foreach (object objCal in currentOpe.alCalibrationElems)
+                            foreach (CalibrationElement calElem in currentOpe.alCalibrationElems)
                             {
-                                if (!rsSkt.alCalElements.Contains(objCal)) rsSkt.alCalElements.Add(objCal);
+                                if (calElem.isStructure) rsSkt.alMixedElements.Add(calElem.StructureElem);
+                                else if (calElem.isTable) rsSkt.alMixedElements.Add(calElem.TableElem);
+                                else if (calElem.isFunction) rsSkt.alMixedElements.Add(calElem.FunctionElem);
+                                else if (calElem.isScalar) rsSkt.alMixedElements.Add(calElem.ScalarElem);
                             }
                         }
-                        if (currentOpe.OtherElemAddress != string.Empty)
+                        foreach (OperationParam opeParam in currentOpe.OperationParams)
                         {
-                            if (!rsSkt.alOtherElements.Contains(currentOpe.OtherElemAddress)) rsSkt.alOtherElements.Add(currentOpe.OtherElemAddress);
+                            if (opeParam.EmbeddedParam == null) continue;
+                            if (opeParam.EmbeddedParam.GetType() == typeof(Scalar)
+                                || opeParam.EmbeddedParam.GetType() == typeof(Function)
+                                || opeParam.EmbeddedParam.GetType() == typeof(Table)
+                                || opeParam.EmbeddedParam.GetType() == typeof(Structure)) rsSkt.alMixedElements.Add(opeParam.EmbeddedParam);
+                        }
+                        for (int iAddrAdder = 1; iAddrAdder < currentOpe.OriginalOpArr.Length; iAddrAdder++)
+                        {
+                            string uniqueAddress = Tools.UniqueAddress(currentOpe.BankNum, currentOpe.AddressInt + iAddrAdder);
+                            object includedElem = null;
+                            if (includedElem == null) includedElem = sadBin.Calibration.slExtScalars[uniqueAddress];
+                            if (includedElem == null) includedElem = sadBin.Calibration.slExtFunctions[uniqueAddress];
+                            if (includedElem == null) includedElem = sadBin.Calibration.slExtTables[uniqueAddress];
+                            if (includedElem == null) includedElem = sadBin.Calibration.slExtStructures[uniqueAddress];
+                            if (includedElem != null) rsSkt.alMixedElements.Add(includedElem);
                         }
 
                         bool endCall = false;
@@ -360,7 +376,7 @@ namespace SAD806x
             if (errorException != null) throw errorException;
         }
 
-        public static void compareRoutinesComparisonSkeletons(ref SortedList slRoutinesSkt1, ref SortedList slRoutinesSkt2, int minOpsNumber, double gapTolerance, double levTolerance)
+        public static void compareRoutinesComparisonSkeletons(ref SortedList slRoutinesSkt1, ref SortedList slRoutinesSkt2, ref SADBin sadBin1, ref SADBin sadBin2, int minOpsNumber, double gapTolerance, double levTolerance)
         {
             //int minOpsNumber = 3;      // 3 ops for minimum
             //double gapTolerance = 0.1; // 10%
@@ -404,56 +420,130 @@ namespace SAD806x
                     RoutineSkeleton rsSkt2 = (RoutineSkeleton)((object[])rsSkt1.alMatches[0])[0];
                     if (rsSkt2.alOperations == null) continue; // Managed only when Operations are included
 
+                    // Only accessible for Binary vs Binary comparison
                     object[] newRSkteletons = getMatchingRoutinesSkeletons(rsSkt1, rsSkt2, (double)((object[])rsSkt1.alMatches[0])[1], minOpsNumber, gapTolerance, levTolerance);
                     if (newRSkteletons == null) continue;   // No way to obtain identical Skeletons
 
                     RoutineSkeleton rsMSkt1 = (RoutineSkeleton)newRSkteletons[0];
-                    rsSkt2 = (RoutineSkeleton)newRSkteletons[1];
+                    RoutineSkeleton rsMSkt2 = (RoutineSkeleton)newRSkteletons[1];
 
-                    if (rsMSkt1.alOperations.Count != rsSkt2.alOperations.Count) continue;
+                    // Perfectly matching Skeleton for current binary is now rsMSkt1
+                    // Perfectly matching Skeleton for compare binary is now rsMSkt2
+                    // Analysis has to be done on rsMSkt1 and rsMSkt2
+                    // !!! But PossibleMatching lists have to be filled on rsSkt1 and rsSkt2 to propagate the result
+
+                    if (rsMSkt1.alOperations.Count != rsMSkt2.alOperations.Count) continue;
 
                     rsSkt1.slPossibleMatchingRegisters = new SortedList();
-                    rsSkt1.slPossibleMatchingCalElements = new SortedList();
-                    rsSkt1.slPossibleMatchingOtherElements = new SortedList();
+                    rsSkt1.slPossibleMatchingMixedElements = new SortedList();
 
                     rsSkt2.slPossibleMatchingRegisters = new SortedList();
-                    rsSkt2.slPossibleMatchingCalElements = new SortedList();
-                    rsSkt2.slPossibleMatchingOtherElements = new SortedList();
+                    rsSkt2.slPossibleMatchingMixedElements = new SortedList();
 
                     for (int iSkOpeNum = 0; iSkOpeNum < rsMSkt1.alOperations.Count; iSkOpeNum++)
                     {
-                        Operation sk1Ope = (Operation)rsSkt1.alOperations[iSkOpeNum];
-                        Operation sk2Ope = (Operation)rsSkt2.alOperations[iSkOpeNum];
+                        Operation sk1Ope = (Operation)rsMSkt1.alOperations[iSkOpeNum];
+                        Operation sk2Ope = (Operation)rsMSkt2.alOperations[iSkOpeNum];
 
-                        // CalibElems
-                        if (sk1Ope.alCalibrationElems != null && sk2Ope.alCalibrationElems != null)
+                        // 20200908 - Calibration Elements, OtherElems at the same place
+                        //              new OtherElems/IncludedElemens Mngt added
+                        ArrayList alSk1Elems = new ArrayList();
+                        if (sk1Ope.alCalibrationElems != null) alSk1Elems.AddRange(sk1Ope.alCalibrationElems);
+                        foreach (OperationParam opeParam in sk1Ope.OperationParams)
                         {
-                            for (int iCalElem = 0; iCalElem < sk1Ope.alCalibrationElems.Count && iCalElem < sk2Ope.alCalibrationElems.Count; iCalElem++)
-                            {
-                                CalibrationElement ope1CalElem = (CalibrationElement)sk1Ope.alCalibrationElems[iCalElem];
-                                CalibrationElement ope2CalElem = (CalibrationElement)sk2Ope.alCalibrationElems[iCalElem];
+                            if (opeParam.EmbeddedParam == null) continue;
+                            if (opeParam.EmbeddedParam.GetType() == typeof(Scalar)
+                                || opeParam.EmbeddedParam.GetType() == typeof(Function)
+                                || opeParam.EmbeddedParam.GetType() == typeof(Table)
+                                || opeParam.EmbeddedParam.GetType() == typeof(Structure)) alSk1Elems.Add(opeParam.EmbeddedParam);
+                        }
+                        for (int iAddrAdder = 1; iAddrAdder < sk1Ope.OriginalOpArr.Length; iAddrAdder++)
+                        {
+                            string uniqueAddress = Tools.UniqueAddress(sk1Ope.BankNum, sk1Ope.AddressInt + iAddrAdder);
+                            object includedElem = null;
+                            if (includedElem == null) includedElem = sadBin1.Calibration.slExtScalars[uniqueAddress];
+                            if (includedElem == null) includedElem = sadBin1.Calibration.slExtFunctions[uniqueAddress];
+                            if (includedElem == null) includedElem = sadBin1.Calibration.slExtTables[uniqueAddress];
+                            if (includedElem == null) includedElem = sadBin1.Calibration.slExtStructures[uniqueAddress];
+                            if (includedElem != null) alSk1Elems.Add(includedElem);
+                        }
 
-                                if (rsSkt1.slPossibleMatchingCalElements.ContainsKey(ope1CalElem.UniqueAddress + "." + ope2CalElem.UniqueAddress))
+                        ArrayList alSk2Elems = new ArrayList();
+                        if (sk2Ope.alCalibrationElems != null) alSk2Elems.AddRange(sk2Ope.alCalibrationElems);
+                        foreach (OperationParam opeParam in sk2Ope.OperationParams)
+                        {
+                            if (opeParam.EmbeddedParam == null) continue;
+                            if (opeParam.EmbeddedParam.GetType() == typeof(Scalar)
+                                || opeParam.EmbeddedParam.GetType() == typeof(Function)
+                                || opeParam.EmbeddedParam.GetType() == typeof(Table)
+                                || opeParam.EmbeddedParam.GetType() == typeof(Structure)) alSk2Elems.Add(opeParam.EmbeddedParam);
+                        }
+                        for (int iAddrAdder = 1; iAddrAdder < sk2Ope.OriginalOpArr.Length; iAddrAdder++)
+                        {
+                            string uniqueAddress = Tools.UniqueAddress(sk2Ope.BankNum, sk2Ope.AddressInt + iAddrAdder);
+                            object includedElem = null;
+                            if (includedElem == null) includedElem = sadBin2.Calibration.slExtScalars[uniqueAddress];
+                            if (includedElem == null) includedElem = sadBin2.Calibration.slExtFunctions[uniqueAddress];
+                            if (includedElem == null) includedElem = sadBin2.Calibration.slExtTables[uniqueAddress];
+                            if (includedElem == null) includedElem = sadBin2.Calibration.slExtStructures[uniqueAddress];
+                            if (includedElem != null) alSk2Elems.Add(includedElem);
+                        }
+
+                        for (int iElem = 0; iElem < alSk1Elems.Count || iElem < alSk2Elems.Count; iElem++)
+                        {
+                            object sk1Elem = null;
+                            object sk2Elem = null;
+                            string sk1ElemUniqueAddress = string.Empty;
+                            string sk2ElemUniqueAddress = string.Empty;
+                            if (iElem < alSk1Elems.Count) sk1Elem = alSk1Elems[iElem];
+                            if (iElem < alSk2Elems.Count) sk2Elem = alSk2Elems[iElem];
+                            if (sk1Elem == null && sk2Elem == null) break;
+                            if (sk1Elem != null)
+                            {
+                                if (sk1Elem.GetType() == typeof(CalibrationElement)) sk1ElemUniqueAddress = ((CalibrationElement)sk1Elem).UniqueAddress;
+                                else if (sk1Elem.GetType() == typeof(Scalar)) sk1ElemUniqueAddress = ((Scalar)sk1Elem).UniqueAddress;
+                                else if (sk1Elem.GetType() == typeof(Function)) sk1ElemUniqueAddress = ((Function)sk1Elem).UniqueAddress;
+                                else if (sk1Elem.GetType() == typeof(Table)) sk1ElemUniqueAddress = ((Table)sk1Elem).UniqueAddress;
+                                else if (sk1Elem.GetType() == typeof(Structure)) sk1ElemUniqueAddress = ((Structure)sk1Elem).UniqueAddress;
+                            }
+                            if (sk2Elem != null)
+                            {
+                                if (sk2Elem.GetType() == typeof(CalibrationElement)) sk2ElemUniqueAddress = ((CalibrationElement)sk2Elem).UniqueAddress;
+                                else if (sk2Elem.GetType() == typeof(Scalar)) sk2ElemUniqueAddress = ((Scalar)sk2Elem).UniqueAddress;
+                                else if (sk2Elem.GetType() == typeof(Function)) sk2ElemUniqueAddress = ((Function)sk2Elem).UniqueAddress;
+                                else if (sk2Elem.GetType() == typeof(Table)) sk2ElemUniqueAddress = ((Table)sk2Elem).UniqueAddress;
+                                else if (sk2Elem.GetType() == typeof(Structure)) sk2ElemUniqueAddress = ((Structure)sk2Elem).UniqueAddress;
+                            }
+                            if (sk1ElemUniqueAddress == string.Empty)
+                            {
+                                // Forcing ElemUniqueAddress at sk1Ope address + 1, it could should be an included element
+                                if (sk1Ope.OriginalOpArr.Length > 1) sk1ElemUniqueAddress = Tools.UniqueAddress(sk1Ope.BankNum, sk1Ope.AddressInt + 1);
+                            }
+                            else if (sk2ElemUniqueAddress == string.Empty)
+                            {
+                                // Forcing ElemUniqueAddress at sk2Ope address + 1, it could should be an included element
+                                if (sk2Ope.OriginalOpArr.Length > 1) sk2ElemUniqueAddress = Tools.UniqueAddress(sk2Ope.BankNum, sk2Ope.AddressInt + 1);
+                            }
+                            if (sk1ElemUniqueAddress != string.Empty && sk2ElemUniqueAddress != string.Empty)
+                            {
+                                if (rsSkt1.slPossibleMatchingMixedElements.ContainsKey(sk1ElemUniqueAddress + "." + sk2ElemUniqueAddress))
                                 {
-                                    ((object[])rsSkt1.slPossibleMatchingCalElements[ope1CalElem.UniqueAddress + "." + ope2CalElem.UniqueAddress])[2] = (int)((object[])rsSkt1.slPossibleMatchingCalElements[ope1CalElem.UniqueAddress + "." + ope2CalElem.UniqueAddress])[2] + 1;
+                                    ((object[])rsSkt1.slPossibleMatchingMixedElements[sk1ElemUniqueAddress + "." + sk2ElemUniqueAddress])[2] = (int)((object[])rsSkt1.slPossibleMatchingMixedElements[sk1ElemUniqueAddress + "." + sk2ElemUniqueAddress])[2] + 1;
                                 }
                                 else
                                 {
-                                    rsSkt1.slPossibleMatchingCalElements.Add(ope1CalElem.UniqueAddress + "." + ope2CalElem.UniqueAddress, new object[] { ope1CalElem.UniqueAddress, ope2CalElem.UniqueAddress, 1 });
+                                    rsSkt1.slPossibleMatchingMixedElements.Add(sk1ElemUniqueAddress + "." + sk2ElemUniqueAddress, new object[] { sk1ElemUniqueAddress, sk2ElemUniqueAddress, 1 });
                                 }
-                                if (rsSkt2.slPossibleMatchingCalElements.ContainsKey(ope2CalElem.UniqueAddress + "." + ope1CalElem.UniqueAddress))
+                                if (rsSkt2.slPossibleMatchingMixedElements.ContainsKey(sk2ElemUniqueAddress + "." + sk1ElemUniqueAddress))
                                 {
-                                    ((object[])rsSkt2.slPossibleMatchingCalElements[ope2CalElem.UniqueAddress + "." + ope1CalElem.UniqueAddress])[2] = (int)((object[])rsSkt2.slPossibleMatchingCalElements[ope2CalElem.UniqueAddress + "." + ope1CalElem.UniqueAddress])[2] + 1;
+                                    ((object[])rsSkt2.slPossibleMatchingMixedElements[sk2ElemUniqueAddress + "." + sk1ElemUniqueAddress])[2] = (int)((object[])rsSkt2.slPossibleMatchingMixedElements[sk2ElemUniqueAddress + "." + sk1ElemUniqueAddress])[2] + 1;
                                 }
                                 else
                                 {
-                                    rsSkt2.slPossibleMatchingCalElements.Add(ope2CalElem.UniqueAddress + "." + ope1CalElem.UniqueAddress, new object[] { ope2CalElem.UniqueAddress, ope1CalElem.UniqueAddress, 1 });
+                                    rsSkt2.slPossibleMatchingMixedElements.Add(sk2ElemUniqueAddress + "." + sk1ElemUniqueAddress, new object[] { sk2ElemUniqueAddress, sk1ElemUniqueAddress, 1 });
                                 }
                             }
                         }
-
-                        // OtherElems
-                        //  => Not Managed for now
 
                         // Call Parameters
                         //  => For Register Only
@@ -569,20 +659,22 @@ namespace SAD806x
                             }
 
                             //BitFlags cases
+                            SortedList slBitFlags = null;
                             switch (sk1Ope.OriginalInstruction.ToLower())
                             {
                                 case "jb":
                                 case "jnb":
-                                    SortedList slBitFlags = (SortedList)((object[])rsSkt1.slPossibleMatchingRegisters[sk1Reg + "." + sk2Reg])[3];
+                                    int iBf1 = Convert.ToInt32(sk1Ope.OriginalOpArr[0], 16) - 0x30;
+                                    if (iBf1 > 7) iBf1 -= 7;
+                                    int iBf2 = Convert.ToInt32(sk2Ope.OriginalOpArr[0], 16) - 0x30;
+                                    if (iBf2 > 7) iBf2 -= 7;
+
+                                    slBitFlags = (SortedList)((object[])rsSkt1.slPossibleMatchingRegisters[sk1Reg + "." + sk2Reg])[3];
                                     if (slBitFlags == null)
                                     {
                                         slBitFlags = new SortedList();
                                         ((object[])rsSkt1.slPossibleMatchingRegisters[sk1Reg + "." + sk2Reg])[3] = slBitFlags;
                                     }
-                                    int iBf1 = Convert.ToInt32(sk1Ope.OriginalOpArr[0], 16) - 0x30;
-                                    if (iBf1 > 7) iBf1 -= 7;
-                                    int iBf2 = Convert.ToInt32(sk2Ope.OriginalOpArr[0], 16) - 0x30;
-                                    if (iBf2 > 7) iBf2 -= 7;
                                     if (slBitFlags.ContainsKey(iBf1.ToString() + "." + iBf2.ToString()))
                                     {
                                         ((object[])slBitFlags[iBf1.ToString() + "." + iBf2.ToString()])[2] = (int)((object[])slBitFlags[iBf1.ToString() + "." + iBf2.ToString()])[2] + 1;
@@ -591,22 +683,60 @@ namespace SAD806x
                                     {
                                         slBitFlags.Add(iBf1.ToString() + "." + iBf2.ToString(), new object[] { iBf1, iBf2, 1 });
                                     }
-                                    break;
-                            }
-                            switch (sk2Ope.OriginalInstruction.ToLower())
-                            {
-                                case "jb":
-                                case "jnb":
-                                    SortedList slBitFlags = (SortedList)((object[])rsSkt2.slPossibleMatchingRegisters[sk2Reg + "." + sk1Reg])[3];
+
+                                    slBitFlags = (SortedList)((object[])rsSkt2.slPossibleMatchingRegisters[sk2Reg + "." + sk1Reg])[3];
                                     if (slBitFlags == null)
                                     {
                                         slBitFlags = new SortedList();
                                         ((object[])rsSkt2.slPossibleMatchingRegisters[sk2Reg + "." + sk1Reg])[3] = slBitFlags;
                                     }
-                                    int iBf1 = Convert.ToInt32(sk1Ope.OriginalOpArr[0], 16) - 0x30;
-                                    if (iBf1 > 7) iBf1 -= 7;
-                                    int iBf2 = Convert.ToInt32(sk2Ope.OriginalOpArr[0], 16) - 0x30;
-                                    if (iBf2 > 7) iBf2 -= 7;
+                                    if (slBitFlags.ContainsKey(iBf2.ToString() + "." + iBf1.ToString()))
+                                    {
+                                        ((object[])slBitFlags[iBf2.ToString() + "." + iBf1.ToString()])[2] = (int)((object[])slBitFlags[iBf2.ToString() + "." + iBf1.ToString()])[2] + 1;
+                                    }
+                                    else
+                                    {
+                                        slBitFlags.Add(iBf2.ToString() + "." + iBf1.ToString(), new object[] { iBf2, iBf1, 1 });
+                                    }
+                                    break;
+                            }
+                            // 20200912 - orrb & an2b mngt for slPossibleMatchingBitFlags only
+                            switch (sk1Ope.OriginalOpArr[0])
+                            {
+                                case "91":  // orrb
+                                case "71":  // an2b
+                                    int iBf1 = -1;
+                                    int iBf2 = -1;
+                                    BitArray arrBit1 = new BitArray(new int[] { Convert.ToInt32(sk1Ope.OriginalOpArr[1], 16) });
+                                    BitArray arrBit2 = new BitArray(new int[] { Convert.ToInt32(sk2Ope.OriginalOpArr[1], 16) });
+                                    for (int iBf = 0; iBf < 8; iBf++)
+                                    {
+                                        if (arrBit1.Get(iBf) == (sk1Ope.OriginalInstruction == "91")) iBf1 = iBf;
+                                        if (arrBit2.Get(iBf) == (sk2Ope.OriginalInstruction == "91")) iBf2 = iBf;
+                                        if (iBf1 != -1 && iBf2 != -1) break;
+                                    }
+
+                                    slBitFlags = (SortedList)((object[])rsSkt1.slPossibleMatchingRegisters[sk1Reg + "." + sk2Reg])[3];
+                                    if (slBitFlags == null)
+                                    {
+                                        slBitFlags = new SortedList();
+                                        ((object[])rsSkt1.slPossibleMatchingRegisters[sk1Reg + "." + sk2Reg])[3] = slBitFlags;
+                                    }
+                                    if (slBitFlags.ContainsKey(iBf1.ToString() + "." + iBf2.ToString()))
+                                    {
+                                        ((object[])slBitFlags[iBf1.ToString() + "." + iBf2.ToString()])[2] = (int)((object[])slBitFlags[iBf1.ToString() + "." + iBf2.ToString()])[2] + 1;
+                                    }
+                                    else
+                                    {
+                                        slBitFlags.Add(iBf1.ToString() + "." + iBf2.ToString(), new object[] { iBf1, iBf2, 1 });
+                                    }
+
+                                    slBitFlags = (SortedList)((object[])rsSkt2.slPossibleMatchingRegisters[sk2Reg + "." + sk1Reg])[3];
+                                    if (slBitFlags == null)
+                                    {
+                                        slBitFlags = new SortedList();
+                                        ((object[])rsSkt2.slPossibleMatchingRegisters[sk2Reg + "." + sk1Reg])[3] = slBitFlags;
+                                    }
                                     if (slBitFlags.ContainsKey(iBf2.ToString() + "." + iBf1.ToString()))
                                     {
                                         ((object[])slBitFlags[iBf2.ToString() + "." + iBf1.ToString()])[2] = (int)((object[])slBitFlags[iBf2.ToString() + "." + iBf1.ToString()])[2] + 1;
@@ -640,11 +770,14 @@ namespace SAD806x
 
             if (startingChances == 1.0) return new object[] { resSkt1, resSkt2 };    // Already 100%
 
-            int prevlDist = DamerauLevenshteinDistance(resSkt1.Bytes, resSkt1.Bytes, (int)((1.0 - levTolerance) * (rsSkt1.OpsNumber + rsSkt2.OpsNumber) / 2));
+            int prevlDist = DamerauLevenshteinDistance(resSkt1.Bytes, resSkt2.Bytes, (int)((1.0 - levTolerance) * (rsSkt1.OpsNumber + rsSkt2.OpsNumber) / 2));
+
+            if (prevlDist < 2) return new object[] { resSkt1, resSkt2 };             // Only 0 to 1 character different, it is OK
+
             int numOpe1 = 0;
             int numOpe2 = 0;
 
-            // Principle, remove operations while distance between Sketeton is not 0
+            // Principle, remove operations while distance between Skeleton is not 0
             while (true)
             {
                 if (numOpe1 >= resSkt1.alOperations.Count) break;
@@ -661,33 +794,7 @@ namespace SAD806x
                     numOpe1++;
                     continue;
                 }
-                string instOpe1 = currentOpe.OriginalOpArr[0];
-                // JB/JNB cases BitFlags can be inverted between registers
-                switch (instOpe1)
-                {
-                    case "30":
-                    case "31":
-                    case "32":
-                    case "33":
-                    case "34":
-                    case "35":
-                    case "36":
-                    case "37":
-                        instOpe1 = "30";
-                        break;
-                    case "38":
-                    case "39":
-                    case "3a":
-                    case "3b":
-                    case "3c":
-                    case "3d":
-                    case "3e":
-                    case "3f":
-                        instOpe1 = "38";
-                        break;
-                }
-                // 0xFE case
-                if (currentOpe.OriginalOpArr.Length > 1 && instOpe1 == "fe") instOpe1 += currentOpe.OriginalOpArr[1];
+                string instOpe1 = rsSkt1.getOperationSkeleton(currentOpe);
 
                 currentOpe = (Operation)resSkt2.alOperations[numOpe2];
                 if (currentOpe == null)
@@ -700,33 +807,7 @@ namespace SAD806x
                     numOpe2++;
                     continue;
                 }
-                string instOpe2 = currentOpe.OriginalOpArr[0];
-                // JB/JNB cases BitFlags can be inverted between registers
-                switch (instOpe2)
-                {
-                    case "30":
-                    case "31":
-                    case "32":
-                    case "33":
-                    case "34":
-                    case "35":
-                    case "36":
-                    case "37":
-                        instOpe2 = "30";
-                        break;
-                    case "38":
-                    case "39":
-                    case "3a":
-                    case "3b":
-                    case "3c":
-                    case "3d":
-                    case "3e":
-                    case "3f":
-                        instOpe2 = "38";
-                        break;
-                }
-                // 0xFE case
-                if (currentOpe.OriginalOpArr.Length > 1 && instOpe2 == "fe") instOpe2 += currentOpe.OriginalOpArr[1];
+                string instOpe2 = rsSkt2.getOperationSkeleton(currentOpe);
 
                 if (instOpe1 == instOpe2)
                 {
@@ -737,50 +818,163 @@ namespace SAD806x
 
                 int lDist = 0;
                 bool bGoodResult = true;
+                object removedObject1 = null;
 
-                object removedObject1 = resSkt1.alOperations[numOpe1];
-                resSkt1.alOperations.RemoveAt(numOpe1);
-                resSkt1.setSkeleton();
-
-                lDist = DamerauLevenshteinDistance(resSkt1.Bytes, resSkt1.Bytes, (int)((1.0 - levTolerance) * (rsSkt1.OpsNumber + rsSkt2.OpsNumber) / 2));
-                if (lDist < 0) bGoodResult = false; // More than Levenshtein Distance Tolerance
-                if (lDist >= prevlDist) bGoodResult = false;
-
-                if (bGoodResult)
+                while (bGoodResult && numOpe1 < resSkt1.alOperations.Count)
                 {
-                    prevlDist = lDist;
-                    if (prevlDist == 0) break;
-                    else continue;
+                    removedObject1 = resSkt1.alOperations[numOpe1];
+                    resSkt1.alOperations.RemoveAt(numOpe1);
+                    resSkt1.setSkeleton();
+
+                    lDist = DamerauLevenshteinDistance(resSkt1.Bytes, resSkt2.Bytes, (int)((1.0 - levTolerance) * (rsSkt1.OpsNumber + rsSkt2.OpsNumber) / 2));
+                    if (lDist < 0) bGoodResult = false; // More than Levenshtein Distance Tolerance
+                    if (lDist >= prevlDist) bGoodResult = false;
+
+                    if (bGoodResult)
+                    {
+                        prevlDist = lDist;
+                        if (prevlDist < 2) break;
+                    }
                 }
+                if (prevlDist < 2) break;
+                if (bGoodResult) continue;
 
                 resSkt1.alOperations.Insert(numOpe1, removedObject1);
                 resSkt1.setSkeleton();
                 numOpe1++;
 
                 bGoodResult = true;
+                object removedObject2 = null;
 
-                object removedObject2 = resSkt2.alOperations[numOpe2];
-                resSkt2.alOperations.RemoveAt(numOpe2);
-                resSkt2.setSkeleton();
-
-                lDist = DamerauLevenshteinDistance(resSkt2.Bytes, resSkt2.Bytes, (int)((1.0 - levTolerance) * (rsSkt1.OpsNumber + rsSkt2.OpsNumber) / 2));
-                if (lDist < 0) bGoodResult = false; // More than Levenshtein Distance Tolerance
-                if (lDist >= prevlDist) bGoodResult = false;
-
-                if (bGoodResult)
+                while (bGoodResult && numOpe2 < resSkt2.alOperations.Count)
                 {
-                    prevlDist = lDist;
-                    if (prevlDist == 0) break;
-                    else continue;
+                    removedObject2 = resSkt2.alOperations[numOpe2];
+                    resSkt2.alOperations.RemoveAt(numOpe2);
+                    resSkt2.setSkeleton();
+
+                    lDist = DamerauLevenshteinDistance(resSkt1.Bytes, resSkt2.Bytes, (int)((1.0 - levTolerance) * (rsSkt1.OpsNumber + rsSkt2.OpsNumber) / 2));
+                    if (lDist < 0) bGoodResult = false; // More than Levenshtein Distance Tolerance
+                    if (lDist >= prevlDist) bGoodResult = false;
+
+                    if (bGoodResult)
+                    {
+                        prevlDist = lDist;
+                        if (prevlDist < 2) break;
+                    }
                 }
+                if (prevlDist < 2) break;
+                if (bGoodResult) continue;
 
                 resSkt2.alOperations.Insert(numOpe2, removedObject2);
                 resSkt2.setSkeleton();
-                numOpe1++;
+                numOpe2++;
             }
 
-            if (prevlDist == 0) return new object[] { resSkt1, resSkt2 };
+            if (prevlDist < 2) return new object[] { resSkt1, resSkt2 };        // Only 0 to 1 character different, it is OK
 
+            // Now we try to match only a part
+            // at least 66% should be good
+            int minGoodOpsNumber = (int)((double)resSkt1.alOperations.Count * 2.0 / 3.0);
+            if (resSkt1.alOperations.Count > resSkt2.alOperations.Count) minGoodOpsNumber = (int)((double)resSkt2.alOperations.Count * 2.0 / 3.0);
+
+            if (minGoodOpsNumber == 0 || minGoodOpsNumber < minOpsNumber) return null;
+            
+            // Matching the beginning first
+            RoutineSkeleton resSkt1Part = resSkt1.Clone();
+            RoutineSkeleton resSkt2Part = resSkt2.Clone();
+
+            resSkt1Part.alMatches = new ArrayList(new object[] { resSkt1Part, 1.00 });
+            resSkt2Part.alMatches = new ArrayList(new object[] { resSkt2Part, 1.00 });
+
+            resSkt1Part.alOperations.RemoveRange(minGoodOpsNumber - 1, resSkt1Part.alOperations.Count - minGoodOpsNumber);
+            resSkt2Part.alOperations.RemoveRange(minGoodOpsNumber - 1, resSkt2Part.alOperations.Count - minGoodOpsNumber);
+            resSkt1Part.setSkeleton();
+            resSkt2Part.setSkeleton();
+
+            for (int opeIndex = minGoodOpsNumber; opeIndex < resSkt1.alOperations.Count && opeIndex < resSkt2.alOperations.Count; opeIndex++)
+            {
+                int lDist = DamerauLevenshteinDistance(resSkt1Part.Bytes, resSkt2Part.Bytes, (int)((1.0 - levTolerance) * (rsSkt1.OpsNumber + rsSkt2.OpsNumber) / 2));
+
+                if (lDist > 1 || lDist < 0) // More than 1 character different or more than Tolerance, it is not good, no way to go further
+                {
+                    if (opeIndex == minGoodOpsNumber)
+                    // Minimum requirement has not been reached
+                    {
+                        resSkt1Part = null;
+                        resSkt2Part = null;
+                    }
+                    else
+                    // Previous version is validated as good
+                    {
+                        resSkt1Part.alOperations.RemoveAt(resSkt1Part.alOperations.Count - 1);
+                        resSkt2Part.alOperations.RemoveAt(resSkt2Part.alOperations.Count - 1);
+                        resSkt1Part.setSkeleton();
+                        resSkt2Part.setSkeleton();
+                    }
+                    break;
+                }
+
+                // Only 0 to 1 character different, it is OK and time to add other operations
+                resSkt1Part.alOperations.Add(resSkt1.alOperations[opeIndex]);
+                resSkt2Part.alOperations.Add(resSkt2.alOperations[opeIndex]);
+                resSkt1Part.setSkeleton();
+                resSkt2Part.setSkeleton();
+
+                // Impossible to reach max opeIndex because it was not validated integrally before
+            }
+
+            // Validated with minimum required
+            if (resSkt1Part != null && resSkt2Part != null) return new object[] { resSkt1Part, resSkt2Part };
+
+            // Matching the end, because the beginning is not working
+            resSkt1Part = resSkt1.Clone();
+            resSkt2Part = resSkt2.Clone();
+
+            resSkt1Part.alMatches = new ArrayList(new object[] { resSkt1Part, 1.00 });
+            resSkt2Part.alMatches = new ArrayList(new object[] { resSkt2Part, 1.00 });
+
+            resSkt1Part.alOperations.RemoveRange(0, resSkt1Part.alOperations.Count - minGoodOpsNumber);
+            resSkt2Part.alOperations.RemoveRange(0, resSkt2Part.alOperations.Count - minGoodOpsNumber);
+            resSkt1Part.setSkeleton();
+            resSkt2Part.setSkeleton();
+
+            for (int opeIndex = minGoodOpsNumber; opeIndex < resSkt1.alOperations.Count && opeIndex < resSkt2.alOperations.Count; opeIndex++)
+            {
+                int lDist = DamerauLevenshteinDistance(resSkt1Part.Bytes, resSkt2Part.Bytes, (int)((1.0 - levTolerance) * (rsSkt1.OpsNumber + rsSkt2.OpsNumber) / 2));
+
+                if (lDist > 1 || lDist < 0) // More than 1 character different or more than Tolerance, it is not good, no way to go further
+                {
+                    if (opeIndex == minGoodOpsNumber)
+                    // Minimum requirement has not been reached
+                    {
+                        resSkt1Part = null;
+                        resSkt2Part = null;
+                    }
+                    else
+                    // Previous version is validated as good
+                    {
+                        resSkt1Part.alOperations.RemoveAt(0);
+                        resSkt2Part.alOperations.RemoveAt(0);
+                        resSkt1Part.setSkeleton();
+                        resSkt2Part.setSkeleton();
+                    }
+                    break;
+                }
+
+                // Only 0 to 1 character different, it is OK and time to add other operations
+                resSkt1Part.alOperations.Insert(0, resSkt1.alOperations[resSkt1.alOperations.Count - opeIndex - 1]);
+                resSkt2Part.alOperations.Insert(0, resSkt2.alOperations[resSkt2.alOperations.Count - opeIndex - 1]);
+                resSkt1Part.setSkeleton();
+                resSkt2Part.setSkeleton();
+
+                // Impossible to reach max opeIndex because it was not validated integrally before
+            }
+
+            // Validated with minimum required
+            if (resSkt1Part != null && resSkt2Part != null) return new object[] { resSkt1Part, resSkt2Part };
+
+            // No way to manage it for now
+            
             return null;
         }
 
@@ -819,11 +1013,11 @@ namespace SAD806x
                     if (rsMainSkt.alMatches.Count > maxMatchedRoutines) maxMatchedRoutines = rsMainSkt.alMatches.Count;
 
                     sWri.WriteLine("++ " + rsMainSkt.UniqueAddressHex + ((rsMainSkt.FullLabel == string.Empty) ? string.Empty : " - " + rsMainSkt.FullLabel));
-                    if (rsMainSkt.alCalElements != null && rsMainSkt.alOtherElements != null)
+                    if (rsMainSkt.alMixedElements != null)
                     {
-                        if (rsMainSkt.alCalElements.Count > 0 || rsMainSkt.alOtherElements.Count > 0)
+                        if (rsMainSkt.alMixedElements.Count > 0)
                         {
-                            sWri.WriteLine("\t** Elements : " + (rsMainSkt.alCalElements.Count + rsMainSkt.alOtherElements.Count).ToString());
+                            sWri.WriteLine("\t** Elements : " + rsMainSkt.alMixedElements.Count.ToString());
                         }
                     }
                     foreach (object[] arrRes in rsMainSkt.alMatches)
@@ -832,11 +1026,11 @@ namespace SAD806x
                         double dProximity = (double)arrRes[1];
                         sWri.WriteLine("\t++ " + rsSubSkt.UniqueAddressHex + ((rsSubSkt.FullLabel == string.Empty) ? string.Empty : " - " + rsSubSkt.FullLabel));
                         sWri.WriteLine("\t\t% Chances : " + string.Format("{0:0.00}", dProximity * 100.0));
-                        if (rsSubSkt.alCalElements != null && rsSubSkt.alOtherElements != null)
+                        if (rsSubSkt.alMixedElements != null)
                         {
-                            if (rsSubSkt.alCalElements.Count > 0 || rsSubSkt.alOtherElements.Count > 0)
+                            if (rsSubSkt.alMixedElements.Count > 0)
                             {
-                                sWri.WriteLine("\t\t** Elements : " + (rsSubSkt.alCalElements.Count + rsSubSkt.alOtherElements.Count).ToString());
+                                sWri.WriteLine("\t\t** Elements : " + rsSubSkt.alMixedElements.Count.ToString());
                             }
                         }
                         sWri.WriteLine("\t-- " + Tools.UniqueAddressHex(rsSubSkt.BankNum, rsSubSkt.LastOperationAddressInt));

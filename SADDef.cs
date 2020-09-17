@@ -133,6 +133,7 @@ namespace SAD806x
         public const string IncrementSuffix = "++";
 
         public const string BitByteGotoOPAltSeparator = ".";
+        public const string BitByteGotoOPAltCopySeparator = "#";
         public const string BitByteGotoOPAltComparison = " == ";
         public const string BitByteGotoOPAltHRegPrefix = "<";
         public const string BitByteGotoOPAltHRegSuffix = ">";

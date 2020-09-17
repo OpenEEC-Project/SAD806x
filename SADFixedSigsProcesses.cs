@@ -1639,17 +1639,74 @@ namespace SAD806x
             for (int iNum = 0; iNum < arrCodes.Length; iNum++)
             {
                 S6xRegister s6xReg = new S6xRegister(rFirst.AddressInt + iNum * 2);
+                // 20200908 - CNT register added
+                S6xRegister s6xRegCnt = new S6xRegister(rFirst.AddressInt + iNum * 2 + 1);
                 s6xReg.Label = "p" + arrCodes[iNum] + "_RECORD";
+                s6xRegCnt.Label = "p" + arrCodes[iNum] + "CNT";
+
+                // 20200908 - BitFlags forced
+                
+                // RECORD
+                S6xBitFlag s6xBF = null;
+                s6xBF = new S6xBitFlag();
+                s6xBF.Position = 4;
+                s6xBF.ShortLabel = "p" + arrCodes[iNum] + "MIL_ON";
+                s6xBF.Label = s6xBF.ShortLabel;
+                s6xBF.SetValue = "1";
+                s6xBF.NotSetValue = "0";
+                s6xReg.AddBitFlag(s6xBF);
+                s6xBF = null;
+
+                s6xBF = new S6xBitFlag();
+                s6xBF.Position = 5;
+                s6xBF.ShortLabel = "p" + arrCodes[iNum] + "FAULT";
+                s6xBF.Label = s6xBF.ShortLabel;
+                s6xBF.SetValue = "1";
+                s6xBF.NotSetValue = "0";
+                s6xReg.AddBitFlag(s6xBF);
+                s6xBF = null;
+
+                s6xBF = new S6xBitFlag();
+                s6xBF.Position = 6;
+                s6xBF.ShortLabel = "p" + arrCodes[iNum] + "UPDATED";
+                s6xBF.Label = s6xBF.ShortLabel;
+                s6xBF.SetValue = "1";
+                s6xBF.NotSetValue = "0";
+                s6xReg.AddBitFlag(s6xBF);
+                s6xBF = null;
+
+                s6xBF = new S6xBitFlag();
+                s6xBF.Position = 7;
+                s6xBF.ShortLabel = "p" + arrCodes[iNum] + "MALF";
+                s6xBF.Label = s6xBF.ShortLabel;
+                s6xBF.SetValue = "1";
+                s6xBF.NotSetValue = "0";
+                s6xReg.AddBitFlag(s6xBF);
+                s6xBF = null;
+
+                //CNT
+                s6xBF = new S6xBitFlag();
+                s6xBF.Position = 7;
+                s6xBF.ShortLabel = "p" + arrCodes[iNum] + "FAULT_A";
+                s6xBF.Label = s6xBF.ShortLabel;
+                s6xBF.SetValue = "1";
+                s6xBF.NotSetValue = "0";
+                s6xRegCnt.AddBitFlag(s6xBF);
+                s6xBF = null;
+
                 RepositoryItem repoItem = (RepositoryItem)slRepoOBDIIErrors[("P" + arrCodes[iNum]).ToUpper()];
                 if (repoItem != null)
                 {
                     s6xReg.Comments = SADDef.repoCommentsHeaderOBDIIErrors.Replace("#OBDCODE#", repoItem.ShortLabel);
                     s6xReg.Comments += "\r\n" + repoItem.Label;
                     if (repoItem.Comments != repoItem.FullLabel) s6xReg.Comments += "\r\n" + repoItem.Comments;
+                    s6xRegCnt.Comments = s6xReg.Comments;
                     repoItem = null;
                 }
                 s6xReg.Store = true;
+                s6xRegCnt.Store = true;
                 addRegister(s6xReg, ref Calibration, ref S6x);
+                addRegister(s6xRegCnt, ref Calibration, ref S6x);
                 if (!slRegistersUAddrOBDCodes.ContainsKey(s6xReg.UniqueAddress)) slRegistersUAddrOBDCodes.Add(s6xReg.UniqueAddress, arrCodes[iNum]);
             }
 
@@ -2251,22 +2308,54 @@ namespace SAD806x
         }
 
         // addElement to automatize element creation / update or mngt
+        //      S6xRegister is added when not existing (overriden when existing but not in processes, when it is skipped)
+        //      20200908 - BitFlag is added when its position is not defined
         private static bool addRegister(S6xRegister s6xRegTemplate, ref SADCalib Calibration, ref SADS6x S6x)
         {
             S6xRegister s6xReg = (S6xRegister)S6x.slProcessRegisters[s6xRegTemplate.UniqueAddress];
-            if (s6xReg != null)
+            if (s6xReg == null)
             {
-                s6xReg = null;
-                return false;
+                s6xReg = s6xRegTemplate.Clone();
+                S6x.slProcessRegisters.Add(s6xReg.UniqueAddress, s6xReg);
+                if (S6x.slRegisters.ContainsKey(s6xReg.UniqueAddress)) S6x.slRegisters[s6xReg.UniqueAddress] = s6xReg;
+                else S6x.slRegisters.Add(s6xReg.UniqueAddress, s6xReg);
+            }
+            else
+            {
+                // 20200908 - BitFlags Mngt
+                if (s6xRegTemplate.isBitFlags)
+                {
+                    foreach (S6xBitFlag s6xBFT in s6xRegTemplate.BitFlags)
+                    {
+                        if (!s6xReg.isBitFlags)
+                        {
+                            s6xReg.AddBitFlag(s6xBFT);
+                            continue;
+                        }
+                        bool existingBF = false;
+                        foreach (S6xBitFlag s6xBF in s6xReg.BitFlags)
+                        {
+                            if (s6xBF.Position == s6xBFT.Position)
+                            {
+                                existingBF = true;
+                                break;
+                            }
+                        }
+                        if (!existingBF) s6xReg.AddBitFlag(s6xBFT);
+                    }
+                }
+                else
+                {
+                    s6xReg = null;
+                    return false;
+                }
             }
 
-            s6xReg = s6xRegTemplate.Clone();
-            S6x.slProcessRegisters.Add(s6xReg.UniqueAddress, s6xReg);
-            if (S6x.slRegisters.ContainsKey(s6xReg.UniqueAddress)) S6x.slRegisters[s6xReg.UniqueAddress] = s6xReg;
-            else S6x.slRegisters.Add(s6xReg.UniqueAddress, s6xReg);
-
-            Register rReg = (Register)Calibration.slRegisters[s6xReg.UniqueAddress];
-            if (rReg != null) if (rReg.S6xRegister == null) rReg.S6xRegister = s6xReg;
+            if (s6xReg != null)
+            {
+                Register rReg = (Register)Calibration.slRegisters[s6xReg.UniqueAddress];
+                if (rReg != null) if (rReg.S6xRegister == null) rReg.S6xRegister = s6xReg;
+            }
 
             return true;
         }

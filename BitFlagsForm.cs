@@ -58,6 +58,8 @@ namespace SAD806x
 
             advElemsContextMenuStrip.Opening += new CancelEventHandler(advElemsContextMenuStrip_Opening);
 
+            bitFlagPositionComboBox.SelectedIndexChanged += new EventHandler(bitFlagPositionComboBox_SelectedIndexChanged);
+
             if (s6xScalar != null)
             {
                 advLabelTextBox.Text = s6xScalar.Label;
@@ -139,13 +141,15 @@ namespace SAD806x
                 createAllToolStripMenuItem.Visible = true;
                 newElementToolStripMenuItem.Visible = true;
                 delElementToolStripMenuItem.Visible = false;
+                removeAllToolStripMenuItem.Visible = true;
                 copyXdfToolStripMenuItem.Visible = false;
             }
             else
             {
                 createAllToolStripMenuItem.Visible = false;
-                newElementToolStripMenuItem.Visible = false;
+                newElementToolStripMenuItem.Visible = true;
                 delElementToolStripMenuItem.Visible = true;
+                removeAllToolStripMenuItem.Visible = false;
                 copyXdfToolStripMenuItem.Visible = (s6xScalar != null);
             }
         }
@@ -178,6 +182,30 @@ namespace SAD806x
         private void elemUpdateButton_Click(object sender, EventArgs e)
         {
             updateElem();
+        }
+
+        private void bitFlagPositionComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            string defaultBitFlagLabel = "B" + bitFlagPositionComboBox.SelectedIndex.ToString();
+            if (bitFlagLabelTextBox.Text == string.Empty && bitFlagSLabelTextBox.Text == string.Empty)
+            {
+                bitFlagLabelTextBox.Text = defaultBitFlagLabel;
+                bitFlagSLabelTextBox.Text = defaultBitFlagLabel;
+            }
+            else if (bitFlagLabelTextBox.Text.StartsWith("B") && bitFlagLabelTextBox.Text == bitFlagSLabelTextBox.Text)
+            {
+                try
+                {
+                    int possiblePreviousPosition = Convert.ToInt32(bitFlagLabelTextBox.Text.Substring(1));
+                    if (possiblePreviousPosition >= 0 && possiblePreviousPosition < bitFlagPositionComboBox.Items.Count)
+                    {
+                        bitFlagLabelTextBox.Text = defaultBitFlagLabel;
+                        bitFlagSLabelTextBox.Text = defaultBitFlagLabel;
+                    }
+                }
+                catch
+                { }
+            }
         }
 
         private void loadElemsTreeView()
@@ -245,6 +273,10 @@ namespace SAD806x
                             case "bitFlagNSetValueTextBox":
                                 ((TextBox)control).Text = "0";
                                 break;
+                            case "bitFlagLabelTextBox":
+                            case "bitFlagSLabelTextBox":
+                                ((TextBox)control).Text = "B0";
+                                break;
                             default:
                                 ((TextBox)control).Text = string.Empty;
                                 break;
@@ -256,6 +288,8 @@ namespace SAD806x
                         break;
                     case "ComboBox":
                         ((ComboBox)control).SelectedIndex = 0;
+                        // To reset start position.
+                        ((ComboBox)control).Tag = null;
                         break;
                 }
             }
@@ -290,6 +324,8 @@ namespace SAD806x
                     bitFlagCommentsTextBox.Text = s6xBitFlag.Comments;
                     bitFlagCommentsTextBox.Text = bitFlagCommentsTextBox.Text.Replace("\n", "\r\n");
                     bitFlagPositionComboBox.SelectedIndex = s6xBitFlag.Position;
+                    // To Keep trace of start position.
+                    bitFlagPositionComboBox.Tag = s6xBitFlag.Position;
                     s6xBitFlag = null;
                     break;
                 default:
@@ -393,6 +429,7 @@ namespace SAD806x
         {
             string categ = string.Empty;
             string uniqueKey = string.Empty;
+            string startUniqueKey = string.Empty;
             string label = string.Empty;
             string comments = string.Empty;
 
@@ -412,26 +449,22 @@ namespace SAD806x
             switch (categ)
             {
                 case TreeRootNodeName:
-                    S6xBitFlag bitFlag = null;
-                    if (currentTreeNode == null)
-                    {
-                        bitFlag = new S6xBitFlag();
-                        bitFlag.Position = bitFlagPositionComboBox.SelectedIndex;
-                        if (slBitFlags.ContainsKey(bitFlag.UniqueKey)) bitFlag = (S6xBitFlag)slBitFlags[bitFlag.UniqueKey];
-                        else slBitFlags.Add(bitFlag.UniqueKey, bitFlag);
-                    }
-                    else
-                    {
-                        bitFlag = (S6xBitFlag)slBitFlags[currentTreeNode.Name];
-                        bitFlag.Position = bitFlagPositionComboBox.SelectedIndex;
+                    S6xBitFlag bitFlag = new S6xBitFlag();
+                    bitFlag.Position = bitFlagPositionComboBox.SelectedIndex;
+                    uniqueKey = bitFlag.UniqueKey;
 
-                        if (currentTreeNode.Name != bitFlag.UniqueKey)
-                        {
-                            slBitFlags.Remove(currentTreeNode.Name);
-                            if (slBitFlags.ContainsKey(bitFlag.UniqueKey)) slBitFlags[bitFlag.UniqueKey] = bitFlag;
-                            else slBitFlags.Add(bitFlag.UniqueKey, bitFlag);
-                        }
+                    // Start position change mngt
+                    if (bitFlagPositionComboBox.Tag != null)
+                    {
+                        S6xBitFlag startBitFlag = new S6xBitFlag();
+                        startBitFlag.Position = (int)bitFlagPositionComboBox.Tag;
+                        startUniqueKey = startBitFlag.UniqueKey;
+                        startBitFlag = null;
                     }
+                    
+                    if (slBitFlags.ContainsKey(uniqueKey)) bitFlag = (S6xBitFlag)slBitFlags[uniqueKey];
+                    else slBitFlags.Add(uniqueKey, bitFlag);
+
                     bitFlag.Label = bitFlagLabelTextBox.Text;
                     bitFlag.ShortLabel = bitFlagSLabelTextBox.Text;
                     bitFlag.Skip = bitFlagSkipCheckBox.Checked;
@@ -441,8 +474,12 @@ namespace SAD806x
                     bitFlag.Position = bitFlagPositionComboBox.SelectedIndex;
                     bitFlag.HideParent = bitFlagHParentCheckBox.Checked;
 
+                    // Start position change mngt
+                    if (startUniqueKey != string.Empty && uniqueKey != startUniqueKey)
+                    {
+                        if (slBitFlags.ContainsKey(startUniqueKey)) slBitFlags.Remove(startUniqueKey);
+                    }
 
-                    uniqueKey = bitFlag.UniqueKey;
                     label = bitFlag.Label;
                     if (label != "B" + bitFlag.Position.ToString()) label = "B" + bitFlag.Position.ToString() + " - " + label;
                     comments = bitFlag.Comments;
@@ -453,16 +490,12 @@ namespace SAD806x
                     return;
             }
 
-            if (currentTreeNode != null)
+            if (startUniqueKey != string.Empty && uniqueKey != startUniqueKey)
             {
-                if (currentTreeNode.Name != uniqueKey)
-                {
-                    advElemsTreeView.Nodes[TreeRootNodeName].Nodes.Remove(currentTreeNode);
-                    currentTreeNode = null;
-                }
+                if (advElemsTreeView.Nodes[TreeRootNodeName].Nodes.ContainsKey(startUniqueKey)) advElemsTreeView.Nodes[TreeRootNodeName].Nodes.RemoveByKey(startUniqueKey);
             }
 
-            if (currentTreeNode == null)
+            if (uniqueKey != string.Empty && uniqueKey != startUniqueKey)
             {
                 updateArray(categ);
 

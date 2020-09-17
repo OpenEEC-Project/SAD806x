@@ -1726,6 +1726,11 @@ namespace SAD806x
 
             unknownElemsEndTime = DateTime.Now;
 
+            // 20200909 - For Automatic Output or Comparison
+            // To Replace MainForm treatment
+            // S6x ReMapping based on generated Calibration objects
+            Calibration.RemapS6x(ref S6x, this);
+
             disassembled = true;
             disassemblyEndTime = DateTime.Now;
 

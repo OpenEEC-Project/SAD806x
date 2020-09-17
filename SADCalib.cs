@@ -2115,6 +2115,350 @@ namespace SAD806x
             }
         }
 
+        // 20200909 - For Automatic Output or Comparison
+        // To Replace MainForm treatment
+        // S6x ReMapping based on generated Calibration objects
+        public void RemapS6x(ref SADS6x S6x, SADBin sadBin)
+        {
+            // Automatic S6xObjects Creation without Store Property and without link to parent object
+            //      Some Elements are created automatically before Disassembly
+            foreach (CalibrationElement calElem in slCalibrationElements.Values)
+            {
+                if (calElem.isTable)
+                {
+                    S6xTable s6xObject = (S6xTable)S6x.slTables[calElem.TableElem.UniqueAddress];
+                    if (s6xObject != null)
+                    {
+                        // Skipped and stored Element is moved to Duplicates before being overwritten
+                        if (s6xObject.Skip && s6xObject.Store)
+                        {
+                            S6xTable s6xDup = s6xObject;
+                            s6xDup.DuplicateNum = 1;
+                            while (S6x.slDupTables.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
+                            S6x.slDupTables.Add(s6xDup.DuplicateAddress, s6xDup);
+                            s6xObject = null;
+                        }
+                        else if (s6xObject.Store)
+                        {
+                            calElem.TableElem.S6xTable = s6xObject;
+                        }
+                        else
+                        {
+                            s6xObject = null;
+                        }
+                        if (s6xObject == null)
+                        {
+                            S6x.slTables[calElem.TableElem.UniqueAddress] = (calElem.TableElem.S6xTable == null) ? new S6xTable(calElem) : calElem.TableElem.S6xTable;
+                        }
+                    }
+                    else
+                    {
+                        S6x.slTables.Add(calElem.TableElem.UniqueAddress, (calElem.TableElem.S6xTable == null) ? new S6xTable(calElem) : calElem.TableElem.S6xTable);
+                    }
+                }
+                else if (calElem.isFunction)
+                {
+                    S6xFunction s6xObject = (S6xFunction)S6x.slFunctions[calElem.FunctionElem.UniqueAddress];
+                    if (s6xObject != null)
+                    {
+                        // Skipped and stored Element is moved to Duplicates before being overwritten
+                        if (s6xObject.Skip && s6xObject.Store)
+                        {
+                            S6xFunction s6xDup = s6xObject;
+                            s6xDup.DuplicateNum = 1;
+                            while (S6x.slDupFunctions.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
+                            S6x.slDupFunctions.Add(s6xDup.DuplicateAddress, s6xDup);
+                            s6xObject = null;
+                        }
+                        else if (s6xObject.Store)
+                        {
+                            calElem.FunctionElem.S6xFunction = s6xObject;
+                        }
+                        else
+                        {
+                            s6xObject = null;
+                        }
+                        if (s6xObject == null)
+                        {
+                            S6x.slFunctions[calElem.FunctionElem.UniqueAddress] = (calElem.FunctionElem.S6xFunction == null) ? new S6xFunction(calElem) : calElem.FunctionElem.S6xFunction;
+                        }
+                    }
+                    else
+                    {
+                        S6x.slFunctions.Add(calElem.FunctionElem.UniqueAddress, (calElem.FunctionElem.S6xFunction == null) ? new S6xFunction(calElem) : calElem.FunctionElem.S6xFunction);
+                    }
+                }
+                else if (calElem.isScalar)
+                {
+                    S6xScalar s6xObject = (S6xScalar)S6x.slScalars[calElem.ScalarElem.UniqueAddress];
+                    if (s6xObject != null)
+                    {
+                        // Skipped and stored Element is moved to Duplicates before being overwritten
+                        if (s6xObject.Skip && s6xObject.Store)
+                        {
+                            S6xScalar s6xDup = s6xObject;
+                            s6xDup.DuplicateNum = 1;
+                            while (S6x.slDupScalars.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
+                            S6x.slDupScalars.Add(s6xDup.DuplicateAddress, s6xDup);
+                            s6xObject = null;
+                        }
+                        else if (s6xObject.Store)
+                        {
+                            calElem.ScalarElem.S6xScalar = s6xObject;
+                        }
+                        else
+                        {
+                            s6xObject = null;
+                        }
+                        if (s6xObject == null)
+                        {
+                            S6x.slScalars[calElem.ScalarElem.UniqueAddress] = (calElem.ScalarElem.S6xScalar == null) ? new S6xScalar(calElem) : calElem.ScalarElem.S6xScalar;
+                        }
+                    }
+                    else
+                    {
+                        S6x.slScalars.Add(calElem.ScalarElem.UniqueAddress, (calElem.ScalarElem.S6xScalar == null) ? new S6xScalar(calElem) : calElem.ScalarElem.S6xScalar);
+                    }
+                }
+                else if (calElem.isStructure)
+                {
+                    if (calElem.StructureElem.ParentStructure == null)  // Included / Duplicated elements are not generated
+                    {
+                        S6xStructure s6xObject = (S6xStructure)S6x.slStructures[calElem.StructureElem.UniqueAddress];
+                        if (s6xObject != null)
+                        {
+                            // Skipped and stored Element is moved to Duplicates before being overwritten
+                            if (s6xObject.Skip && s6xObject.Store)
+                            {
+                                S6xStructure s6xDup = s6xObject;
+                                s6xDup.DuplicateNum = 1;
+                                while (S6x.slDupStructures.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
+                                S6x.slDupStructures.Add(s6xDup.DuplicateAddress, s6xDup);
+                                s6xObject = null;
+                            }
+                            else if (s6xObject.Store)
+                            {
+                                calElem.StructureElem.S6xStructure = s6xObject;
+                            }
+                            else
+                            {
+                                s6xObject = null;
+                            }
+                            if (s6xObject == null)
+                            {
+                                S6x.slStructures[calElem.StructureElem.UniqueAddress] = (calElem.StructureElem.S6xStructure == null) ? new S6xStructure(calElem) : calElem.StructureElem.S6xStructure;
+                            }
+                        }
+                        else
+                        {
+                            S6x.slStructures.Add(calElem.StructureElem.UniqueAddress, (calElem.StructureElem.S6xStructure == null) ? new S6xStructure(calElem) : calElem.StructureElem.S6xStructure);
+                        }
+                    }
+                }
+            }
+
+            foreach (Table extObject in slExtTables.Values)
+            {
+                int bankBinAddress = sadBin.getBankBinAddress(extObject.BankNum);
+                if (bankBinAddress < 0) continue;
+                S6xTable s6xObject = (S6xTable)S6x.slTables[extObject.UniqueAddress];
+                if (s6xObject != null)
+                {
+                    // Skipped and stored Element is moved to Duplicates before being overwritten
+                    if (s6xObject.Skip && s6xObject.Store)
+                    {
+                        S6xTable s6xDup = (S6xTable)S6x.slTables[extObject.UniqueAddress];
+                        s6xDup.DuplicateNum = 1;
+                        while (S6x.slDupTables.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
+                        S6x.slDupTables.Add(s6xDup.DuplicateAddress, s6xDup);
+                        s6xObject = null;
+                    }
+                    else if (s6xObject.Store)
+                    {
+                        extObject.S6xTable = s6xObject;
+                    }
+                    else
+                    {
+                        s6xObject = null;
+                    }
+                    if (s6xObject == null)
+                    {
+                        S6x.slTables[extObject.UniqueAddress] = (extObject.S6xTable == null) ? new S6xTable(extObject, bankBinAddress) : extObject.S6xTable;
+                    }
+                }
+                else
+                {
+                    S6x.slTables.Add(extObject.UniqueAddress, (extObject.S6xTable == null) ? new S6xTable(extObject, bankBinAddress) : extObject.S6xTable);
+                }
+            }
+
+            foreach (Function extObject in slExtFunctions.Values)
+            {
+                int bankBinAddress = sadBin.getBankBinAddress(extObject.BankNum);
+                if (bankBinAddress < 0) continue;
+                S6xFunction s6xObject = (S6xFunction)S6x.slFunctions[extObject.UniqueAddress];
+                if (s6xObject != null)
+                {
+                    // Skipped and stored Element is moved to Duplicates before being overwritten
+                    if (s6xObject.Skip && s6xObject.Store)
+                    {
+                        S6xFunction s6xDup = s6xObject;
+                        s6xDup.DuplicateNum = 1;
+                        while (S6x.slDupFunctions.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
+                        S6x.slDupFunctions.Add(s6xDup.DuplicateAddress, s6xDup);
+                        s6xObject = null;
+                    }
+                    else if (s6xObject.Store)
+                    {
+                        extObject.S6xFunction = s6xObject;
+                    }
+                    else
+                    {
+                        s6xObject = null;
+                    }
+                    if (s6xObject == null)
+                    {
+                        S6x.slFunctions[extObject.UniqueAddress] = (extObject.S6xFunction == null) ? new S6xFunction(extObject, bankBinAddress) : extObject.S6xFunction;
+                    }
+                }
+                else
+                {
+                    S6x.slFunctions.Add(extObject.UniqueAddress, (extObject.S6xFunction == null) ? new S6xFunction(extObject, bankBinAddress) : extObject.S6xFunction);
+                }
+            }
+
+            foreach (Scalar extObject in slExtScalars.Values)
+            {
+                int bankBinAddress = sadBin.getBankBinAddress(extObject.BankNum);
+                if (bankBinAddress < 0) continue;
+                S6xScalar s6xObject = (S6xScalar)S6x.slScalars[extObject.UniqueAddress];
+                if (s6xObject != null)
+                {
+                    // Skipped and stored Element is moved to Duplicates before being overwritten
+                    if (s6xObject.Skip && s6xObject.Store)
+                    {
+                        S6xScalar s6xDup = s6xObject;
+                        s6xDup.DuplicateNum = 1;
+                        while (S6x.slDupScalars.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
+                        S6x.slDupScalars.Add(s6xDup.DuplicateAddress, s6xDup);
+                        s6xObject = null;
+                    }
+                    else if (s6xObject.Store)
+                    {
+                        extObject.S6xScalar = s6xObject;
+                    }
+                    else
+                    {
+                        s6xObject = null;
+                    }
+                    if (s6xObject == null)
+                    {
+                        S6x.slScalars[extObject.UniqueAddress] = (extObject.S6xScalar == null) ? new S6xScalar(extObject, bankBinAddress) : extObject.S6xScalar;
+                    }
+                }
+                else
+                {
+                    S6x.slScalars.Add(extObject.UniqueAddress, (extObject.S6xScalar == null) ? new S6xScalar(extObject, bankBinAddress) : extObject.S6xScalar);
+                }
+            }
+
+            foreach (Structure sStruct in slExtStructures.Values)
+            {
+                if (sStruct.ParentStructure == null)    // Included / Duplicated elements are not generated
+                {
+                    S6xStructure s6xObject = (S6xStructure)S6x.slStructures[sStruct.UniqueAddress];
+                    if (s6xObject != null)
+                    {
+                        // Skipped and stored Element is moved to Duplicates before being overwritten
+                        if (s6xObject.Skip && s6xObject.Store)
+                        {
+                            S6xStructure s6xDup = s6xObject;
+                            s6xDup.DuplicateNum = 1;
+                            while (S6x.slDupStructures.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
+                            S6x.slDupStructures.Add(s6xDup.DuplicateAddress, s6xDup);
+                            s6xObject = null;
+                        }
+                        else if (s6xObject.Store)
+                        {
+                            sStruct.S6xStructure = s6xObject;
+                        }
+                        else
+                        {
+                            s6xObject = null;
+                        }
+                        if (s6xObject == null)
+                        {
+                            S6x.slStructures[sStruct.UniqueAddress] = (sStruct.S6xStructure == null) ? new S6xStructure(sStruct) : sStruct.S6xStructure;
+                        }
+                    }
+                    else
+                    {
+                        S6x.slStructures.Add(sStruct.UniqueAddress, (sStruct.S6xStructure == null) ? new S6xStructure(sStruct) : sStruct.S6xStructure);
+                    }
+                }
+            }
+
+            // 20200909 - Elements are checked around their isCalibration element parameter
+            //            AddressBinInt is also checked 
+            foreach (S6xScalar s6xObject in S6x.slScalars.Values)
+            {
+                s6xObject.isCalibrationElement = false;
+                if (s6xObject.BankNum == BankNum)
+                {
+                    if (isCalibrationAddress(s6xObject.AddressInt)) s6xObject.isCalibrationElement = true;
+                }
+                s6xObject.AddressBinInt = sadBin.getBankBinAddress(s6xObject.BankNum) + s6xObject.AddressInt;
+            }
+            foreach (S6xFunction s6xObject in S6x.slFunctions.Values)
+            {
+                s6xObject.isCalibrationElement = false;
+                if (s6xObject.BankNum == BankNum)
+                {
+                    if (isCalibrationAddress(s6xObject.AddressInt)) s6xObject.isCalibrationElement = true;
+                }
+                s6xObject.AddressBinInt = sadBin.getBankBinAddress(s6xObject.BankNum) + s6xObject.AddressInt;
+            }
+            foreach (S6xTable s6xObject in S6x.slTables.Values)
+            {
+                s6xObject.isCalibrationElement = false;
+                if (s6xObject.BankNum == BankNum)
+                {
+                    if (isCalibrationAddress(s6xObject.AddressInt)) s6xObject.isCalibrationElement = true;
+                }
+                s6xObject.AddressBinInt = sadBin.getBankBinAddress(s6xObject.BankNum) + s6xObject.AddressInt;
+            }
+            foreach (S6xStructure s6xObject in S6x.slStructures.Values)
+            {
+                s6xObject.isCalibrationElement = false;
+                if (s6xObject.BankNum == BankNum)
+                {
+                    if (isCalibrationAddress(s6xObject.AddressInt)) s6xObject.isCalibrationElement = true;
+                }
+                s6xObject.AddressBinInt = sadBin.getBankBinAddress(s6xObject.BankNum) + s6xObject.AddressInt;
+            }
+
+
+            // S6xRoutine Creation
+            // 20200908 - Added to permit to have up to date S6x, before (Comparisons or mass ouput)
+            foreach (string callAddress in alMainCallsUniqueAddresses)
+            {
+                Call cCall = (Call)slCalls[callAddress];
+                if (cCall.S6xRoutine == null)
+                {
+                    if (alMainCallsUniqueAddresses.Contains(cCall.UniqueAddress))
+                    {
+                        Routine rRoutine = null;
+                        if (cCall.isRoutine) rRoutine = (Routine)slRoutines[cCall.UniqueAddress];
+                        cCall.S6xRoutine = new S6xRoutine(cCall, rRoutine);
+                        rRoutine = null;
+                        if (!S6x.slProcessRoutines.ContainsKey(cCall.S6xRoutine.UniqueAddress)) S6x.slProcessRoutines.Add(cCall.S6xRoutine.UniqueAddress, cCall.S6xRoutine);
+                        if (S6x.slRoutines.ContainsKey(cCall.S6xRoutine.UniqueAddress)) S6x.slRoutines[cCall.S6xRoutine.UniqueAddress] = cCall.S6xRoutine;
+                        else S6x.slRoutines.Add(cCall.S6xRoutine.UniqueAddress, cCall.S6xRoutine);
+                    }
+                }
+            }
+        }
+
         // Used to check conflicts inside Calibration and inside elements
         //      Not outside Rbases
         //      Another Element is not between initialCalElemAddress and jumpAddress
