@@ -12,6 +12,10 @@ namespace SAD806x
         public OPCodeType Type = OPCodeType.UndefinedOP;
 
         public bool is8061 = false;
+        // 20210406 - PYM - New information now at OPCode level too
+        public bool isEarly = false;
+        public bool isPilot = false;
+        public bool is8065SingleBank = false;
 
         public bool isActive = false;
 
@@ -29,6 +33,9 @@ namespace SAD806x
         public bool isSigndAlt = false;
         public bool hasVariableParams = false;
 
+        public bool Apply0x100RegisterShortcut = false;
+        public bool Apply0x100RegisterSFRShortcut = false;
+
         private object[] OPCHeaderDef = null;
         private object[] OPCDef = null;
 
@@ -39,7 +46,9 @@ namespace SAD806x
 
         private SortedList CarryTranslations = null;
 
-        public SADOPCode(int iOPCode, bool bIs8061)
+        // 20210406 - PYM - New information now at OPCode level too
+        //public SADOPCode(int iOPCode, bool bIs8061)
+        public SADOPCode(int iOPCode, bool bIs8061, bool bIsEarly, bool bIsPilot, bool bIs8065SingleBank)
         {
             int tmpNumber = 0;
 
@@ -64,7 +73,11 @@ namespace SAD806x
             }
 
             is8061 = bIs8061;
-            
+            // 20210406 - PYM - New information now at OPCode level too
+            isEarly = bIsEarly;
+            isPilot = bIsPilot;
+            is8065SingleBank = bIs8065SingleBank;
+
             if (!isActive) return;
 
             Instruction = OPCDef[0].ToString();
@@ -313,7 +326,7 @@ namespace SAD806x
             // 20171110 Move from applyJumps to be applied on all Ops especially the one using pointers and the jump ones
             if (opPrevResult != null)
             {
-                if (opPrevResult.ApplyOnBankNum != opPrevResult.SetBankNum)
+                if (opPrevResult.OriginalOPCode == "10")
                 {
                     ope.ApplyOnBankNum = opPrevResult.SetBankNum;
                     ope.ReadDataBankNum = opPrevResult.SetBankNum;
@@ -352,6 +365,8 @@ namespace SAD806x
             {
                 ope.OperationParams[iParam] = new OperationParam();
                 ope.OperationParams[iParam].InstructedParam = arrOP[iParam + ope.BytesNumber - opParams];
+                // 20210407 - PYM - New OriginalInstructedParam Property
+                ope.OperationParams[iParam].OriginalInstructedParam = ope.OperationParams[iParam].InstructedParam;
             }
 
             // Specific cases when no provided parameters
@@ -362,6 +377,8 @@ namespace SAD806x
                     ope.OperationParams = new OperationParam[1];
                     ope.OperationParams[0] = new OperationParam();
                     ope.OperationParams[0].InstructedParam = "01";
+                    // 20210407 - PYM - New OriginalInstructedParam Property
+                    ope.OperationParams[0].OriginalInstructedParam = ope.OperationParams[0].InstructedParam;
                     break;
             }
 
@@ -405,16 +422,24 @@ namespace SAD806x
                         // Tested on 8061, it only applies to 8065 starting on step D
                         // 20200813 - PYM
                         // Extended to all parameters
-                        if (!is8061)
+                        // 20210406 - PYM
+                        // Now managed by booleans
+                        if (parameters[iParamForParameters].Type == OPCodeParamsTypes.RegisterWord)
                         {
-                            //if (iParam == 0 && parameters[iParamForParameters].Type == OPCodeParamsTypes.RegisterWord)
-                            if (parameters[iParamForParameters].Type == OPCodeParamsTypes.RegisterWord)
+                            iParamValue = Convert.ToInt32(ope.OperationParams[iParam].InstructedParam, 16);
+                            if (iParamValue % 2 != 0)
                             {
-                                iParamValue = Convert.ToInt32(ope.OperationParams[iParam].InstructedParam, 16);
-                                if (iParamValue % 2 != 0) ope.OperationParams[iParam].InstructedParam = string.Format("{0:x3}", 0x100 + iParamValue - 1);
-                                ope.OperationParams[iParam].InstructedParam = Tools.RegisterInstruction(ope.OperationParams[iParam].InstructedParam);
-                                break;
+                                ope.OperationParams[iParam].addPossibleStatistic(StatisticsRegisterItems.RegShortcut0x100);
+                                if (Apply0x100RegisterShortcut || Apply0x100RegisterSFRShortcut)
+                                {
+                                    if ((iParamValue > 0x23 && Apply0x100RegisterShortcut) || (iParamValue <= 0x23 && Apply0x100RegisterSFRShortcut))
+                                    {
+                                        ope.OperationParams[iParam].InstructedParam = string.Format("{0:x3}", 0x100 + iParamValue - 1);
+                                    }
+                                }
                             }
+                            ope.OperationParams[iParam].InstructedParam = Tools.RegisterInstruction(ope.OperationParams[iParam].InstructedParam);
+                            break;
                         }
                         // Default
                         ope.OperationParams[iParam].InstructedParam = SADDef.ShortRegisterPrefix + ope.OperationParams[iParam].InstructedParam;
@@ -442,6 +467,10 @@ namespace SAD806x
                                 if (parameters[iParamForParameters].isPointer) ope.OperationParams[iParam].InstructedParam = Tools.PointerTranslation(ope.OperationParams[iParam].InstructedParam);
                                 ope.OperationParams[iParam + 1].InstructedParam = string.Empty;
                                 ope.OperationParams[iParam + 2].InstructedParam = string.Empty;
+
+                                // 20210407 - PYM - New OriginalInstructedParam Property
+                                ope.OperationParams[iParam].OriginalInstructedParam = ope.OperationParams[iParam].InstructedParam;
+
                                 iParam += 2;
                             }
                             else if (hasVariableParams)
@@ -457,6 +486,10 @@ namespace SAD806x
                                 else ope.OperationParams[iParam].InstructedParam = sReg + SADDef.AdditionSeparator + Convert.ToString(iValue, 16);
                                 if (parameters[iParamForParameters].isPointer) ope.OperationParams[iParam].InstructedParam = Tools.PointerTranslation(ope.OperationParams[iParam].InstructedParam);
                                 ope.OperationParams[iParam + 1].InstructedParam = string.Empty;
+
+                                // 20210407 - PYM - New OriginalInstructedParam Property
+                                ope.OperationParams[iParam].OriginalInstructedParam = ope.OperationParams[iParam].InstructedParam;
+
                                 iParam++;
                             }
                             else
@@ -464,6 +497,10 @@ namespace SAD806x
                                 ope.OperationParams[iParam].InstructedParam = Convert.ToString(Convert.ToInt32(ope.OperationParams[iParam + 1].InstructedParam + ope.OperationParams[iParam].InstructedParam, 16), 16);
                                 if (parameters[iParamForParameters].isPointer) ope.OperationParams[iParam].InstructedParam = Tools.PointerTranslation(ope.OperationParams[iParam].InstructedParam);
                                 ope.OperationParams[iParam + 1].InstructedParam = string.Empty;
+
+                                // 20210407 - PYM - New OriginalInstructedParam Property
+                                ope.OperationParams[iParam].OriginalInstructedParam = ope.OperationParams[iParam].InstructedParam;
+                                
                                 iParam++;
                             }
                         }
@@ -1120,50 +1157,53 @@ namespace SAD806x
                                 {
                                     // Pointer Calculation
                                     opeCalElemAddressInt = rBase.AddressBankInt + (int)arrPointersValues[4];
-                                    opeCalElem = (CalibrationElement)Calibration.slCalibrationElements[Tools.UniqueAddress(Calibration.BankNum, opeCalElemAddressInt)];
-                                    if (opeCalElem == null)
+                                    if (opeCalElemAddressInt >= rBase.AddressBankInt && opeCalElemAddressInt <= rBase.AddressBankEndInt)
                                     {
-                                        opeCalElem = new CalibrationElement(Calibration.BankNum, rBase.Code);
-                                        opeCalElem.RBaseCalc = Tools.RegisterInstruction(rBase.Code) + SADDef.AdditionSeparator + arrPointersValues[3].ToString();
-                                        opeCalElem.AddressInt = opeCalElemAddressInt;
-                                        opeCalElem.AddressBinInt = opeCalElem.AddressInt + Calibration.BankAddressBinInt;
-                                        Calibration.slCalibrationElements.Add(opeCalElem.UniqueAddress, opeCalElem);
+                                        opeCalElem = (CalibrationElement)Calibration.slCalibrationElements[Tools.UniqueAddress(Calibration.BankNum, opeCalElemAddressInt)];
+                                        if (opeCalElem == null)
+                                        {
+                                            opeCalElem = new CalibrationElement(Calibration.BankNum, rBase.Code);
+                                            opeCalElem.RBaseCalc = Tools.RegisterInstruction(rBase.Code) + SADDef.AdditionSeparator + arrPointersValues[3].ToString();
+                                            opeCalElem.AddressInt = opeCalElemAddressInt;
+                                            opeCalElem.AddressBinInt = opeCalElem.AddressInt + Calibration.BankAddressBinInt;
+                                            Calibration.slCalibrationElements.Add(opeCalElem.UniqueAddress, opeCalElem);
+                                        }
+
+                                        if (ope.alCalibrationElems == null) ope.alCalibrationElems = new ArrayList();
+                                        ope.alCalibrationElems.Add(opeCalElem);
+
+                                        // Checking if Object is defined on this Type on S6x, if not its type will stay unidentifed until S6x Processing
+                                        if (!S6x.isS6xProcessTypeConflict(opeCalElem.UniqueAddress, typeof(Scalar)))
+                                        {
+                                            opeCalElem.ScalarElem = new Scalar();
+                                            opeCalElem.ScalarElem.BankNum = opeCalElem.BankNum;
+                                            opeCalElem.ScalarElem.AddressInt = opeCalElem.AddressInt;
+                                            opeCalElem.ScalarElem.AddressBinInt = opeCalElem.AddressBinInt;
+                                            opeCalElem.ScalarElem.RBase = opeCalElem.RBase;
+                                            opeCalElem.ScalarElem.RBaseCalc = opeCalElem.RBaseCalc;
+                                            // Mixed OP is for ldzbw or ldsbw is this case, so Byte
+                                            opeCalElem.ScalarElem.Byte = (Type == OPCodeType.ByteOP || Type == OPCodeType.MixedOP);
+                                            opeCalElem.ScalarElem.Word = (Type == OPCodeType.WordOP);
+                                            // Sign basic identification
+                                            if (applySignedAlt) opeCalElem.ScalarElem.Signed = true;
+                                            else if (Instruction.ToLower() == "ldsbw") opeCalElem.ScalarElem.Signed = true;
+                                            else if (Instruction.ToLower() == "ldzbw") opeCalElem.ScalarElem.UnSigned = true;
+                                            else if (Instruction.ToLower().StartsWith("ml")) opeCalElem.ScalarElem.UnSigned = true;
+                                            else if (Instruction.ToLower().StartsWith("div")) opeCalElem.ScalarElem.UnSigned = true;
+                                        }
+
+                                        ope.OperationParams[iParam].EmbeddedParam = opeCalElem;
+                                        ope.OperationParams[iParam].CalculatedParam = Tools.PointerTranslation(opeCalElem.Address);
+                                        ope.OperationParams[iParam].DefaultTranslatedParam = Tools.PointerTranslation(opeCalElem.Address);
+
+                                        if (!opeCalElem.RelatedOpsUniqueAddresses.Contains(ope.UniqueAddress))
+                                        {
+                                            opeCalElem.RelatedOpsUniqueAddresses.Add(ope.UniqueAddress);
+                                        }
+
+                                        rBase = null;
+                                        opeCalElem = null;
                                     }
-
-                                    if (ope.alCalibrationElems == null) ope.alCalibrationElems = new ArrayList();
-                                    ope.alCalibrationElems.Add(opeCalElem);
-
-                                    // Checking if Object is defined on this Type on S6x, if not its type will stay unidentifed until S6x Processing
-                                    if (!S6x.isS6xProcessTypeConflict(opeCalElem.UniqueAddress, typeof(Scalar)))
-                                    {
-                                        opeCalElem.ScalarElem = new Scalar();
-                                        opeCalElem.ScalarElem.BankNum = opeCalElem.BankNum;
-                                        opeCalElem.ScalarElem.AddressInt = opeCalElem.AddressInt;
-                                        opeCalElem.ScalarElem.AddressBinInt = opeCalElem.AddressBinInt;
-                                        opeCalElem.ScalarElem.RBase = opeCalElem.RBase;
-                                        opeCalElem.ScalarElem.RBaseCalc = opeCalElem.RBaseCalc;
-                                        // Mixed OP is for ldzbw or ldsbw is this case, so Byte
-                                        opeCalElem.ScalarElem.Byte = (Type == OPCodeType.ByteOP || Type == OPCodeType.MixedOP);
-                                        opeCalElem.ScalarElem.Word = (Type == OPCodeType.WordOP);
-                                        // Sign basic identification
-                                        if (applySignedAlt) opeCalElem.ScalarElem.Signed = true;
-                                        else if (Instruction.ToLower() == "ldsbw") opeCalElem.ScalarElem.Signed = true;
-                                        else if (Instruction.ToLower() == "ldzbw") opeCalElem.ScalarElem.UnSigned = true;
-                                        else if (Instruction.ToLower().StartsWith("ml")) opeCalElem.ScalarElem.UnSigned = true;
-                                        else if (Instruction.ToLower().StartsWith("div")) opeCalElem.ScalarElem.UnSigned = true;
-                                    }
-
-                                    ope.OperationParams[iParam].EmbeddedParam = opeCalElem;
-                                    ope.OperationParams[iParam].CalculatedParam = Tools.PointerTranslation(opeCalElem.Address);
-                                    ope.OperationParams[iParam].DefaultTranslatedParam = Tools.PointerTranslation(opeCalElem.Address);
-
-                                    if (!opeCalElem.RelatedOpsUniqueAddresses.Contains(ope.UniqueAddress))
-                                    {
-                                        opeCalElem.RelatedOpsUniqueAddresses.Add(ope.UniqueAddress);
-                                    }
-
-                                    rBase = null;
-                                    opeCalElem = null;
                                     break;
                                 }
 

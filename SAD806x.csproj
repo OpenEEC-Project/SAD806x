@@ -83,6 +83,46 @@
     <Compile Include="ConversionRepoForm.Designer.cs">
       <DependentUpon>ConversionRepoForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="ElemDataForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ElemDataForm.Designer.cs">
+      <DependentUpon>ElemDataForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SADXls.cs" />
+    <Compile Include="SQLite806xFileForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SQLite806xFileForm.Designer.cs">
+      <DependentUpon>SQLite806xFileForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SQLite806xForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SQLite806xForm.Designer.cs">
+      <DependentUpon>SQLite806xForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SQLite806xRecordForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SQLite806xRecordForm.Designer.cs">
+      <DependentUpon>SQLite806xRecordForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SQLite806xSyncForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SQLite806xSyncForm.Designer.cs">
+      <DependentUpon>SQLite806xSyncForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SQLite806xToolsTunerPro.cs" />
+    <Compile Include="SQLite806xToolsSAD.cs" />
+    <Compile Include="SQLite806xToolsSAD806x.cs" />
+    <Compile Include="SQLite806xTools.cs" />
+    <Compile Include="SQLite806xTools806x.cs" />
+    <Compile Include="SQLite806xToolsTunerProV10.cs" />
+    <Compile Include="SQLite806xToolsSADV10.cs" />
+    <Compile Include="SQLite806xToolsSAD806xV10.cs" />
+    <Compile Include="SQLite806xTools806xV10.cs" />
     <Compile Include="ElemSigForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -141,6 +181,10 @@
       <DependentUpon>ConversionRepoForm.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <EmbeddedResource Include="ElemDataForm.resx">
+      <DependentUpon>ElemDataForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
     <EmbeddedResource Include="ElemSigForm.resx">
       <DependentUpon>ElemSigForm.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -180,6 +224,22 @@
     </EmbeddedResource>
     <EmbeddedResource Include="SigForm.resx">
       <DependentUpon>SigForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SQLite806xFileForm.resx">
+      <DependentUpon>SQLite806xFileForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SQLite806xForm.resx">
+      <DependentUpon>SQLite806xForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SQLite806xRecordForm.resx">
+      <DependentUpon>SQLite806xRecordForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SQLite806xSyncForm.resx">
+      <DependentUpon>SQLite806xSyncForm.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <Compile Include="Properties\Resources.Designer.cs">
@@ -239,17 +299,19 @@
       <DependentUpon>SigForm.cs</DependentUpon>
     </Compile>
     <Compile Include="SQLite806x.cs" />
-    <Compile Include="SQLite806xTools.cs" />
     <Compile Include="TfSADTools.cs" />
     <Compile Include="Tools.cs" />
     <Compile Include="ToolsDebug.cs" />
+    <Compile Include="ToolsElemData.cs" />
     <Compile Include="ToolsRoutinesComp.cs" />
     <Compile Include="ToolsSettings.cs" />
+    <Compile Include="ToolsXls.cs" />
     <Compile Include="ToolsXml.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
     <None Include="Resources\question.png" />
+    <None Include="Resources\SAD806xWorkBookXlsx.xlsx" />
     <Content Include="sad806x 256.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

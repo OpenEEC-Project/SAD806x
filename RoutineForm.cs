@@ -20,6 +20,8 @@ namespace SAD806x
         private SADS6x S6x = null;
         private S6xRoutine s6xRoutine = null;
 
+        private S6xNavCategories s6xNavCategories = null;
+
         private SortedList slInputArguments = null;
         private SortedList slInputStructures = null;
         private SortedList slInputTables = null;
@@ -32,10 +34,13 @@ namespace SAD806x
 
         private RepositoryConversion repoConversion = null;
 
-        public RoutineForm(ref SADS6x s6x, ref S6xRoutine routine)
+        private DialogResult closingDialogResult = DialogResult.Cancel;
+
+        public RoutineForm(ref SADS6x s6x, ref S6xRoutine routine, ref ImageList stateImageList, ref S6xNavCategories navCategories)
         {
             S6x = s6x;
             s6xRoutine = routine;
+            s6xNavCategories = navCategories;
 
             slInputArguments = new SortedList();
             slInputStructures = new SortedList();
@@ -52,7 +57,11 @@ namespace SAD806x
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
             catch { }
 
+            this.FormClosing += new FormClosingEventHandler(Form_FormClosing);
+
             InitializeComponent();
+
+            advElemsTreeView.StateImageList = stateImageList;
         }
 
         private void RoutineForm_Load(object sender, EventArgs e)
@@ -118,6 +127,11 @@ namespace SAD806x
                 }
             }
             clearElem();
+        }
+
+        private void Form_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            this.DialogResult = closingDialogResult;
         }
 
         private void attachPropertiesEventsControls(ref Control.ControlCollection controls)
@@ -342,6 +356,9 @@ namespace SAD806x
                 Control.ControlCollection controls = (Control.ControlCollection)tabPage.Controls;
                 clearControls(ref controls);
             }
+            Control.ControlCollection otherControls = (Control.ControlCollection)elemFooterPanel.Controls;
+            clearControls(ref otherControls);
+            otherControls = null;
         }
 
         private void clearControls(ref Control.ControlCollection controls)
@@ -375,6 +392,9 @@ namespace SAD806x
                         break;
                     case "NumericUpDown":
                         ((NumericUpDown)control).Value = ((NumericUpDown)control).Minimum;
+                        break;
+                    case "DateTimePicker":
+                        ((DateTimePicker)control).Value = DateTime.Now;
                         break;
                 }
             }
@@ -422,6 +442,10 @@ namespace SAD806x
                         inputArgEncryptionComboBox.SelectedItem = (CallArgsMode)sigInpArg.Encryption;
                     }
                     catch { }
+
+                    sharedDateCreatedDateTimePicker.Value = Tools.getValidDateTime(sigInpArg.DateCreated, S6x.Properties.DateCreated).ToLocalTime();
+                    sharedDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(sigInpArg.DateUpdated, S6x.Properties.DateUpdated).ToLocalTime(); 
+                    
                     sigInpArg = null;
                     break;
                 case TreeCategInputStructuresNodeName:
@@ -436,6 +460,10 @@ namespace SAD806x
                     inputStructureStructTextBox.Multiline = true;
                     
                     inputStructureStructTextBox.Text = sigInpStr.StructDef;
+
+                    sharedDateCreatedDateTimePicker.Value = Tools.getValidDateTime(sigInpStr.DateCreated, S6x.Properties.DateCreated).ToLocalTime();
+                    sharedDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(sigInpStr.DateUpdated, S6x.Properties.DateUpdated).ToLocalTime();
+                    
                     sigInpStr = null;
                     break;
                 case TreeCategInputTablesNodeName:
@@ -454,6 +482,10 @@ namespace SAD806x
                     inputTableScalePrecNumericUpDown.Value = sigInpTbl.ForcedCellsScalePrecision;
                     inputTableSignedCheckBox.Checked = sigInpTbl.SignedOutput;
                     inputTableWordCheckBox.Checked = sigInpTbl.WordOutput;
+
+                    sharedDateCreatedDateTimePicker.Value = Tools.getValidDateTime(sigInpTbl.DateCreated, S6x.Properties.DateCreated).ToLocalTime();
+                    sharedDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(sigInpTbl.DateUpdated, S6x.Properties.DateUpdated).ToLocalTime();
+
                     sigInpTbl = null;
                     break;
                 case TreeCategInputFunctionsNodeName:
@@ -471,6 +503,10 @@ namespace SAD806x
                     inputFunctionSignedOutputCheckBox.Checked = sigInpFunc.SignedOutput;
                     inputFunctionUnitsInputTextBox.Text = sigInpFunc.ForcedInputUnits;
                     inputFunctionUnitsOutputTextBox.Text = sigInpFunc.ForcedOutputUnits;
+
+                    sharedDateCreatedDateTimePicker.Value = Tools.getValidDateTime(sigInpFunc.DateCreated, S6x.Properties.DateCreated).ToLocalTime();
+                    sharedDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(sigInpFunc.DateUpdated, S6x.Properties.DateUpdated).ToLocalTime();
+
                     sigInpFunc = null;
                     break;
                 case TreeCategInputScalarsNodeName:
@@ -481,6 +517,10 @@ namespace SAD806x
                     inputScalarScalePrecNumericUpDown.Value = sigInpScal.ForcedScalePrecision;
                     inputScalarSignedCheckBox.Checked = sigInpScal.Signed;
                     inputScalarUnitsTextBox.Text = sigInpScal.ForcedUnits;
+
+                    sharedDateCreatedDateTimePicker.Value = Tools.getValidDateTime(sigInpScal.DateCreated, S6x.Properties.DateCreated).ToLocalTime();
+                    sharedDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(sigInpScal.DateUpdated, S6x.Properties.DateUpdated).ToLocalTime();
+
                     sigInpScal = null;
                     break;
                 default:
@@ -537,6 +577,8 @@ namespace SAD806x
             }
 
             updateArray(currentTreeNode.Parent.Name);
+
+            closingDialogResult = DialogResult.OK;
 
             currentTreeNode.Parent.Nodes.Remove(currentTreeNode);
             currentTreeNode = null;
@@ -610,6 +652,10 @@ namespace SAD806x
                     sigInpArg.Word = inputArgWordCheckBox.Checked;
                     sigInpArg.Pointer = inputArgPointerCheckBox.Checked;
 
+                    sigInpArg.DateCreated = sharedDateCreatedDateTimePicker.Value.ToUniversalTime();
+                    sharedDateUpdatedDateTimePicker.Value = DateTime.Now;
+                    sigInpArg.DateUpdated = sharedDateUpdatedDateTimePicker.Value.ToUniversalTime();
+
                     uniqueKey = sigInpArg.UniqueKey;
                     label = sigInpArg.Position.ToString() + " - " + sigInpArg.Code;
 
@@ -632,6 +678,10 @@ namespace SAD806x
                     sigInpStr.StructDef = inputStructureStructTextBox.Text;
 
                     sigInpStr.ForcedNumber = inputStructureNumFixTextBox.Text;
+
+                    sigInpStr.DateCreated = sharedDateCreatedDateTimePicker.Value.ToUniversalTime();
+                    sharedDateUpdatedDateTimePicker.Value = DateTime.Now;
+                    sigInpStr.DateUpdated = sharedDateUpdatedDateTimePicker.Value.ToUniversalTime();
 
                     uniqueKey = sigInpStr.UniqueKey;
                     label = sigInpStr.VariableAddress;
@@ -666,6 +716,10 @@ namespace SAD806x
                     sigInpTbl.ForcedCellsScaleExpression = inputTableScaleTextBox.Text;
                     sigInpTbl.ForcedCellsScalePrecision = (int)inputTableScalePrecNumericUpDown.Value;
 
+                    sigInpTbl.DateCreated = sharedDateCreatedDateTimePicker.Value.ToUniversalTime();
+                    sharedDateUpdatedDateTimePicker.Value = DateTime.Now;
+                    sigInpTbl.DateUpdated = sharedDateUpdatedDateTimePicker.Value.ToUniversalTime();
+
                     uniqueKey = sigInpTbl.UniqueKey;
                     label = sigInpTbl.VariableAddress;
 
@@ -698,6 +752,10 @@ namespace SAD806x
                     sigInpFunc.ForcedInputUnits = inputFunctionUnitsInputTextBox.Text;
                     sigInpFunc.ForcedOutputUnits = inputFunctionUnitsOutputTextBox.Text;
 
+                    sigInpFunc.DateCreated = sharedDateCreatedDateTimePicker.Value.ToUniversalTime();
+                    sharedDateUpdatedDateTimePicker.Value = DateTime.Now;
+                    sigInpFunc.DateUpdated = sharedDateUpdatedDateTimePicker.Value.ToUniversalTime();
+
                     uniqueKey = sigInpFunc.UniqueKey;
                     label = sigInpFunc.VariableAddress;
 
@@ -723,6 +781,10 @@ namespace SAD806x
                     sigInpScal.ForcedScalePrecision = (int)inputScalarScalePrecNumericUpDown.Value;
                     sigInpScal.ForcedUnits = inputScalarUnitsTextBox.Text;
 
+                    sigInpScal.DateCreated = sharedDateCreatedDateTimePicker.Value.ToUniversalTime();
+                    sharedDateUpdatedDateTimePicker.Value = DateTime.Now;
+                    sigInpScal.DateUpdated = sharedDateUpdatedDateTimePicker.Value.ToUniversalTime();
+
                     uniqueKey = sigInpScal.UniqueKey;
                     label = sigInpScal.VariableAddress;
 
@@ -740,6 +802,9 @@ namespace SAD806x
                 currentTreeNode.Name = uniqueKey;
                 advElemsTreeView.Nodes[TreeRootNodeName].Nodes[categ].Nodes.Add(currentTreeNode);
             }
+
+            closingDialogResult = DialogResult.OK;
+            
             currentTreeNode.Text = label;
             currentTreeNode.ToolTipText = comments;
 

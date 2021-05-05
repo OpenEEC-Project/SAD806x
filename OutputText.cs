@@ -1012,7 +1012,8 @@ namespace SAD806x
                             break;
                         case ReservedAddressType.CalPointer:
                             sFormat = "{0,6}: {1,-21}{2,-6}{3,-19}{4,1}";
-                            sValues = Tools.RegisterInstruction(Calibration.getRbaseByAddress(elem.ReservedAddress.Value(16)).Code);
+                            RBase rBase = Calibration.getRbaseByAddress(elem.ReservedAddress.Value(16));
+                            if (rBase != null) sValues = Tools.RegisterInstruction(Calibration.getRbaseByAddress(elem.ReservedAddress.Value(16)).Code);
                             txWriter.WriteLine(string.Format(sFormat, elem.ReservedAddress.UniqueAddressHex, elem.ReservedAddress.InitialValue, string.Format("{0,4}", elem.ReservedAddress.Value(16)), elem.ReservedAddress.ShortLabel, elem.ReservedAddress.Label + " " + sValues));
                             break;
                         case ReservedAddressType.Ascii:

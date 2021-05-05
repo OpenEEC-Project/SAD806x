@@ -390,23 +390,28 @@ namespace SAD806x
 
             // Prepare Elements for Output
             slElements = new SortedList();
-            if (Bank8 != null)
+            ArrayList alBanks = new ArrayList();
+            if (Bank0 != null) alBanks.Add(Bank0);
+            if (Bank1 != null) alBanks.Add(Bank1);
+            if (Bank8 != null) alBanks.Add(Bank8);
+            if (Bank9 != null) alBanks.Add(Bank9);
+            foreach (SADBank bBank in alBanks)
             {
-                foreach (ReservedAddress rAddress in Bank8.slReserved.Values)
+                foreach (ReservedAddress rAddress in bBank.slReserved.Values)
                 {
                     try { slElements.Add(rAddress.UniqueAddressHex, new Element(rAddress, MergedType.ReservedAddress)); }
                     catch { alErrors.Add(rAddress.UniqueAddressHex); }
                 }
                 // Managed by ReservedAddresses
-                //foreach (Vector vect in Bank8.slIntVectors.Values) slElements.Add(vect.UniqueAddressHex, new Element(vect, MergedType.Vector));
-                foreach (Operation ope in Bank8.slOPs.Values)
+                //foreach (Vector vect in bBank.slIntVectors.Values) slElements.Add(vect.UniqueAddressHex, new Element(vect, MergedType.Vector));
+                foreach (Operation ope in bBank.slOPs.Values)
                 {
 
                     try { slElements.Add(ope.UniqueAddressHex, new Element(ope, MergedType.Operation)); }
                     catch { alErrors.Add(ope.UniqueAddressHex); }
 
                 }
-                foreach (UnknownOpPart unkOpPart in Bank8.slUnknownOpParts.Values)
+                foreach (UnknownOpPart unkOpPart in bBank.slUnknownOpParts.Values)
                 {
                     foreach (UnknownOpPartLine uLine in unkOpPart.Lines)
                     {
@@ -415,75 +420,7 @@ namespace SAD806x
                     }
                 }
             }
-            if (Bank1 != null)
-            {
-                foreach (ReservedAddress rAddress in Bank1.slReserved.Values)
-                {
-                    try { slElements.Add(rAddress.UniqueAddressHex, new Element(rAddress, MergedType.ReservedAddress)); }
-                    catch { alErrors.Add(rAddress.UniqueAddressHex); }
-                }
-                // Managed by ReservedAddresses
-                //foreach (Vector vect in Bank1.slIntVectors.Values) slElements.Add(vect.UniqueAddressHex, new Element(vect, MergedType.Vector));
-                foreach (Operation ope in Bank1.slOPs.Values)
-                {
-                    try { slElements.Add(ope.UniqueAddressHex, new Element(ope, MergedType.Operation)); }
-                    catch { alErrors.Add(ope.UniqueAddressHex); }
-                }
-                foreach (UnknownOpPart unkOpPart in Bank1.slUnknownOpParts.Values)
-                {
-                    foreach (UnknownOpPartLine uLine in unkOpPart.Lines)
-                    {
-                        try { slElements.Add(uLine.UniqueAddressHex, new Element(uLine, MergedType.UnknownOperationLine)); }
-                        catch { alErrors.Add(uLine.UniqueAddressHex); }
-                    }
-                }
-            }
-            if (Bank9 != null)
-            {
-                foreach (ReservedAddress rAddress in Bank9.slReserved.Values)
-                {
-                    try { slElements.Add(rAddress.UniqueAddressHex, new Element(rAddress, MergedType.ReservedAddress)); }
-                    catch { alErrors.Add(rAddress.UniqueAddressHex); }
-                }
-                // Managed by ReservedAddresses
-                //foreach (Vector vect in Bank9.slIntVectors.Values) slElements.Add(vect.UniqueAddressHex, new Element(vect, MergedType.Vector));
-                foreach (Operation ope in Bank9.slOPs.Values)
-                {
-                    try { slElements.Add(ope.UniqueAddressHex, new Element(ope, MergedType.Operation)); }
-                    catch { alErrors.Add(ope.UniqueAddressHex); }
-                }
-                foreach (UnknownOpPart unkOpPart in Bank9.slUnknownOpParts.Values)
-                {
-                    foreach (UnknownOpPartLine uLine in unkOpPart.Lines)
-                    {
-                        try { slElements.Add(uLine.UniqueAddressHex, new Element(uLine, MergedType.UnknownOperationLine)); }
-                        catch { alErrors.Add(uLine.UniqueAddressHex); }
-                    }
-                }
-            }
-            if (Bank0 != null)
-            {
-                foreach (ReservedAddress rAddress in Bank0.slReserved.Values)
-                {
-                    try { slElements.Add(rAddress.UniqueAddressHex, new Element(rAddress, MergedType.ReservedAddress)); }
-                    catch { alErrors.Add(rAddress.UniqueAddressHex); }
-                }
-                // Managed by ReservedAddresses
-                //foreach (Vector vect in Bank0.slIntVectors.Values) slElements.Add(vect.UniqueAddressHex, new Element(vect, MergedType.Vector));
-                foreach (Operation ope in Bank0.slOPs.Values)
-                {
-                    try { slElements.Add(ope.UniqueAddressHex, new Element(ope, MergedType.Operation)); }
-                    catch { alErrors.Add(ope.UniqueAddressHex); }
-                }
-                foreach (UnknownOpPart unkOpPart in Bank0.slUnknownOpParts.Values)
-                {
-                    foreach (UnknownOpPartLine uLine in unkOpPart.Lines)
-                    {
-                        try { slElements.Add(uLine.UniqueAddressHex, new Element(uLine, MergedType.UnknownOperationLine)); }
-                        catch { alErrors.Add(uLine.UniqueAddressHex); }
-                    }
-                }
-            }
+            alBanks = null;
 
             foreach (Vector vect in Calibration.slAdditionalVectors.Values)
             {
@@ -1183,6 +1120,14 @@ namespace SAD806x
                 if (incElem.AddressInt <= endAddress && (incElem.AddressInt >= startAddress || incElem.AddressEndInt >= startAddress))
                 {
                     foreach (string sLine in getOutputTextIncludedElement(elem.Type, ref incElem)) alLines.Add(sLine);
+                    // 20210220 - PYM - An Included Element is not processed fully, so its own Included Elements have to be managed here
+                    if (incElem.IncludedElements != null)
+                    {
+                        if (incElem.IncludedElements.Count > 0)
+                        {
+                            foreach (string sLine in getOutputTextIncludedElements(ref incElem, incElem.AddressInt, incElem.AddressEndInt)) alLines.Add(sLine);
+                        }
+                    }
                 }
             }
 
@@ -1204,9 +1149,38 @@ namespace SAD806x
             int[] cellsMinSizes = null;
             OutputCellAlignment[] cellsAlignments = null;
 
+            string uniqueAddressHex = string.Empty;
+
             switch (incElem.Type)
             {
+                case MergedType.Operation:
+                    {
+                        uniqueAddressHex = incElem.Operation.UniqueAddressHex;
+                        if (lineAddressMinWidth < uniqueAddressHex.Length) uniqueAddressHex = uniqueAddressHex.Replace(" ", String.Empty);
+
+                        if (incElem.Operation.isFEConflict)
+                        {
+                            cellsValues = new string[] { "//", incElem.Operation.Address, incElem.Operation.Instruction, incElem.Operation.Translation1 };
+                            cellsMinSizes = new int[] { lineAddressMinWidth + lineAddressBaseFollower.Length + 3, lineCenterOpsPart1MinWidth - 3, lineCenterOpsPart2MinWidth + lineCenterOpsPart3MinWidth, lineRightOpsPart1MinWidth };
+                        }
+                        else
+                        {
+                            cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, incElem.Operation.OriginalOp, incElem.Operation.Instruction, incElem.Operation.Translation1 };
+                            cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterOpsPart1MinWidth, lineCenterOpsPart2MinWidth + lineCenterOpsPart3MinWidth, lineRightOpsPart1MinWidth };
+                        }
+                        fullLabel = OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments);
+                        if (incElem.Operation.CallArgsNum > 0)
+                        {
+                            cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, incElem.Operation.CallArgs, "#args" };
+                            cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterOpsMinWidth, lineRightOpsMinWidth };
+                            valueLine = OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments);
+                        }
+                    }
+                    break;
                 case MergedType.CalibrationElement:
+                    uniqueAddressHex = incElem.CalElement.UniqueAddressHex;
+                    if (lineAddressMinWidth < uniqueAddressHex.Length) uniqueAddressHex = uniqueAddressHex.Replace(" ", String.Empty);
+
                     if (incElem.CalElement.isScalar)
                     {
                         fullLabel = incElem.CalElement.ScalarElem.FullLabel + ":";
@@ -1218,7 +1192,7 @@ namespace SAD806x
                         //valueLine = string.Format(sFormat, incElem.CalElement.UniqueAddressHex, incElem.CalElement.ScalarElem.InitialValue, incElem.CalElement.RBaseCalc + " " + incElem.CalElement.ScalarElem.ShortLabel, subType, incElem.CalElement.ScalarElem.Value(16), sValues);
                         cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterCalPart1MinWidth, lineCenterCalPart2MinWidth, lineCenterCalPart3MinWidth, lineCenterCalPart4MinWidth, lineRightCalPart1MinWidth };
                         cellsAlignments = new OutputCellAlignment[] { OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Right, OutputCellAlignment.Right };
-                        cellsValues = new string[] { incElem.CalElement.UniqueAddressHex, lineAddressBaseFollower, incElem.CalElement.ScalarElem.InitialValue, incElem.CalElement.RBaseCalc + " " + incElem.CalElement.ScalarElem.ShortLabel, subType, incElem.CalElement.ScalarElem.Value(16), sValues };
+                        cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, incElem.CalElement.ScalarElem.InitialValue, incElem.CalElement.RBaseCalc + " " + incElem.CalElement.ScalarElem.ShortLabel, subType, incElem.CalElement.ScalarElem.Value(16), sValues };
                         valueLine = OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments);
                     }
                     else if (incElem.CalElement.isFunction)
@@ -1228,7 +1202,7 @@ namespace SAD806x
                         //fullLabel = string.Format(sFormat, incElem.CalElement.UniqueAddressHex, incElem.CalElement.RBaseCalc, subType, incElem.CalElement.FunctionElem.FullLabel);
                         cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterCalPart1MinWidth, lineCenterCalPart2MinWidth, lineCenterCalPart3MinWidth };
                         cellsAlignments = new OutputCellAlignment[] { OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left };
-                        cellsValues = new string[] { incElem.CalElement.UniqueAddressHex, lineAddressBaseFollower, incElem.CalElement.RBaseCalc, subType, incElem.CalElement.FunctionElem.FullLabel };
+                        cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, incElem.CalElement.RBaseCalc, subType, incElem.CalElement.FunctionElem.FullLabel };
                         fullLabel = OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments);
                     }
                     else if (incElem.CalElement.isTable)
@@ -1238,7 +1212,7 @@ namespace SAD806x
                         //fullLabel = string.Format(sFormat, incElem.CalElement.UniqueAddressHex, incElem.CalElement.RBaseCalc, subType, incElem.CalElement.TableElem.FullLabel);
                         cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterCalPart1MinWidth, lineCenterCalPart2MinWidth, lineCenterCalPart3MinWidth };
                         cellsAlignments = new OutputCellAlignment[] { OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left };
-                        cellsValues = new string[] { incElem.CalElement.UniqueAddressHex, lineAddressBaseFollower, incElem.CalElement.RBaseCalc, subType, incElem.CalElement.TableElem.FullLabel };
+                        cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, incElem.CalElement.RBaseCalc, subType, incElem.CalElement.TableElem.FullLabel };
                         fullLabel = OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments);
                     }
                     else if (incElem.CalElement.isStructure)
@@ -1248,11 +1222,14 @@ namespace SAD806x
                         //fullLabel = string.Format(sFormat, incElem.CalElement.UniqueAddressHex, incElem.CalElement.RBaseCalc, subType, incElem.CalElement.StructureElem.FullLabel);
                         cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterCalPart1MinWidth, lineCenterCalPart2MinWidth, lineCenterCalPart3MinWidth };
                         cellsAlignments = new OutputCellAlignment[] { OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left };
-                        cellsValues = new string[] { incElem.CalElement.UniqueAddressHex, lineAddressBaseFollower, incElem.CalElement.RBaseCalc, subType, incElem.CalElement.StructureElem.FullLabel };
+                        cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, incElem.CalElement.RBaseCalc, subType, incElem.CalElement.StructureElem.FullLabel };
                         fullLabel = OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments);
                     }
                     break;
                 case MergedType.ExtScalar:
+                    uniqueAddressHex = incElem.ExtScalar.UniqueAddressHex;
+                    if (lineAddressMinWidth < uniqueAddressHex.Length) uniqueAddressHex = uniqueAddressHex.Replace(" ", String.Empty);
+
                     fullLabel = incElem.ExtScalar.FullLabel;
                     if (incElem.ExtScalar.isScaled) sValues = incElem.ExtScalar.ValueScaled();
                     else sValues = incElem.ExtScalar.Value(10);
@@ -1262,34 +1239,43 @@ namespace SAD806x
                     //valueLine = string.Format(sFormat, incElem.ExtScalar.UniqueAddressHex, incElem.ExtScalar.InitialValue, incElem.ExtScalar.ShortLabel, subType, incElem.ExtScalar.Value(16), sValues);
                     cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterCalPart1MinWidth, lineCenterCalPart2MinWidth, lineCenterCalPart3MinWidth, lineCenterCalPart4MinWidth, lineRightCalPart1MinWidth };
                     cellsAlignments = new OutputCellAlignment[] { OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Right, OutputCellAlignment.Right };
-                    cellsValues = new string[] { incElem.ExtScalar.UniqueAddressHex, lineAddressBaseFollower, incElem.ExtScalar.InitialValue, incElem.ExtScalar.ShortLabel, subType, incElem.ExtScalar.Value(16), sValues };
+                    cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, incElem.ExtScalar.InitialValue, incElem.ExtScalar.ShortLabel, subType, incElem.ExtScalar.Value(16), sValues };
                     valueLine = OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments);
                     break;
                 case MergedType.ExtFunction:
+                    uniqueAddressHex = incElem.ExtFunction.UniqueAddressHex;
+                    if (lineAddressMinWidth < uniqueAddressHex.Length) uniqueAddressHex = uniqueAddressHex.Replace(" ", String.Empty);
+
                     subType = typeExtFunction;
                     //sFormat = "{0,6}: {1,-10}{2,1}";
                     //fullLabel = string.Format(sFormat, incElem.ExtFunction.UniqueAddressHex, subType, incElem.ExtFunction.FullLabel);
                     cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterCalPart1MinWidth, lineCenterCalPart2MinWidth, lineCenterCalPart3MinWidth };
                     cellsAlignments = new OutputCellAlignment[] { OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left };
-                    cellsValues = new string[] { incElem.ExtFunction.UniqueAddressHex, lineAddressBaseFollower, string.Empty, subType, incElem.ExtFunction.FullLabel };
+                    cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, string.Empty, subType, incElem.ExtFunction.FullLabel };
                     fullLabel = OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments);
                     break;
                 case MergedType.ExtTable:
+                    uniqueAddressHex = incElem.ExtTable.UniqueAddressHex;
+                    if (lineAddressMinWidth < uniqueAddressHex.Length) uniqueAddressHex = uniqueAddressHex.Replace(" ", String.Empty);
+
                     subType = typeExtTable;
                     //sFormat = "{0,6}: {1,-10}{2,1}";
                     //fullLabel = string.Format(sFormat, incElem.ExtTable.UniqueAddressHex, subType, incElem.ExtTable.FullLabel);
                     cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterCalPart1MinWidth, lineCenterCalPart2MinWidth, lineCenterCalPart3MinWidth };
                     cellsAlignments = new OutputCellAlignment[] { OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left };
-                    cellsValues = new string[] { incElem.ExtTable.UniqueAddressHex, lineAddressBaseFollower, string.Empty, subType, incElem.ExtTable.FullLabel };
+                    cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, string.Empty, subType, incElem.ExtTable.FullLabel };
                     fullLabel = OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments);
                     break;
                 case MergedType.ExtStructure:
+                    uniqueAddressHex = incElem.ExtStructure.UniqueAddressHex;
+                    if (lineAddressMinWidth < uniqueAddressHex.Length) uniqueAddressHex = uniqueAddressHex.Replace(" ", String.Empty);
+
                     subType = typeExtStruct;
                     //sFormat = "{0,6}: {1,-10}{2,1}";
                     //fullLabel = string.Format(sFormat, incElem.ExtStructure.UniqueAddressHex, subType, incElem.ExtStructure.FullLabel);
                     cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterCalPart1MinWidth, lineCenterCalPart2MinWidth, lineCenterCalPart3MinWidth };
                     cellsAlignments = new OutputCellAlignment[] { OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left };
-                    cellsValues = new string[] { incElem.ExtStructure.UniqueAddressHex, lineAddressBaseFollower, string.Empty, subType, incElem.ExtStructure.FullLabel };
+                    cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, string.Empty, subType, incElem.ExtStructure.FullLabel };
                     fullLabel = OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments);
                     break;
             }
@@ -1308,17 +1294,20 @@ namespace SAD806x
             int[] cellsMinSizes = null;
             OutputCellAlignment[] cellsAlignments = null;
 
+            string uniqueAddressHex = elem.UnknownOpPartLine.UniqueAddressHex;
+            if (lineAddressMinWidth < uniqueAddressHex.Length) uniqueAddressHex = uniqueAddressHex.Replace(" ", String.Empty);
+
             if (elem.UnknownOpPartLine.DuplicatedValues == string.Empty)
             {
                 subType = typeUnknownOperationLine;
-                cellsValues = new string[] { elem.UnknownOpPartLine.UniqueAddressHex, lineAddressBaseFollower, elem.UnknownOpPartLine.Values, subType };
+                cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, elem.UnknownOpPartLine.Values, subType };
                 cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterOpsMinWidth, 1};
                 //sFormat = "{0,6}: {1,-" + (SADDef.UnknownOpPartsAggregationSize * 3 + 22).ToString() + "}{2,1}";
             }
             else
             {
                 subType = typeUnknownOperationFillLine;
-                cellsValues = new string[] { elem.UnknownOpPartLine.UniqueAddressHex, lineAddressFillFollower, elem.UnknownOpPartLine.AddressEnd, subType, elem.UnknownOpPartLine.DuplicatedValues };
+                cellsValues = new string[] { uniqueAddressHex, lineAddressFillFollower, elem.UnknownOpPartLine.AddressEnd, subType, elem.UnknownOpPartLine.DuplicatedValues };
                 cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterOpsPart1MinWidth + lineCenterOpsPart2MinWidth, lineCenterOpsPart3MinWidth, 1 };
                 //sFormat = "{0,6} -> {1,-25}{2,-19}{3,-2}";
             }
@@ -1348,6 +1337,9 @@ namespace SAD806x
             OutputCellAlignment[] cellsAlignments = null;
             int iExpectedSize = 0;
 
+            string uniqueAddressHex = elem.UnknownCalibPartLine.UniqueAddressHex;
+            if (lineAddressMinWidth < uniqueAddressHex.Length) uniqueAddressHex = uniqueAddressHex.Replace(" ", String.Empty);
+
             if (elem.UnknownCalibPartLine.DuplicatedValues == string.Empty)
             {
                 subType = typeUnknownCalibrationLine;
@@ -1366,7 +1358,7 @@ namespace SAD806x
                 iExpectedSize = (SADDef.UnknownCalibPartsAggregationSize + 1) * (4 + SADDef.GlobalSeparator.Length);
                 sValues2 = string.Format("{0,-" + iExpectedSize + "}", sValues2);
 
-                cellsValues = new string[] { elem.UnknownCalibPartLine.UniqueAddressHex, lineAddressBaseFollower, elem.UnknownCalibPartLine.Values, subType, sValues, sValues2 };
+                cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, elem.UnknownCalibPartLine.Values, subType, sValues, sValues2 };
                 cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterCalPart1MinWidth + lineCenterCalPart2MinWidth, lineCenterCalPart3MinWidth + lineCenterCalPart4MinWidth + lineRightCalPart1MinWidth, lineRightCalPart2MinWidth, lineRightCalPart3MinWidth };
                 cellsAlignments = new OutputCellAlignment[] { OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left };
                 //sFormat = "{0,6}: {1,-" + (SADDef.UnknownOpPartsAggregationSize * 3 + 22).ToString() + "}{2,1}";
@@ -1375,7 +1367,7 @@ namespace SAD806x
             {
                 subType = typeUnknownCalibrationFillLine;
 
-                cellsValues = new string[] { elem.UnknownCalibPartLine.UniqueAddressHex, lineAddressFillFollower, elem.UnknownCalibPartLine.AddressEnd, subType, elem.UnknownCalibPartLine.DuplicatedValues };
+                cellsValues = new string[] { uniqueAddressHex, lineAddressFillFollower, elem.UnknownCalibPartLine.AddressEnd, subType, elem.UnknownCalibPartLine.DuplicatedValues };
                 cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterCalPart1MinWidth + lineCenterCalPart2MinWidth, lineCenterCalPart3MinWidth + lineCenterCalPart4MinWidth + lineRightCalPart1MinWidth, lineRightCalPart2MinWidth };
                 cellsAlignments = new OutputCellAlignment[] { OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left };
                 //sFormat = "{0,6} -> {1,-25}{2,-19}{3,-2}";
@@ -1422,10 +1414,13 @@ namespace SAD806x
             
             subType = elem.ReservedAddress.Type.ToString();
 
+            string uniqueAddressHex = elem.ReservedAddress.UniqueAddressHex;
+            if (lineAddressMinWidth < uniqueAddressHex.Length) uniqueAddressHex = uniqueAddressHex.Replace(" ", String.Empty);
+
             switch (elem.ReservedAddress.Type)
             {
                 case ReservedAddressType.Fill:
-                    cellsValues = new string[] { elem.ReservedAddress.UniqueAddressHex, lineAddressBaseFollower, elem.ReservedAddress.InitialValue, elem.ReservedAddress.Label };
+                    cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, elem.ReservedAddress.InitialValue, elem.ReservedAddress.Label };
                     cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterOpsMinWidth, 1 };
                     //sFormat = "{0,6}: {1,-46}{2,1}";
                     break;
@@ -1463,25 +1458,26 @@ namespace SAD806x
                     }
                     if (sValues != string.Empty)
                     {
-                        cellsValues = new string[] { elem.ReservedAddress.UniqueAddressHex, lineAddressBaseFollower, elem.ReservedAddress.InitialValue, string.Format("{0,4}", elem.ReservedAddress.Value(16)), sValues, sValues2 };
+                        cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, elem.ReservedAddress.InitialValue, string.Format("{0,4}", elem.ReservedAddress.Value(16)), sValues, sValues2 };
                         cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterOpsPart1MinWidth, lineCenterOpsPart2MinWidth, lineCenterOpsPart3MinWidth, 1 };
                         //sFormat = "{0,6}: {1,-21}{2,-6}{3,-19}{4,1}";
                     }
                     break;
                 case ReservedAddressType.RomSize:
-                    cellsValues = new string[] { elem.ReservedAddress.UniqueAddressHex, lineAddressBaseFollower, elem.ReservedAddress.InitialValue, string.Format("{0,4}", elem.ReservedAddress.Value(16)), elem.ReservedAddress.ShortLabel, elem.ReservedAddress.Label + " (ffff is not defined)" };
+                    cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, elem.ReservedAddress.InitialValue, string.Format("{0,4}", elem.ReservedAddress.Value(16)), elem.ReservedAddress.ShortLabel, elem.ReservedAddress.Label + " (ffff is not defined)" };
                     cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterOpsPart1MinWidth, lineCenterOpsPart2MinWidth, lineCenterOpsPart3MinWidth, 1 };
                     //sFormat = "{0,6}: {1,-21}{2,-6}{3,-19}{4,1}";
                     break;
                 case ReservedAddressType.CalPointer:
-                    sValues = Tools.RegisterInstruction(Calibration.getRbaseByAddress(elem.ReservedAddress.Value(16)).Code);
-                    cellsValues = new string[] { elem.ReservedAddress.UniqueAddressHex, lineAddressBaseFollower, elem.ReservedAddress.InitialValue, string.Format("{0,4}", elem.ReservedAddress.Value(16)), elem.ReservedAddress.ShortLabel, elem.ReservedAddress.Label + " " + sValues };
+                    RBase rBase = Calibration.getRbaseByAddress(elem.ReservedAddress.Value(16));
+                    if (rBase != null) sValues = Tools.RegisterInstruction(rBase.Code);
+                    cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, elem.ReservedAddress.InitialValue, string.Format("{0,4}", elem.ReservedAddress.Value(16)), elem.ReservedAddress.ShortLabel, elem.ReservedAddress.Label + " " + sValues };
                     cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterOpsPart1MinWidth, lineCenterOpsPart2MinWidth, lineCenterOpsPart3MinWidth, 1 };
                     //sFormat = "{0,6}: {1,-21}{2,-6}{3,-19}{4,1}";
                     break;
                 case ReservedAddressType.Ascii:
                 case ReservedAddressType.Hex:
-                    cellsValues = new string[] { elem.ReservedAddress.UniqueAddressHex, lineAddressBaseFollower, elem.ReservedAddress.InitialValue };
+                    cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, elem.ReservedAddress.InitialValue };
                     cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterOpsMinWidth };
                     firstLine = OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments);
                     secondLine = elem.ReservedAddress.ValueString;
@@ -1490,7 +1486,7 @@ namespace SAD806x
                     alLines.Add(string.Empty);
                     return (string[])alLines.ToArray(typeof(string));
                 default:
-                    cellsValues = new string[] { elem.ReservedAddress.UniqueAddressHex, lineAddressBaseFollower, elem.ReservedAddress.InitialValue, string.Format("{0,4}", elem.ReservedAddress.Value(16)), elem.ReservedAddress.ShortLabel, elem.ReservedAddress.Label };
+                    cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, elem.ReservedAddress.InitialValue, string.Format("{0,4}", elem.ReservedAddress.Value(16)), elem.ReservedAddress.ShortLabel, elem.ReservedAddress.Label };
                     cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterOpsPart1MinWidth, lineCenterOpsPart2MinWidth, lineCenterOpsPart3MinWidth, 1 };
                     //sFormat = "{0,6}: {1,-21}{2,-6}{3,-19}{4,1}";
                     break;
@@ -1513,6 +1509,9 @@ namespace SAD806x
             string firstLine = string.Empty;
             string secondLine = string.Empty;
 
+            string uniqueAddressHex = elem.Operation.UniqueAddressHex;
+            if (lineAddressMinWidth < uniqueAddressHex.Length) uniqueAddressHex = uniqueAddressHex.Replace(" ", String.Empty);
+
             if (elem.Operation.isFEConflict)
             {
                 cellsValues = new string[] { "//", elem.Operation.Address, elem.Operation.Instruction, elem.Operation.Translation1 };
@@ -1521,7 +1520,7 @@ namespace SAD806x
             }
             else
             {
-                cellsValues = new string[] { elem.Operation.UniqueAddressHex, lineAddressBaseFollower, elem.Operation.OriginalOp, elem.Operation.Instruction, elem.Operation.Translation1 };
+                cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, elem.Operation.OriginalOp, elem.Operation.Instruction, elem.Operation.Translation1 };
                 cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterOpsPart1MinWidth, lineCenterOpsPart2MinWidth + lineCenterOpsPart3MinWidth, lineRightOpsPart1MinWidth };
                 //firstLine = string.Format("{0,6}: {1,-21}{2,-25}{3,-21}", elem.Operation.UniqueAddressHex, elem.Operation.OriginalOp, elem.Operation.Instruction, elem.Operation.Translation1);
             }
@@ -1529,7 +1528,7 @@ namespace SAD806x
             secondLine = string.Empty;
             if (elem.Operation.CallArgsNum > 0)
             {
-                cellsValues = new string[] { elem.Operation.UniqueAddressHex, lineAddressBaseFollower, elem.Operation.CallArgs, "#args" };
+                cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, elem.Operation.CallArgs, "#args" };
                 cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterOpsMinWidth, lineRightOpsMinWidth };
                 //secondLine = string.Format("{0,6}: {1,-46}{2,-21}", elem.Operation.UniqueCallArgsAddressHex, elem.Operation.CallArgs, "#args");
                 secondLine = OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments);
@@ -1649,10 +1648,13 @@ namespace SAD806x
             // Element Bit Flags
             if (sScalar.isBitFlags) alLines.AddRange(getOutputValueBitFlagsWithComments(sScalar.ValueBitFlags));
 
+            string uniqueAddressHex = sScalar.UniqueAddressHex;
+            if (lineAddressMinWidth < uniqueAddressHex.Length) uniqueAddressHex = uniqueAddressHex.Replace(" ", String.Empty);
+            
             string[] arrCommentsInline = new string[] { };
             if (sScalar.OutputComments && sScalar.InlineComments) arrCommentsInline = getOutputTextElementInlineComments(Tools.CommentsReviewed(sScalar.Comments, sScalar.ShortLabel, sScalar.Label, ref lReplacementCoreBaseStrings, ref slReplacementsCore, true, true));
             if (arrCommentsInline.Length == 0) arrCommentsInline = getOutputTextElementOtherAddress(sScalar.UniqueAddress, false);
-            cellsValues = new string[] { sScalar.UniqueAddressHex, lineAddressBaseFollower, sScalar.InitialValue, sVariableValue, subType, sScalar.Value(16), sValues };
+            cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, sScalar.InitialValue, sVariableValue, subType, sScalar.Value(16), sValues };
             cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterCalPart1MinWidth, lineCenterCalPart2MinWidth, lineCenterCalPart3MinWidth, lineCenterCalPart4MinWidth, lineRightCalPart1MinWidth };
             cellsAlignments = new OutputCellAlignment[] { OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Right, OutputCellAlignment.Right };
             // Current Element and its inline comment if available (Current element one or by default OtherAddress one)
@@ -1695,23 +1697,29 @@ namespace SAD806x
             int[] cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterCalPart1MinWidth, lineCenterCalPart2MinWidth, lineCenterCalPart3MinWidth - 4, SADDef.GlobalSeparator.Length, lineCenterCalPart4MinWidth + 4 - SADDef.GlobalSeparator.Length, lineRightCalPart1MinWidth, SADDef.GlobalSeparator.Length, lineRightCalPart2MinWidth - SADDef.GlobalSeparator.Length };
             OutputCellAlignment[] cellsAlignments = new OutputCellAlignment[] { OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Right, OutputCellAlignment.Right, OutputCellAlignment.Right, OutputCellAlignment.Right, OutputCellAlignment.Right, OutputCellAlignment.Right };
 
-            foreach (ScalarLine scalarLine in fFunction.Lines)
+            if (fFunction.Lines != null)
             {
-                string sValues = string.Empty;
-                string sValues2 = string.Empty;
-                if (fFunction.isInputScaled) sValues = scalarLine.Scalars[0].ValueScaled(fFunction.getInputScaleExpression, fFunction.getInputScalePrecision);
-                else sValues = scalarLine.Scalars[0].Value(10);
-                if (fFunction.isOutputScaled) sValues2 = scalarLine.Scalars[1].ValueScaled(fFunction.getOutputScaleExpression, fFunction.getOutputScalePrecision);
-                else sValues2 = scalarLine.Scalars[1].Value(10);
+                foreach (ScalarLine scalarLine in fFunction.Lines)
+                {
+                    string sValues = string.Empty;
+                    string sValues2 = string.Empty;
+                    if (fFunction.isInputScaled) sValues = scalarLine.Scalars[0].ValueScaled(fFunction.getInputScaleExpression, fFunction.getInputScalePrecision);
+                    else sValues = scalarLine.Scalars[0].Value(10);
+                    if (fFunction.isOutputScaled) sValues2 = scalarLine.Scalars[1].ValueScaled(fFunction.getOutputScaleExpression, fFunction.getOutputScalePrecision);
+                    else sValues2 = scalarLine.Scalars[1].Value(10);
 
-                // OtherAddress Header if available in header mode
-                alLines.AddRange(getOutputTextElementOtherAddress(scalarLine.UniqueAddress, true));
-                // Element Included Elements
-                alLines.AddRange(getOutputTextIncludedElements(ref elem, scalarLine.AddressInt, scalarLine.AddressEndInt));
+                    // OtherAddress Header if available in header mode
+                    alLines.AddRange(getOutputTextElementOtherAddress(scalarLine.UniqueAddress, true));
+                    // Element Included Elements
+                    alLines.AddRange(getOutputTextIncludedElements(ref elem, scalarLine.AddressInt, scalarLine.AddressEndInt));
 
-                string[] cellsValues = new string[] { scalarLine.UniqueAddressHex, lineAddressBaseFollower, scalarLine.InitialValue, subType, scalarLine.Scalars[0].Value(16), SADDef.GlobalSeparator, scalarLine.Scalars[1].Value(16), sValues, SADDef.GlobalSeparator, sValues2 };
-                // Current Element and its inline OtherAddress comment if available
-                alLines.AddRange(getOutputTextElementWithComments(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments), string.Empty, getOutputTextElementOtherAddress(scalarLine.UniqueAddress, false), elem.Type == MergedType.ExtFunction));
+                    string uniqueAddressHex = scalarLine.UniqueAddressHex;
+                    if (lineAddressMinWidth < uniqueAddressHex.Length) uniqueAddressHex = uniqueAddressHex.Replace(" ", String.Empty);
+
+                    string[] cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, scalarLine.InitialValue, subType, scalarLine.Scalars[0].Value(16), SADDef.GlobalSeparator, scalarLine.Scalars[1].Value(16), sValues, SADDef.GlobalSeparator, sValues2 };
+                    // Current Element and its inline OtherAddress comment if available
+                    alLines.AddRange(getOutputTextElementWithComments(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments), string.Empty, getOutputTextElementOtherAddress(scalarLine.UniqueAddress, false), elem.Type == MergedType.ExtFunction));
+                }
             }
 
             return (string[])alLines.ToArray(typeof(string));
@@ -1745,47 +1753,53 @@ namespace SAD806x
             int[] cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, -1, subType.Length + tableSeparator2MinWidth, -1, -1 };
             OutputCellAlignment[] cellsAlignments = new OutputCellAlignment[] { OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left };
 
-            foreach (ScalarLine scalarLine in tTable.Lines)
+            if (tTable.Lines != null)
             {
-                string sValues = string.Empty;
-                string sValues2 = string.Empty;
-                foreach (Scalar scalar in scalarLine.Scalars)
+                foreach (ScalarLine scalarLine in tTable.Lines)
                 {
-                    if (tTable.WordOutput)
+                    string sValues = string.Empty;
+                    string sValues2 = string.Empty;
+                    foreach (Scalar scalar in scalarLine.Scalars)
                     {
-                        sValues += string.Format(SADDef.GlobalSeparator + "{0," + tableWordHexMinWidth.ToString() + "}", scalar.Value(16));
-                        if (tTable.isCellsScaled) sValues2 += string.Format(SADDef.GlobalSeparator + "{0," + tableWordDecScaledMinWidth.ToString() + "}", scalar.ValueScaled(tTable.getCellsScaleExpression, tTable.getCellsScalePrecision));
-                        else sValues2 += string.Format(SADDef.GlobalSeparator + "{0," + tableWordDecUnscaledMinWidth.ToString() + "}", scalar.Value(10));
+                        if (tTable.WordOutput)
+                        {
+                            sValues += string.Format(SADDef.GlobalSeparator + "{0," + tableWordHexMinWidth.ToString() + "}", scalar.Value(16));
+                            if (tTable.isCellsScaled) sValues2 += string.Format(SADDef.GlobalSeparator + "{0," + tableWordDecScaledMinWidth.ToString() + "}", scalar.ValueScaled(tTable.getCellsScaleExpression, tTable.getCellsScalePrecision));
+                            else sValues2 += string.Format(SADDef.GlobalSeparator + "{0," + tableWordDecUnscaledMinWidth.ToString() + "}", scalar.Value(10));
+                        }
+                        else
+                        {
+                            sValues += string.Format(SADDef.GlobalSeparator + "{0," + tableByteHexMinWidth.ToString() + "}", scalar.Value(16));
+                            if (tTable.isCellsScaled) sValues2 += string.Format(SADDef.GlobalSeparator + "{0," + tableByteDecScaledMinWidth.ToString() + "}", scalar.ValueScaled(tTable.getCellsScaleExpression, tTable.getCellsScalePrecision));
+                            else sValues2 += string.Format(SADDef.GlobalSeparator + "{0," + tableByteDecUnscaledMinWidth.ToString() + "}", scalar.Value(10));
+                        }
                     }
-                    else
+                    sValues = sValues.Substring(2);
+                    sValues2 = sValues2.Substring(2);
+                    if (cellsMinSizes[2] < 0)
                     {
-                        sValues += string.Format(SADDef.GlobalSeparator + "{0," + tableByteHexMinWidth.ToString() + "}", scalar.Value(16));
-                        if (tTable.isCellsScaled) sValues2 += string.Format(SADDef.GlobalSeparator + "{0," + tableByteDecScaledMinWidth.ToString() + "}", scalar.ValueScaled(tTable.getCellsScaleExpression, tTable.getCellsScalePrecision));
-                        else sValues2 += string.Format(SADDef.GlobalSeparator + "{0," + tableByteDecUnscaledMinWidth.ToString() + "}", scalar.Value(10));
+                        cellsMinSizes[2] = scalarLine.InitialValue.Length + tableSeparator1MinWidth;
+                        if (cellsMinSizes[2] < lineCenterCalPart1MinWidth)
+                        {
+                            cellsMinSizes[2] = lineCenterCalPart1MinWidth;
+                            if (cellsMinSizes[3] < lineCenterCalPart2MinWidth) cellsMinSizes[3] = lineCenterCalPart2MinWidth;
+                        }
                     }
-                }
-                sValues = sValues.Substring(2);
-                sValues2 = sValues2.Substring(2);
-                if (cellsMinSizes[2] < 0)
-                {
-                    cellsMinSizes[2] = scalarLine.InitialValue.Length + tableSeparator1MinWidth;
-                    if (cellsMinSizes[2] < lineCenterCalPart1MinWidth)
-                    {
-                        cellsMinSizes[2] = lineCenterCalPart1MinWidth;
-                        if (cellsMinSizes[3] < lineCenterCalPart2MinWidth) cellsMinSizes[3] = lineCenterCalPart2MinWidth;
-                    }
-                }
-                if (cellsMinSizes[4] < 0) cellsMinSizes[4] = sValues.Length + tableSeparator3MinWidth;
-                if (cellsMinSizes[5] < 0) cellsMinSizes[5] = sValues2.Length;
+                    if (cellsMinSizes[4] < 0) cellsMinSizes[4] = sValues.Length + tableSeparator3MinWidth;
+                    if (cellsMinSizes[5] < 0) cellsMinSizes[5] = sValues2.Length;
 
-                // OtherAddress Header if available in header mode
-                alLines.AddRange(getOutputTextElementOtherAddress(scalarLine.UniqueAddress, true));
-                // Element Included Elements
-                alLines.AddRange(getOutputTextIncludedElements(ref elem, scalarLine.AddressInt, scalarLine.AddressEndInt));
-                
-                string[] cellsValues = new string[] { scalarLine.UniqueAddressHex, lineAddressBaseFollower, scalarLine.InitialValue, subType, sValues, sValues2 };
-                // Current Element without its inline OtherAddress comment for output reasons
-                alLines.Add(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments));
+                    // OtherAddress Header if available in header mode
+                    alLines.AddRange(getOutputTextElementOtherAddress(scalarLine.UniqueAddress, true));
+                    // Element Included Elements
+                    alLines.AddRange(getOutputTextIncludedElements(ref elem, scalarLine.AddressInt, scalarLine.AddressEndInt));
+
+                    string uniqueAddressHex = scalarLine.UniqueAddressHex;
+                    if (lineAddressMinWidth < uniqueAddressHex.Length) uniqueAddressHex = uniqueAddressHex.Replace(" ", String.Empty);
+
+                    string[] cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, scalarLine.InitialValue, subType, sValues, sValues2 };
+                    // Current Element without its inline OtherAddress comment for output reasons
+                    alLines.Add(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments));
+                }
             }
 
             return (string[])alLines.ToArray(typeof(string));
@@ -1819,19 +1833,22 @@ namespace SAD806x
 
             int maxInitialValuesLength = 0;
             int[] maxItemValuesLengths = new int[] { };
-            foreach (StructureLine sLine in sStruct.Lines)
+            if (sStruct.Lines != null)
             {
-                if (sLine.InitialValue.Length > maxInitialValuesLength) maxInitialValuesLength = sLine.InitialValue.Length;
-                if (sLine.Items.Count > maxItemValuesLengths.Length)
+                foreach (StructureLine sLine in sStruct.Lines)
                 {
-                    int[] newLengths = new int[sLine.Items.Count];
-                    for (int iCol = 0; iCol < maxItemValuesLengths.Length; iCol++) newLengths[iCol] = maxItemValuesLengths[iCol];
-                    maxItemValuesLengths = newLengths;
-                }
-                for (int iCol = 0; iCol < sLine.Items.Count; iCol++)
-                {
-                    string sValue = ((StructureItem)sLine.Items[iCol]).Value(sLine.NumberInStructure);
-                    if (sValue.Length > maxItemValuesLengths[iCol]) maxItemValuesLengths[iCol] = sValue.Length;
+                    if (sLine.InitialValue.Length > maxInitialValuesLength) maxInitialValuesLength = sLine.InitialValue.Length;
+                    if (sLine.Items.Count > maxItemValuesLengths.Length)
+                    {
+                        int[] newLengths = new int[sLine.Items.Count];
+                        for (int iCol = 0; iCol < maxItemValuesLengths.Length; iCol++) newLengths[iCol] = maxItemValuesLengths[iCol];
+                        maxItemValuesLengths = newLengths;
+                    }
+                    for (int iCol = 0; iCol < sLine.Items.Count; iCol++)
+                    {
+                        string sValue = ((StructureItem)sLine.Items[iCol]).Value(sLine.NumberInStructure);
+                        if (sValue.Length > maxItemValuesLengths[iCol]) maxItemValuesLengths[iCol] = sValue.Length;
+                    }
                 }
             }
 
@@ -1844,36 +1861,42 @@ namespace SAD806x
                 if (cellsMinSizes[3] < lineCenterCalPart2MinWidth) cellsMinSizes[3] = lineCenterCalPart2MinWidth;
             }
 
-            foreach (StructureLine sLine in sStruct.Lines)
+            if (sStruct.Lines != null)
             {
-                string sValues = string.Empty;
-                for (int iCol = 0; iCol < sLine.Items.Count; iCol++)
+                foreach (StructureLine sLine in sStruct.Lines)
                 {
-                    string sValue = ((StructureItem)sLine.Items[iCol]).Value(sLine.NumberInStructure);
-                    switch (((StructureItem)sLine.Items[iCol]).Type)
+                    string sValues = string.Empty;
+                    for (int iCol = 0; iCol < sLine.Items.Count; iCol++)
                     {
-                        case StructureItemType.String:
-                            if (sValues.EndsWith(SADDef.GlobalSeparator)) sValues += string.Format("{0," + (maxItemValuesLengths[iCol] + 1).ToString() + "}", sValue);
-                            else sValues += string.Format("{0," + (maxItemValuesLengths[iCol]).ToString() + "}", sValue);
-                            break;
-                        case StructureItemType.Skip:
-                        case StructureItemType.Empty:
-                            break;
-                        default:
-                            if (sValues.EndsWith(SADDef.GlobalSeparator)) sValues += string.Format("{0," + (maxItemValuesLengths[iCol] + 1).ToString() + "}", sValue);
-                            else sValues += string.Format("{0," + (maxItemValuesLengths[iCol]).ToString() + "}", sValue);
-                            if (iCol < sLine.Items.Count - 1) sValues += SADDef.GlobalSeparator;
-                            break;
+                        string sValue = ((StructureItem)sLine.Items[iCol]).Value(sLine.NumberInStructure);
+                        switch (((StructureItem)sLine.Items[iCol]).Type)
+                        {
+                            case StructureItemType.String:
+                                if (sValues.EndsWith(SADDef.GlobalSeparator)) sValues += string.Format("{0," + (maxItemValuesLengths[iCol] + 1).ToString() + "}", sValue);
+                                else sValues += string.Format("{0," + (maxItemValuesLengths[iCol]).ToString() + "}", sValue);
+                                break;
+                            case StructureItemType.Skip:
+                            case StructureItemType.Empty:
+                                break;
+                            default:
+                                if (sValues.EndsWith(SADDef.GlobalSeparator)) sValues += string.Format("{0," + (maxItemValuesLengths[iCol] + 1).ToString() + "}", sValue);
+                                else sValues += string.Format("{0," + (maxItemValuesLengths[iCol]).ToString() + "}", sValue);
+                                if (iCol < sLine.Items.Count - 1) sValues += SADDef.GlobalSeparator;
+                                break;
+                        }
                     }
-                }
-                // OtherAddress Header if available in header mode
-                alLines.AddRange(getOutputTextElementOtherAddress(sLine.UniqueAddress, true));
-                // Element Included Elements
-                alLines.AddRange(getOutputTextIncludedElements(ref elem, sLine.AddressInt, sLine.AddressEndInt));
+                    // OtherAddress Header if available in header mode
+                    alLines.AddRange(getOutputTextElementOtherAddress(sLine.UniqueAddress, true));
+                    // Element Included Elements
+                    alLines.AddRange(getOutputTextIncludedElements(ref elem, sLine.AddressInt, sLine.AddressEndInt));
 
-                string[] cellsValues = new string[] { sLine.UniqueAddressHex, lineAddressBaseFollower, sLine.InitialValue, subType, sValues };
-                // Current Element and its inline OtherAddress comment if available
-                alLines.AddRange(getOutputTextElementWithComments(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments), string.Empty, getOutputTextElementOtherAddress(sLine.UniqueAddress, false), elem.Type == MergedType.ExtStructure));
+                    string uniqueAddressHex = sLine.UniqueAddressHex;
+                    if (lineAddressMinWidth < uniqueAddressHex.Length) uniqueAddressHex = uniqueAddressHex.Replace(" ", String.Empty);
+
+                    string[] cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, sLine.InitialValue, subType, sValues };
+                    // Current Element and its inline OtherAddress comment if available
+                    alLines.AddRange(getOutputTextElementWithComments(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments), string.Empty, getOutputTextElementOtherAddress(sLine.UniqueAddress, false), elem.Type == MergedType.ExtStructure));
+                }
             }
 
             return (string[])alLines.ToArray(typeof(string));
@@ -1904,8 +1927,11 @@ namespace SAD806x
                 }
             }
 
+            string uniqueAddressHex = elem.Vector.UniqueSourceAddressHex;
+            if (lineAddressMinWidth < uniqueAddressHex.Length) uniqueAddressHex = uniqueAddressHex.Replace(" ", String.Empty);
+
             int[] cellsMinSizes = new int[] { lineAddressMinWidth, lineAddressBaseFollower.Length, lineCenterOpsPart1MinWidth, lineCenterOpsPart2MinWidth, lineCenterOpsPart3MinWidth, 1 };
-            string[] cellsValues = new string[] { elem.Vector.UniqueSourceAddressHex, lineAddressBaseFollower, elem.Vector.InitialValue, elem.Vector.Address, "Bank " + elem.Vector.ApplyOnBankNum + " " + subType, elem.Vector.FullLabel };
+            string[] cellsValues = new string[] { uniqueAddressHex, lineAddressBaseFollower, elem.Vector.InitialValue, elem.Vector.Address, "Bank " + elem.Vector.ApplyOnBankNum + " " + subType, elem.Vector.FullLabel };
             OutputCellAlignment[] cellsAlignments = new OutputCellAlignment[] { OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left, OutputCellAlignment.Left };
             // Current Element and its inline OtherAddress comment if available
             alLines.AddRange(getOutputTextElementWithComments(OutputTools.GetCellsOutput(cellsValues, cellsMinSizes, cellsAlignments), string.Empty, getOutputTextElementOtherAddress(elem.Vector.UniqueSourceAddress, false), true));

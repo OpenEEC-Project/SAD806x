@@ -5,6 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
+using System.Globalization;
 
 namespace SAD806x
 {
@@ -23,6 +24,8 @@ namespace SAD806x
 
         private SADS6x S6x = null;
         private S6xSignature s6xSig = null;
+
+        private S6xNavCategories s6xNavCategories = null;
 
         private SortedList slInternalStructures = null;
         private SortedList slInternalTables = null;
@@ -46,10 +49,13 @@ namespace SAD806x
 
         private RepositoryConversion repoConversion = null;
 
-        public SigForm(ref SADS6x s6x, ref S6xSignature sig)
+        private DialogResult closingDialogResult = DialogResult.Cancel;
+
+        public SigForm(ref SADS6x s6x, ref S6xSignature sig, ref ImageList stateImageList, ref S6xNavCategories navCategories)
         {
             S6x = s6x;
             s6xSig = sig;
+            s6xNavCategories = navCategories;
 
             slInternalStructures  = new SortedList();
             slInternalTables  = new SortedList();
@@ -76,7 +82,41 @@ namespace SAD806x
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
             catch { }
 
+            this.FormClosing += new FormClosingEventHandler(Form_FormClosing);
+
             InitializeComponent();
+
+            advElemsTreeView.StateImageList = stateImageList;
+            if (advElemsTreeView.Nodes.ContainsKey(TreeRootNodeName))
+            {
+                foreach (TreeNode tnNode in advElemsTreeView.Nodes[TreeRootNodeName].Nodes)
+                {
+                    S6xNavHeaderCategory headerCateg = S6xNavHeaderCategory.UNDEFINED;
+                    switch (tnNode.Name)
+                    {
+                        case TreeCategInputArgumentsNodeName:
+                            headerCateg = S6xNavHeaderCategory.REGISTERS;
+                            break;
+                        case TreeCategInputStructuresNodeName:
+                        case TreeCategInternalStructuresNodeName:
+                            headerCateg = S6xNavHeaderCategory.STRUCTURES;
+                            break;
+                        case TreeCategInputTablesNodeName:
+                        case TreeCategInternalTablesNodeName:
+                            headerCateg = S6xNavHeaderCategory.TABLES;
+                            break;
+                        case TreeCategInputFunctionsNodeName:
+                        case TreeCategInternalFunctionsNodeName:
+                            headerCateg = S6xNavHeaderCategory.FUNCTIONS;
+                            break;
+                        case TreeCategInputScalarsNodeName:
+                        case TreeCategInternalScalarsNodeName:
+                            headerCateg = S6xNavHeaderCategory.SCALARS;
+                            break;
+                    }
+                    if (headerCateg != S6xNavHeaderCategory.UNDEFINED) tnNode.StateImageKey = S6xNav.getS6xNavHeaderCategoryStateImageKey(headerCateg);
+                }
+            }
         }
 
         private void SigForm_Load(object sender, EventArgs e)
@@ -93,6 +133,32 @@ namespace SAD806x
             inputArgEncryptionComboBox.DataSource = Enum.GetValues(typeof(CallArgsMode));
             inputArgEncryptionComboBox.SelectedItem = CallArgsMode.Standard;
 
+            routineIdentificationStatusTrackBar.ValueChanged += new EventHandler(identificationStatusTrackBar_ValueChanged);
+            internalStructureIdentificationStatusTrackBar.ValueChanged += new EventHandler(identificationStatusTrackBar_ValueChanged);
+            internalTableIdentificationStatusTrackBar.ValueChanged += new EventHandler(identificationStatusTrackBar_ValueChanged);
+            internalFunctionIdentificationStatusTrackBar.ValueChanged += new EventHandler(identificationStatusTrackBar_ValueChanged);
+            internalScalarIdentificationStatusTrackBar.ValueChanged += new EventHandler(identificationStatusTrackBar_ValueChanged);
+
+            S6xNav.s6xNavCategoriesLoad(S6xNavHeaderCategory.ROUTINES, routineCategComboBox, S6xNavCategoryLevel.ONE, ref s6xNavCategories);
+            S6xNav.s6xNavCategoriesLoad(S6xNavHeaderCategory.ROUTINES, routineCateg2ComboBox, S6xNavCategoryLevel.TWO, ref s6xNavCategories);
+            S6xNav.s6xNavCategoriesLoad(S6xNavHeaderCategory.ROUTINES, routineCateg3ComboBox, S6xNavCategoryLevel.THREE, ref s6xNavCategories);
+
+            S6xNav.s6xNavCategoriesLoad(S6xNavHeaderCategory.STRUCTURES, internalStructureCategComboBox, S6xNavCategoryLevel.ONE, ref s6xNavCategories);
+            S6xNav.s6xNavCategoriesLoad(S6xNavHeaderCategory.STRUCTURES, internalStructureCateg2ComboBox, S6xNavCategoryLevel.TWO, ref s6xNavCategories);
+            S6xNav.s6xNavCategoriesLoad(S6xNavHeaderCategory.STRUCTURES, internalStructureCateg3ComboBox, S6xNavCategoryLevel.THREE, ref s6xNavCategories);
+
+            S6xNav.s6xNavCategoriesLoad(S6xNavHeaderCategory.TABLES, internalTableCategComboBox, S6xNavCategoryLevel.ONE, ref s6xNavCategories);
+            S6xNav.s6xNavCategoriesLoad(S6xNavHeaderCategory.TABLES, internalTableCateg2ComboBox, S6xNavCategoryLevel.TWO, ref s6xNavCategories);
+            S6xNav.s6xNavCategoriesLoad(S6xNavHeaderCategory.TABLES, internalTableCateg3ComboBox, S6xNavCategoryLevel.THREE, ref s6xNavCategories);
+
+            S6xNav.s6xNavCategoriesLoad(S6xNavHeaderCategory.FUNCTIONS, internalFunctionCategComboBox, S6xNavCategoryLevel.ONE, ref s6xNavCategories);
+            S6xNav.s6xNavCategoriesLoad(S6xNavHeaderCategory.FUNCTIONS, internalFunctionCateg2ComboBox, S6xNavCategoryLevel.TWO, ref s6xNavCategories);
+            S6xNav.s6xNavCategoriesLoad(S6xNavHeaderCategory.FUNCTIONS, internalFunctionCateg3ComboBox, S6xNavCategoryLevel.THREE, ref s6xNavCategories);
+
+            S6xNav.s6xNavCategoriesLoad(S6xNavHeaderCategory.SCALARS, internalScalarCategComboBox, S6xNavCategoryLevel.ONE, ref s6xNavCategories);
+            S6xNav.s6xNavCategoriesLoad(S6xNavHeaderCategory.SCALARS, internalScalarCateg2ComboBox, S6xNavCategoryLevel.TWO, ref s6xNavCategories);
+            S6xNav.s6xNavCategoriesLoad(S6xNavHeaderCategory.SCALARS, internalScalarCateg3ComboBox, S6xNavCategoryLevel.THREE, ref s6xNavCategories);
+
             advLabelTextBox.Text = s6xSig.SignatureLabel;
             advSLabelTextBox.Text = s6xSig.UniqueKey;
             
@@ -104,6 +170,29 @@ namespace SAD806x
             routineCommentsTextBox.Text = s6xSig.Comments;
             routineCommentsTextBox.Text = routineCommentsTextBox.Text.Replace("\r\n", "\n").Replace("\n\r", "\n").Replace("\n", "\r\n");
             routineOutputCommentsCheckBox.Checked = s6xSig.OutputComments;
+
+            routineDateCreatedDateTimePicker.Value = Tools.getValidDateTime(s6xSig.RoutineDateCreated, S6x.Properties.DateCreated).ToLocalTime();
+            routineDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(s6xSig.RoutineDateUpdated, S6x.Properties.DateUpdated).ToLocalTime();
+
+            if (s6xSig.RoutineCategory == null) routineCategComboBox.Text = string.Empty;
+            else routineCategComboBox.Text = s6xSig.RoutineCategory;
+            if (s6xSig.RoutineCategory2 == null) routineCateg2ComboBox.Text = string.Empty;
+            else routineCateg2ComboBox.Text = s6xSig.RoutineCategory2;
+            if (s6xSig.RoutineCategory3 == null) routineCateg3ComboBox.Text = string.Empty;
+            else routineCateg3ComboBox.Text = s6xSig.RoutineCategory3;
+
+            if (s6xSig.RoutineIdentificationStatus < 0) routineIdentificationStatusTrackBar.Value = 0;
+            else if (s6xSig.RoutineIdentificationStatus > 100) routineIdentificationStatusTrackBar.Value = 100;
+            else routineIdentificationStatusTrackBar.Value = s6xSig.RoutineIdentificationStatus;
+
+            // Windows 10 1809 (10.0.17763) Issue
+            routineIdentificationDetailsTextBox.Clear();
+            routineIdentificationDetailsTextBox.Multiline = false;
+            routineIdentificationDetailsTextBox.Multiline = true;
+
+            if (s6xSig.RoutineIdentificationDetails == null) routineIdentificationDetailsTextBox.Text = string.Empty;
+            else routineIdentificationDetailsTextBox.Text = s6xSig.RoutineIdentificationDetails;
+            routineIdentificationDetailsTextBox.Text = routineIdentificationDetailsTextBox.Text.Replace("\r\n", "\n").Replace("\n\r", "\n").Replace("\n", "\r\n");
 
             if (signatureFor806xComboBox.Items.Count == Enum.GetValues(typeof(Signature806xOptions)).Length)
             {
@@ -211,6 +300,11 @@ namespace SAD806x
                 }
             }
             clearElem();
+        }
+
+        private void Form_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            this.DialogResult = closingDialogResult;
         }
 
         private void attachPropertiesEventsControls(ref Control.ControlCollection controls)
@@ -328,6 +422,8 @@ namespace SAD806x
         private void advSigTextBox_TextChanged(object sender, EventArgs e)
         {
             s6xSig.Signature = advSigTextBox.Text;
+
+            closingDialogResult = DialogResult.OK;
         }
 
         private void inputArgPositionTextBox_TextChanged(object sender, EventArgs e)
@@ -335,15 +431,34 @@ namespace SAD806x
             inputArgCodeTextBox.Text = Tools.ArgumentCode(inputArgPositionTextBox.Text);
         }
 
+        private void identificationStatusTrackBar_ValueChanged(object sender, EventArgs e)
+        {
+            TrackBar tbTB = (TrackBar)sender;
+            Label lbLB = null;
+
+            if (tbTB == routineIdentificationStatusTrackBar) lbLB = routineIdentificationLabel;
+            else if (tbTB == internalStructureIdentificationStatusTrackBar) lbLB = internalStructureIdentificationLabel;
+            else if (tbTB == internalTableIdentificationStatusTrackBar) lbLB = internalTableIdentificationLabel;
+            else if (tbTB == internalFunctionIdentificationStatusTrackBar) lbLB = internalFunctionIdentificationLabel;
+            else if (tbTB == internalScalarIdentificationStatusTrackBar) lbLB = internalScalarIdentificationLabel;
+
+            if (lbLB == null) return;
+
+            lbLB.Text = string.Format("{0} ({1:d2}%)", lbLB.Tag, tbTB.Value);
+        }
+
         private void loadElemsTreeView()
         {
             TreeNode tnNode = null;
+
+            string defaultStateImageKey = S6xNav.getIdentificationStatusStateImageKey(100);
 
             foreach (S6xRoutineInputArgument s6xObject in slInputArguments.Values)
             {
                 tnNode = new TreeNode();
                 tnNode.Name = s6xObject.UniqueKey;
                 tnNode.Text = s6xObject.Position.ToString() + " - " + s6xObject.Code;
+                tnNode.StateImageKey = defaultStateImageKey;
                 advElemsTreeView.Nodes[TreeRootNodeName].Nodes[TreeCategInputArgumentsNodeName].Nodes.Add(tnNode);
                 tnNode = null;
             }
@@ -352,6 +467,7 @@ namespace SAD806x
                 tnNode = new TreeNode();
                 tnNode.Name = s6xObject.UniqueKey;
                 tnNode.Text = s6xObject.VariableAddress;
+                tnNode.StateImageKey = defaultStateImageKey;
                 advElemsTreeView.Nodes[TreeRootNodeName].Nodes[TreeCategInputStructuresNodeName].Nodes.Add(tnNode);
                 tnNode = null;
             }
@@ -360,6 +476,7 @@ namespace SAD806x
                 tnNode = new TreeNode();
                 tnNode.Name = s6xObject.UniqueKey;
                 tnNode.Text = s6xObject.VariableAddress;
+                tnNode.StateImageKey = defaultStateImageKey;
                 advElemsTreeView.Nodes[TreeRootNodeName].Nodes[TreeCategInputTablesNodeName].Nodes.Add(tnNode);
                 tnNode = null;
             }
@@ -368,6 +485,7 @@ namespace SAD806x
                 tnNode = new TreeNode();
                 tnNode.Name = s6xObject.UniqueKey;
                 tnNode.Text = s6xObject.VariableAddress;
+                tnNode.StateImageKey = defaultStateImageKey;
                 advElemsTreeView.Nodes[TreeRootNodeName].Nodes[TreeCategInputFunctionsNodeName].Nodes.Add(tnNode);
                 tnNode = null;
             }
@@ -376,6 +494,7 @@ namespace SAD806x
                 tnNode = new TreeNode();
                 tnNode.Name = s6xObject.UniqueKey;
                 tnNode.Text = s6xObject.VariableAddress;
+                tnNode.StateImageKey = defaultStateImageKey;
                 advElemsTreeView.Nodes[TreeRootNodeName].Nodes[TreeCategInputScalarsNodeName].Nodes.Add(tnNode);
                 tnNode = null;
             }
@@ -386,6 +505,7 @@ namespace SAD806x
                 tnNode.Name = s6xObject.UniqueKey;
                 tnNode.Text = s6xObject.Label;
                 tnNode.ToolTipText = s6xObject.Comments;
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xObject.IdentificationStatus);
                 advElemsTreeView.Nodes[TreeRootNodeName].Nodes[TreeCategInternalStructuresNodeName].Nodes.Add(tnNode);
                 tnNode = null;
             }
@@ -395,6 +515,7 @@ namespace SAD806x
                 tnNode.Name = s6xObject.UniqueKey;
                 tnNode.Text = s6xObject.Label;
                 tnNode.ToolTipText = s6xObject.Comments;
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xObject.IdentificationStatus);
                 advElemsTreeView.Nodes[TreeRootNodeName].Nodes[TreeCategInternalTablesNodeName].Nodes.Add(tnNode);
                 tnNode = null;
             }
@@ -404,6 +525,7 @@ namespace SAD806x
                 tnNode.Name = s6xObject.UniqueKey;
                 tnNode.Text = s6xObject.Label;
                 tnNode.ToolTipText = s6xObject.Comments;
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xObject.IdentificationStatus);
                 advElemsTreeView.Nodes[TreeRootNodeName].Nodes[TreeCategInternalFunctionsNodeName].Nodes.Add(tnNode);
                 tnNode = null;
             }
@@ -413,6 +535,7 @@ namespace SAD806x
                 tnNode.Name = s6xObject.UniqueKey;
                 tnNode.Text = s6xObject.Label;
                 tnNode.ToolTipText = s6xObject.Comments;
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xObject.IdentificationStatus);
                 advElemsTreeView.Nodes[TreeRootNodeName].Nodes[TreeCategInternalScalarsNodeName].Nodes.Add(tnNode);
                 tnNode = null;
             }
@@ -551,6 +674,12 @@ namespace SAD806x
                     case "NumericUpDown":
                         ((NumericUpDown)control).Value = ((NumericUpDown)control).Minimum;
                         break;
+                    case "DateTimePicker":
+                        ((DateTimePicker)control).Value = DateTime.Now;
+                        break;
+                    case "TrackBar":
+                        ((TrackBar)control).Value = ((TrackBar)control).Minimum;
+                        break;
                     case "Button":
                         control.Tag = null;
                         break;
@@ -612,6 +741,10 @@ namespace SAD806x
                         inputArgEncryptionComboBox.SelectedItem = (CallArgsMode)sigInpArg.Encryption;
                     }
                     catch { }
+
+                    inputArgDateCreatedDateTimePicker.Value = Tools.getValidDateTime(sigInpArg.DateCreated, S6x.Properties.DateCreated).ToLocalTime();
+                    inputArgDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(sigInpArg.DateUpdated, S6x.Properties.DateUpdated).ToLocalTime();
+
                     sigInpArg = null;
                     break;
                 case TreeCategInputStructuresNodeName:
@@ -626,6 +759,10 @@ namespace SAD806x
                     inputStructureStructTextBox.Multiline = true;
 
                     inputStructureStructTextBox.Text = sigInpStr.StructDef;
+
+                    inputStructureDateCreatedDateTimePicker.Value = Tools.getValidDateTime(sigInpStr.DateCreated, S6x.Properties.DateCreated).ToLocalTime();
+                    inputStructureDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(sigInpStr.DateUpdated, S6x.Properties.DateUpdated).ToLocalTime();
+
                     sigInpStr = null;
                     break;
                 case TreeCategInputTablesNodeName:
@@ -644,6 +781,10 @@ namespace SAD806x
                     inputTableScalePrecNumericUpDown.Value = sigInpTbl.ForcedCellsScalePrecision;
                     inputTableSignedCheckBox.Checked = sigInpTbl.SignedOutput;
                     inputTableWordCheckBox.Checked = sigInpTbl.WordOutput;
+
+                    inputTableDateCreatedDateTimePicker.Value = Tools.getValidDateTime(sigInpTbl.DateCreated, S6x.Properties.DateCreated).ToLocalTime();
+                    inputTableDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(sigInpTbl.DateUpdated, S6x.Properties.DateUpdated).ToLocalTime();
+                    
                     sigInpTbl = null;
                     break;
                 case TreeCategInputFunctionsNodeName:
@@ -661,6 +802,10 @@ namespace SAD806x
                     inputFunctionSignedOutputCheckBox.Checked = sigInpFunc.SignedOutput;
                     inputFunctionUnitsInputTextBox.Text = sigInpFunc.ForcedInputUnits;
                     inputFunctionUnitsOutputTextBox.Text = sigInpFunc.ForcedOutputUnits;
+
+                    inputFunctionDateCreatedDateTimePicker.Value = Tools.getValidDateTime(sigInpFunc.DateCreated, S6x.Properties.DateCreated).ToLocalTime();
+                    inputFunctionDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(sigInpFunc.DateUpdated, S6x.Properties.DateUpdated).ToLocalTime();
+                    
                     sigInpFunc = null;
                     break;
                 case TreeCategInputScalarsNodeName:
@@ -671,9 +816,10 @@ namespace SAD806x
                     inputScalarScalePrecNumericUpDown.Value = sigInpScal.ForcedScalePrecision;
                     inputScalarSignedCheckBox.Checked = sigInpScal.Signed;
                     inputScalarUnitsTextBox.Text = sigInpScal.ForcedUnits;
-                    inputScalarBitFlagsCheckBox.Checked = sigInpScal.isBitFlags;
 
-                    inputScalarBitFlagsButton.Tag = null;
+                    inputScalarDateCreatedDateTimePicker.Value = Tools.getValidDateTime(sigInpScal.DateCreated, S6x.Properties.DateCreated).ToLocalTime();
+                    inputScalarDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(sigInpScal.DateUpdated, S6x.Properties.DateUpdated).ToLocalTime();
+
                     sigInpScal = null;
                     break;
                 case TreeCategInternalStructuresNodeName:
@@ -698,6 +844,30 @@ namespace SAD806x
                     internalStructureStructTextBox.Multiline = true;
                     
                     internalStructureStructTextBox.Text = sigIntStr.StructDef;
+
+                    internalStructureDateCreatedDateTimePicker.Value = Tools.getValidDateTime(sigIntStr.DateCreated, S6x.Properties.DateCreated).ToLocalTime();
+                    internalStructureDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(sigIntStr.DateUpdated, S6x.Properties.DateUpdated).ToLocalTime();
+
+                    if (sigIntStr.Category == null) internalStructureCategComboBox.Text = string.Empty;
+                    else internalStructureCategComboBox.Text = sigIntStr.Category;
+                    if (sigIntStr.Category2 == null) internalStructureCateg2ComboBox.Text = string.Empty;
+                    else internalStructureCateg2ComboBox.Text = sigIntStr.Category2;
+                    if (sigIntStr.Category3 == null) internalStructureCateg3ComboBox.Text = string.Empty;
+                    else internalStructureCateg3ComboBox.Text = sigIntStr.Category3;
+
+                    if (sigIntStr.IdentificationStatus < 0) internalStructureIdentificationStatusTrackBar.Value = 0;
+                    else if (sigIntStr.IdentificationStatus > 100) internalStructureIdentificationStatusTrackBar.Value = 100;
+                    else internalStructureIdentificationStatusTrackBar.Value = sigIntStr.IdentificationStatus;
+
+                    // Windows 10 1809 (10.0.17763) Issue
+                    internalStructureIdentificationDetailsTextBox.Clear();
+                    internalStructureIdentificationDetailsTextBox.Multiline = false;
+                    internalStructureIdentificationDetailsTextBox.Multiline = true;
+
+                    if (sigIntStr.IdentificationDetails == null) internalStructureIdentificationDetailsTextBox.Text = string.Empty;
+                    else internalStructureIdentificationDetailsTextBox.Text = sigIntStr.IdentificationDetails;
+                    internalStructureIdentificationDetailsTextBox.Text = internalStructureIdentificationDetailsTextBox.Text.Replace("\r\n", "\n").Replace("\n\r", "\n").Replace("\n", "\r\n");
+                    
                     sigIntStr = null;
                     break;
                 case TreeCategInternalTablesNodeName:
@@ -723,6 +893,33 @@ namespace SAD806x
                     internalTableSignedCheckBox.Checked = sigIntTbl.SignedOutput;
                     internalTableSLabelTextBox.Text = sigIntTbl.ShortLabel;
                     internalTableWordCheckBox.Checked = sigIntTbl.WordOutput;
+
+                    internalTableCellsMinTextBox.Text = sigIntTbl.CellsMin;
+                    internalTableCellsMaxTextBox.Text = sigIntTbl.CellsMax;
+
+                    internalTableDateCreatedDateTimePicker.Value = Tools.getValidDateTime(sigIntTbl.DateCreated, S6x.Properties.DateCreated).ToLocalTime();
+                    internalTableDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(sigIntTbl.DateUpdated, S6x.Properties.DateUpdated).ToLocalTime();
+
+                    if (sigIntTbl.Category == null) internalTableCategComboBox.Text = string.Empty;
+                    else internalTableCategComboBox.Text = sigIntTbl.Category;
+                    if (sigIntTbl.Category2 == null) internalTableCateg2ComboBox.Text = string.Empty;
+                    else internalTableCateg2ComboBox.Text = sigIntTbl.Category2;
+                    if (sigIntTbl.Category3 == null) internalTableCateg3ComboBox.Text = string.Empty;
+                    else internalTableCateg3ComboBox.Text = sigIntTbl.Category3;
+
+                    if (sigIntTbl.IdentificationStatus < 0) internalTableIdentificationStatusTrackBar.Value = 0;
+                    else if (sigIntTbl.IdentificationStatus > 100) internalTableIdentificationStatusTrackBar.Value = 100;
+                    else internalTableIdentificationStatusTrackBar.Value = sigIntTbl.IdentificationStatus;
+
+                    // Windows 10 1809 (10.0.17763) Issue
+                    internalTableIdentificationDetailsTextBox.Clear();
+                    internalTableIdentificationDetailsTextBox.Multiline = false;
+                    internalTableIdentificationDetailsTextBox.Multiline = true;
+
+                    if (sigIntTbl.IdentificationDetails == null) internalTableIdentificationDetailsTextBox.Text = string.Empty;
+                    else internalTableIdentificationDetailsTextBox.Text = sigIntTbl.IdentificationDetails;
+                    internalTableIdentificationDetailsTextBox.Text = internalTableIdentificationDetailsTextBox.Text.Replace("\r\n", "\n").Replace("\n\r", "\n").Replace("\n", "\r\n");
+                    
                     sigIntTbl = null;
                     break;
                 case TreeCategInternalFunctionsNodeName:
@@ -749,6 +946,35 @@ namespace SAD806x
                     internalFunctionSLabelTextBox.Text = sigIntFunc.ShortLabel;
                     internalFunctionUnitsInputTextBox.Text = sigIntFunc.InputUnits;
                     internalFunctionUnitsOutputTextBox.Text = sigIntFunc.OutputUnits;
+
+                    internalFunctionMinInputTextBox.Text = sigIntFunc.InputMin;
+                    internalFunctionMaxInputTextBox.Text = sigIntFunc.InputMax;
+                    internalFunctionMinOutputTextBox.Text = sigIntFunc.OutputMin;
+                    internalFunctionMaxOutputTextBox.Text = sigIntFunc.OutputMax;
+
+                    internalFunctionDateCreatedDateTimePicker.Value = Tools.getValidDateTime(sigIntFunc.DateCreated, S6x.Properties.DateCreated).ToLocalTime();
+                    internalFunctionDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(sigIntFunc.DateUpdated, S6x.Properties.DateUpdated).ToLocalTime();
+
+                    if (sigIntFunc.Category == null) internalFunctionCategComboBox.Text = string.Empty;
+                    else internalFunctionCategComboBox.Text = sigIntFunc.Category;
+                    if (sigIntFunc.Category2 == null) internalFunctionCateg2ComboBox.Text = string.Empty;
+                    else internalFunctionCateg2ComboBox.Text = sigIntFunc.Category2;
+                    if (sigIntFunc.Category3 == null) internalFunctionCateg3ComboBox.Text = string.Empty;
+                    else internalFunctionCateg3ComboBox.Text = sigIntFunc.Category3;
+
+                    if (sigIntFunc.IdentificationStatus < 0) internalFunctionIdentificationStatusTrackBar.Value = 0;
+                    else if (sigIntFunc.IdentificationStatus > 100) internalFunctionIdentificationStatusTrackBar.Value = 100;
+                    else internalFunctionIdentificationStatusTrackBar.Value = sigIntFunc.IdentificationStatus;
+
+                    // Windows 10 1809 (10.0.17763) Issue
+                    internalFunctionIdentificationDetailsTextBox.Clear();
+                    internalFunctionIdentificationDetailsTextBox.Multiline = false;
+                    internalFunctionIdentificationDetailsTextBox.Multiline = true;
+
+                    if (sigIntFunc.IdentificationDetails == null) internalFunctionIdentificationDetailsTextBox.Text = string.Empty;
+                    else internalFunctionIdentificationDetailsTextBox.Text = sigIntFunc.IdentificationDetails;
+                    internalFunctionIdentificationDetailsTextBox.Text = internalFunctionIdentificationDetailsTextBox.Text.Replace("\r\n", "\n").Replace("\n\r", "\n").Replace("\n", "\r\n");
+
                     sigIntFunc = null;
                     break;
                 case TreeCategInternalScalarsNodeName:
@@ -773,7 +999,34 @@ namespace SAD806x
                     internalScalarUnitsTextBox.Text = sigIntScal.Units;
                     internalScalarBitFlagsCheckBox.Checked = sigIntScal.isBitFlags;
 
+                    internalScalarMinTextBox.Text = sigIntScal.Min;
+                    internalScalarMaxTextBox.Text = sigIntScal.Max;
+
                     internalScalarBitFlagsButton.Tag = null;
+
+                    internalScalarDateCreatedDateTimePicker.Value = Tools.getValidDateTime(sigIntScal.DateCreated, S6x.Properties.DateCreated).ToLocalTime();
+                    internalScalarDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(sigIntScal.DateUpdated, S6x.Properties.DateUpdated).ToLocalTime();
+
+                    if (sigIntScal.Category == null) internalScalarCategComboBox.Text = string.Empty;
+                    else internalScalarCategComboBox.Text = sigIntScal.Category;
+                    if (sigIntScal.Category2 == null) internalScalarCateg2ComboBox.Text = string.Empty;
+                    else internalScalarCateg2ComboBox.Text = sigIntScal.Category2;
+                    if (sigIntScal.Category3 == null) internalScalarCateg3ComboBox.Text = string.Empty;
+                    else internalScalarCateg3ComboBox.Text = sigIntScal.Category3;
+
+                    if (sigIntScal.IdentificationStatus < 0) internalScalarIdentificationStatusTrackBar.Value = 0;
+                    else if (sigIntScal.IdentificationStatus > 100) internalScalarIdentificationStatusTrackBar.Value = 100;
+                    else internalScalarIdentificationStatusTrackBar.Value = sigIntScal.IdentificationStatus;
+
+                    // Windows 10 1809 (10.0.17763) Issue
+                    internalScalarIdentificationDetailsTextBox.Clear();
+                    internalScalarIdentificationDetailsTextBox.Multiline = false;
+                    internalScalarIdentificationDetailsTextBox.Multiline = true;
+
+                    if (sigIntScal.IdentificationDetails == null) internalScalarIdentificationDetailsTextBox.Text = string.Empty;
+                    else internalScalarIdentificationDetailsTextBox.Text = sigIntScal.IdentificationDetails;
+                    internalScalarIdentificationDetailsTextBox.Text = internalScalarIdentificationDetailsTextBox.Text.Replace("\r\n", "\n").Replace("\n\r", "\n").Replace("\n", "\r\n");
+                    
                     sigIntScal = null;
                     break;
                 default:
@@ -842,7 +1095,9 @@ namespace SAD806x
             }
 
             updateArray(currentTreeNode.Parent.Name);
-            
+
+            closingDialogResult = DialogResult.OK;
+
             currentTreeNode.Parent.Nodes.Remove(currentTreeNode);
             currentTreeNode = null;
         }
@@ -853,6 +1108,7 @@ namespace SAD806x
             string uniqueKey = string.Empty;
             string label = string.Empty;
             string comments = string.Empty;
+            int identificationStatus = 100; // Maximum by default (for non internal elements)
 
             switch (elemTabControl.SelectedTab.Name)
             {
@@ -903,7 +1159,7 @@ namespace SAD806x
                     if (currentTreeNode.Parent.Name != categ) currentTreeNode = null;
                 }
             }
-
+            
             switch (categ)
             {
                 case TreeCategInputArgumentsNodeName:
@@ -930,6 +1186,10 @@ namespace SAD806x
                     sigInpArg.Word = inputArgWordCheckBox.Checked;
                     sigInpArg.Pointer = inputArgPointerCheckBox.Checked;
 
+                    sigInpArg.DateCreated = inputArgDateCreatedDateTimePicker.Value.ToUniversalTime();
+                    inputArgDateUpdatedDateTimePicker.Value = DateTime.Now;
+                    sigInpArg.DateUpdated = inputArgDateUpdatedDateTimePicker.Value.ToUniversalTime();
+
                     uniqueKey = sigInpArg.UniqueKey;
                     label = sigInpArg.Position.ToString() + " - " + sigInpArg.Code;
 
@@ -952,6 +1212,10 @@ namespace SAD806x
                     sigInpStr.StructDef = inputStructureStructTextBox.Text;
 
                     sigInpStr.ForcedNumber = inputStructureNumFixTextBox.Text;
+
+                    sigInpStr.DateCreated = inputStructureDateCreatedDateTimePicker.Value.ToUniversalTime();
+                    inputStructureDateUpdatedDateTimePicker.Value = DateTime.Now;
+                    sigInpStr.DateUpdated = inputStructureDateUpdatedDateTimePicker.Value.ToUniversalTime();
 
                     uniqueKey = sigInpStr.UniqueKey;
                     label = sigInpStr.VariableAddress;
@@ -986,6 +1250,10 @@ namespace SAD806x
                     sigInpTbl.ForcedCellsScaleExpression = inputTableScaleTextBox.Text;
                     sigInpTbl.ForcedCellsScalePrecision = (int)inputTableScalePrecNumericUpDown.Value;
 
+                    sigInpTbl.DateCreated = inputTableDateCreatedDateTimePicker.Value.ToUniversalTime();
+                    inputTableDateUpdatedDateTimePicker.Value = DateTime.Now;
+                    sigInpTbl.DateUpdated = inputTableDateUpdatedDateTimePicker.Value.ToUniversalTime();
+
                     uniqueKey = sigInpTbl.UniqueKey;
                     label = sigInpTbl.VariableAddress;
                     
@@ -1018,6 +1286,10 @@ namespace SAD806x
                     sigInpFunc.ForcedInputUnits = inputFunctionUnitsInputTextBox.Text;
                     sigInpFunc.ForcedOutputUnits = inputFunctionUnitsOutputTextBox.Text;
 
+                    sigInpFunc.DateCreated = inputFunctionDateCreatedDateTimePicker.Value.ToUniversalTime();
+                    inputFunctionDateUpdatedDateTimePicker.Value = DateTime.Now;
+                    sigInpFunc.DateUpdated = inputFunctionDateUpdatedDateTimePicker.Value.ToUniversalTime();
+
                     uniqueKey = sigInpFunc.UniqueKey;
                     label = sigInpFunc.VariableAddress;
 
@@ -1043,13 +1315,9 @@ namespace SAD806x
                     sigInpScal.ForcedScalePrecision = (int)inputScalarScalePrecNumericUpDown.Value;
                     sigInpScal.ForcedUnits = inputScalarUnitsTextBox.Text;
 
-                    if (inputScalarBitFlagsButton.Tag != null)
-                    {
-                        S6xScalar s6xScalar = (S6xScalar)inputScalarBitFlagsButton.Tag;
-                        inputScalarBitFlagsButton.Tag = null;
-                        if (s6xScalar.BitFlags != null) sigInpScal.BitFlags = (S6xBitFlag[])s6xScalar.BitFlags.Clone();
-                        s6xScalar = null;
-                    }
+                    sigInpScal.DateCreated = inputScalarDateCreatedDateTimePicker.Value.ToUniversalTime();
+                    inputScalarDateUpdatedDateTimePicker.Value = DateTime.Now;
+                    sigInpScal.DateUpdated = inputScalarDateUpdatedDateTimePicker.Value.ToUniversalTime();
 
                     uniqueKey = sigInpScal.UniqueKey;
                     label = sigInpScal.VariableAddress;
@@ -1077,9 +1345,21 @@ namespace SAD806x
                     sigIntStr.ShortLabel = internalStructureSLabelTextBox.Text;
                     sigIntStr.StructDef = internalStructureStructTextBox.Text;
 
+                    sigIntStr.IdentificationStatus = internalStructureIdentificationStatusTrackBar.Value;
+                    sigIntStr.IdentificationDetails = internalStructureIdentificationDetailsTextBox.Text;
+
+                    sigIntStr.DateCreated = internalStructureDateCreatedDateTimePicker.Value.ToUniversalTime();
+                    internalStructureDateUpdatedDateTimePicker.Value = DateTime.Now;
+                    sigIntStr.DateUpdated = internalStructureDateUpdatedDateTimePicker.Value.ToUniversalTime();
+
+                    sigIntStr.Category = internalStructureCategComboBox.Text;
+                    sigIntStr.Category2 = internalStructureCateg2ComboBox.Text;
+                    sigIntStr.Category3 = internalStructureCateg3ComboBox.Text;
+
                     uniqueKey = sigIntStr.UniqueKey;
                     label = sigIntStr.Label;
                     comments = sigIntStr.Comments;
+                    identificationStatus = sigIntStr.IdentificationStatus;
 
                     sigIntStr = null;
                     break;
@@ -1111,9 +1391,24 @@ namespace SAD806x
                     sigIntTbl.ShortLabel = internalTableSLabelTextBox.Text;
                     sigIntTbl.WordOutput = internalTableWordCheckBox.Checked;
 
+                    sigIntTbl.CellsMin = internalTableCellsMinTextBox.Text;
+                    sigIntTbl.CellsMax = internalTableCellsMaxTextBox.Text;
+
+                    sigIntTbl.IdentificationStatus = internalTableIdentificationStatusTrackBar.Value;
+                    sigIntTbl.IdentificationDetails = internalTableIdentificationDetailsTextBox.Text;
+
+                    sigIntTbl.DateCreated = internalTableDateCreatedDateTimePicker.Value.ToUniversalTime();
+                    internalTableDateUpdatedDateTimePicker.Value = DateTime.Now;
+                    sigIntTbl.DateUpdated = internalTableDateUpdatedDateTimePicker.Value.ToUniversalTime();
+
+                    sigIntTbl.Category = internalTableCategComboBox.Text;
+                    sigIntTbl.Category2 = internalTableCateg2ComboBox.Text;
+                    sigIntTbl.Category3 = internalTableCateg3ComboBox.Text;
+
                     uniqueKey = sigIntTbl.UniqueKey;
                     label = sigIntTbl.Label;
                     comments = sigIntTbl.Comments;
+                    identificationStatus = sigIntTbl.IdentificationStatus;
 
                     sigIntTbl = null;
                     break;
@@ -1146,9 +1441,26 @@ namespace SAD806x
                     sigIntFunc.InputUnits = internalFunctionUnitsInputTextBox.Text;
                     sigIntFunc.OutputUnits = internalFunctionUnitsOutputTextBox.Text;
 
+                    sigIntFunc.InputMin = internalFunctionMinInputTextBox.Text;
+                    sigIntFunc.InputMax = internalFunctionMaxInputTextBox.Text;
+                    sigIntFunc.OutputMin = internalFunctionMinOutputTextBox.Text;
+                    sigIntFunc.OutputMax = internalFunctionMaxOutputTextBox.Text;
+
+                    sigIntFunc.IdentificationStatus = internalFunctionIdentificationStatusTrackBar.Value;
+                    sigIntFunc.IdentificationDetails = internalFunctionIdentificationDetailsTextBox.Text;
+
+                    sigIntFunc.DateCreated = internalFunctionDateCreatedDateTimePicker.Value.ToUniversalTime();
+                    internalFunctionDateUpdatedDateTimePicker.Value = DateTime.Now;
+                    sigIntFunc.DateUpdated = internalFunctionDateUpdatedDateTimePicker.Value.ToUniversalTime();
+
+                    sigIntFunc.Category = internalFunctionCategComboBox.Text;
+                    sigIntFunc.Category2 = internalFunctionCateg2ComboBox.Text;
+                    sigIntFunc.Category3 = internalFunctionCateg3ComboBox.Text;
+
                     uniqueKey = sigIntFunc.UniqueKey;
                     label = sigIntFunc.Label;
                     comments = sigIntFunc.Comments;
+                    identificationStatus = sigIntFunc.IdentificationStatus;
 
                     sigIntFunc = null;
                     break;
@@ -1177,6 +1489,20 @@ namespace SAD806x
                     sigIntScal.ShortLabel = internalScalarSLabelTextBox.Text;
                     sigIntScal.Units = internalScalarUnitsTextBox.Text;
 
+                    sigIntScal.Min = internalScalarMinTextBox.Text;
+                    sigIntScal.Max = internalScalarMaxTextBox.Text;
+
+                    sigIntScal.IdentificationStatus = internalScalarIdentificationStatusTrackBar.Value;
+                    sigIntScal.IdentificationDetails = internalScalarIdentificationDetailsTextBox.Text;
+
+                    sigIntScal.DateCreated = internalScalarDateCreatedDateTimePicker.Value.ToUniversalTime();
+                    internalScalarDateUpdatedDateTimePicker.Value = DateTime.Now;
+                    sigIntScal.DateUpdated = internalScalarDateUpdatedDateTimePicker.Value.ToUniversalTime();
+
+                    sigIntScal.Category = internalScalarCategComboBox.Text;
+                    sigIntScal.Category2 = internalScalarCateg2ComboBox.Text;
+                    sigIntScal.Category3 = internalScalarCateg3ComboBox.Text;
+
                     if (internalScalarBitFlagsButton.Tag != null)
                     {
                         S6xScalar s6xScalar = (S6xScalar)internalScalarBitFlagsButton.Tag;
@@ -1188,6 +1514,7 @@ namespace SAD806x
                     uniqueKey = sigIntScal.UniqueKey;
                     label = sigIntScal.Label;
                     comments = sigIntScal.Comments;
+                    identificationStatus = sigIntScal.IdentificationStatus;
 
                     sigIntScal = null;
                     break;
@@ -1203,8 +1530,12 @@ namespace SAD806x
                 currentTreeNode.Name = uniqueKey;
                 advElemsTreeView.Nodes[TreeRootNodeName].Nodes[categ].Nodes.Add(currentTreeNode);
             }
+
+            closingDialogResult = DialogResult.OK;
+
             currentTreeNode.Text = label;
             currentTreeNode.ToolTipText = comments;
+            currentTreeNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(identificationStatus);
 
             clearElem();
 
@@ -1230,6 +1561,17 @@ namespace SAD806x
                 if (signatureForBankComboBox.SelectedIndex == (int)SignatureBankOptions.Undefined) s6xSig.forBankNum = null;
                 else s6xSig.forBankNum = Enum.GetName(typeof(SignatureBankOptions), signatureForBankComboBox.SelectedIndex);
             }
+
+            s6xSig.RoutineIdentificationStatus = routineIdentificationStatusTrackBar.Value;
+            s6xSig.RoutineIdentificationDetails = routineIdentificationDetailsTextBox.Text;
+
+            s6xSig.RoutineDateCreated = routineDateCreatedDateTimePicker.Value.ToUniversalTime();
+            routineDateUpdatedDateTimePicker.Value = DateTime.Now;
+            s6xSig.RoutineDateUpdated = routineDateUpdatedDateTimePicker.Value.ToUniversalTime();
+
+            s6xSig.RoutineCategory = routineCategComboBox.Text;
+            s6xSig.RoutineCategory2 = routineCateg2ComboBox.Text;
+            s6xSig.RoutineCategory3 = routineCateg3ComboBox.Text;
         }
 
         private bool checkElem(string categ)
@@ -1255,19 +1597,19 @@ namespace SAD806x
                     checkPassed &= checkVariableValue(inputTableOutputTextBox.Text);
                     checkPassed &= checkForcedColsRowsNumber(inputTableRowsNumTextBox.Text);
                     checkPassed &= checkVariableValue(inputTableRowsRegTextBox.Text);
-                    checkPassed &= checkScaleExpression(inputTableScaleTextBox.Text);
+                    checkScaleExpression(inputTableScaleTextBox.Text);                          // Warning Only
                     return checkPassed;
                 case TreeCategInputFunctionsNodeName:
                     checkPassed &= checkVariableValue(inputFunctionAddrTextBox.Text);
                     checkPassed &= checkVariableValue(inputFunctionInputTextBox.Text);
                     checkPassed &= checkVariableValue(inputFunctionOutputTextBox.Text);
                     checkPassed &= checkForcedColsRowsNumber(inputFunctionRowsTextBox.Text);
-                    checkPassed &= checkScaleExpression(inputFunctionScaleInputTextBox.Text);
-                    checkPassed &= checkScaleExpression(inputFunctionScaleOutputTextBox.Text);
+                    checkScaleExpression(inputFunctionScaleInputTextBox.Text);                  // Warning Only
+                    checkScaleExpression(inputFunctionScaleOutputTextBox.Text);                 // Warning Only
                     return checkPassed;
                 case TreeCategInputScalarsNodeName:
                     checkPassed &= checkVariableValue(inputScalarAddrTextBox.Text);
-                    checkPassed &= checkScaleExpression(inputScalarScaleTextBox.Text);
+                    checkScaleExpression(inputScalarScaleTextBox.Text);                         // Warning Only
                     return checkPassed;
                 case TreeCategInternalStructuresNodeName:
                     checkPassed &= checkVariableValue(internalStructureAddrTextBox.Text);
@@ -1278,17 +1620,25 @@ namespace SAD806x
                     checkPassed &= checkVariableValue(internalTableAddrTextBox.Text);
                     checkPassed &= checkVariableValue(internalTableColsTextBox.Text);
                     checkPassed &= checkColsRowsNumber(internalTableRowsTextBox.Text);
-                    checkPassed &= checkScaleExpression(internalTableScaleTextBox.Text);
+                    checkScaleExpression(internalTableScaleTextBox.Text);                       // Warning Only
+                    checkMinMax(internalTableCellsMinTextBox.Text);                             // Warning Only
+                    checkMinMax(internalTableCellsMaxTextBox.Text);                             // Warning Only
                     return checkPassed;
                 case TreeCategInternalFunctionsNodeName:
                     checkPassed &= checkVariableValue(internalFunctionAddrTextBox.Text);
                     checkPassed &= checkColsRowsNumber(internalFunctionRowsTextBox.Text);
-                    checkPassed &= checkScaleExpression(internalFunctionScaleInputTextBox.Text);
-                    checkPassed &= checkScaleExpression(internalFunctionScaleOutputTextBox.Text);
+                    checkScaleExpression(internalFunctionScaleInputTextBox.Text);               // Warning Only
+                    checkScaleExpression(internalFunctionScaleOutputTextBox.Text);              // Warning Only
+                    checkMinMax(internalFunctionMinInputTextBox.Text);                          // Warning Only
+                    checkMinMax(internalFunctionMaxInputTextBox.Text);                          // Warning Only
+                    checkMinMax(internalFunctionMinOutputTextBox.Text);                         // Warning Only
+                    checkMinMax(internalFunctionMaxOutputTextBox.Text);                         // Warning Only
                     return checkPassed;
                 case TreeCategInternalScalarsNodeName:
                     checkPassed &= checkVariableValue(internalScalarAddrTextBox.Text);
-                    checkPassed &= checkScaleExpression(internalScalarScaleTextBox.Text);
+                    checkScaleExpression(internalScalarScaleTextBox.Text);                      // Warning Only
+                    checkMinMax(internalScalarMinTextBox.Text);                                 // Warning Only
+                    checkMinMax(internalScalarMaxTextBox.Text);                                 // Warning Only
                     return checkPassed;
                 default:
                     return false;
@@ -1330,6 +1680,16 @@ namespace SAD806x
             return true;
         }
 
+        private bool checkMinMax(string number)
+        {
+            if (number.Contains(SADDef.SignatureParamBytePrefixSuffix)) number = number.Replace(SADDef.SignatureParamBytePrefixSuffix, string.Empty);
+
+            if (number == Tools.getValidMinMax(number)) return true;
+
+            MessageBox.Show("Minimum or Maximum value \"" + number + "\" will not be seen as a valid expression.\r\nExpect format is '000000.0000'.", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
+        }
+
         private bool checkForcedColsRowsNumber(string number)
         {
             if (number == string.Empty) return true;
@@ -1356,7 +1716,9 @@ namespace SAD806x
             try
             {
                 int num = Convert.ToInt32(number);
-                if (num <= 0 || num > 99) return false;
+                // 20210311 - PYM - 0 is for Autodetection
+                //if (num <= 0 || num > 99) return false;
+                if (num < 0 || num > 99) return false;
             }
             catch
             {
@@ -1434,55 +1796,6 @@ namespace SAD806x
             return uniqueKey;
         }
 
-        private void inputScalarBitFlagsButton_Click(object sender, EventArgs e)
-        {
-            string uniqueAddress = string.Empty;
-            S6xScalar tempScalar = null;
-            S6xScalar s6xScalar = null;
-
-            if (currentTreeNode == null) return;
-
-            if (currentTreeNode.Parent != null)
-            {
-                if (currentTreeNode.Parent.Name != TreeCategInputScalarsNodeName) return;
-            }
-
-            S6xRoutineInputScalar sigInpScal = (S6xRoutineInputScalar)slInputScalars[currentTreeNode.Name];
-
-            if (inputScalarBitFlagsButton.Tag != null)
-            {
-                s6xScalar = (S6xScalar)inputScalarBitFlagsButton.Tag;
-            }
-
-            if (s6xScalar == null)
-            {
-                tempScalar = new S6xScalar();
-                if (sigInpScal != null)
-                {
-                    if (sigInpScal.BitFlags != null) tempScalar.BitFlags = (S6xBitFlag[])sigInpScal.BitFlags.Clone();
-                }
-            }
-            else
-            {
-                tempScalar = s6xScalar.Clone();
-            }
-            s6xScalar = null;
-
-            tempScalar.Label = "Input Scalar";
-            tempScalar.Byte = inputScalarByteCheckBox.Checked;
-
-            BitFlagsForm bitFlagsForm = new BitFlagsForm(ref S6x, ref tempScalar);
-            bitFlagsForm.ShowDialog();
-            bitFlagsForm = null;
-
-            inputScalarBitFlagsCheckBox.Checked = tempScalar.isBitFlags;
-
-            // To be reused on Update
-            inputScalarBitFlagsButton.Tag = tempScalar;
-
-            tempScalar = null;
-        }
-
         private void internalScalarBitFlagsButton_Click(object sender, EventArgs e)
         {
             string uniqueAddress = string.Empty;
@@ -1520,14 +1833,19 @@ namespace SAD806x
             tempScalar.Label = "Internal Scalar";
             tempScalar.Byte = internalScalarByteCheckBox.Checked;
 
-            BitFlagsForm bitFlagsForm = new BitFlagsForm(ref S6x, ref tempScalar);
-            bitFlagsForm.ShowDialog();
+            ImageList stateImageList = advElemsTreeView.StateImageList;
+            BitFlagsForm bitFlagsForm = new BitFlagsForm(ref S6x, ref tempScalar, ref stateImageList, ref s6xNavCategories);
+            bool updatedBitFlags = bitFlagsForm.ShowDialog() == DialogResult.OK;
+            stateImageList = null;
             bitFlagsForm = null;
 
-            internalScalarBitFlagsCheckBox.Checked = tempScalar.isBitFlags;
+            if (updatedBitFlags)
+            {
+                internalScalarBitFlagsCheckBox.Checked = tempScalar.isBitFlags;
 
-            // To be reused on Update
-            internalScalarBitFlagsButton.Tag = tempScalar;
+                // To be reused on Update
+                internalScalarBitFlagsButton.Tag = tempScalar;
+            }
 
             tempScalar = null;
         }

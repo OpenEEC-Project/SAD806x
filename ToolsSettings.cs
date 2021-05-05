@@ -14,13 +14,18 @@ namespace SAD806x
             switch (specType)
             {
                 case "TEXTOUTPUT":
-                    currentVersion = "0.22";
+                    currentVersion = "0.23";
                     if (setSettings.version != currentVersion) UpdateTextOuput(ref setSettings);
                     break;
 
                 case "SADIMPEXP":
                     currentVersion = "0.01";
                     if (setSettings.version != currentVersion) UpdateSADImpExp(ref setSettings);
+                    break;
+
+                case "TUNERPROIMPEXP":
+                    currentVersion = "0.01";
+                    if (setSettings.version != currentVersion) UpdateTunerProImpExp(ref setSettings);
                     break;
             }
         }
@@ -106,7 +111,7 @@ namespace SAD806x
             defItem.Information += "Beginning for each line.\r\nIt is a minimum width.";
             defItem.DefaultValue = "6";
             defItem.Value = defItem.DefaultValue;
-            defItem.MinValue = "6";
+            defItem.MinValue = "5";
             defItem.MaxValue = "10";
             defItem.Sample = defaultSampleOps;
             defItem.SampleMode = SettingSampleMode.StartAndValue;
@@ -711,6 +716,73 @@ namespace SAD806x
             defItem.Category = "Comments";
             defItem.Information = defItem.Label + ".";
             defItem.DefaultValue = "#";
+            defItem.Value = defItem.DefaultValue;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+
+            SortedList slProvidedSettings = new SortedList();
+            foreach (SettingItem sItem in setSettings.Items)
+            {
+                try { slProvidedSettings.Add(sItem.UniqueId, sItem); }
+                catch { }
+            }
+
+            bool updateSettings = false;
+            foreach (string sKey in slDefaultSettings.Keys)
+            {
+                if (slProvidedSettings.ContainsKey(sKey))
+                {
+                    updateSettings |= ((SettingItem)slProvidedSettings[sKey]).Refresh((SettingItem)slDefaultSettings[sKey]);
+                }
+                else
+                {
+                    slProvidedSettings.Add(sKey, slDefaultSettings[sKey]);
+                    updateSettings = true;
+                }
+            }
+
+            if (updateSettings)
+            {
+                setSettings.Items.Clear();
+                foreach (SettingItem sItem in slProvidedSettings.Values) setSettings.Items.Add(sItem);
+            }
+
+            setSettings.version = "0.01";
+        }
+
+        private static void UpdateTunerProImpExp(ref SettingsLst setSettings)
+        {
+            SortedList slDefaultSettings = new SortedList();
+            SettingItem defItem = null;
+
+            defItem = new SettingItem("AUTODETECT_MNGT_TABLES", "00100", "Export Auto Detected Tables", SettingType.Boolean);
+            defItem.Category = "Mngt";
+            defItem.Information = defItem.Label + "\r\n\r\n";
+            defItem.Information += "Define if auto detected elements have to be exported.";
+            defItem.DefaultValue = "0";
+            defItem.Value = defItem.DefaultValue;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+
+            defItem = new SettingItem("AUTODETECT_MNGT_FUNCTIONS", "00110", "Export Auto Detected Functions", SettingType.Boolean);
+            defItem.Category = "Mngt";
+            defItem.Information = defItem.Label + "\r\n\r\n";
+            defItem.Information += "Define if auto detected elements have to be exported.";
+            defItem.DefaultValue = "0";
+            defItem.Value = defItem.DefaultValue;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+
+            defItem = new SettingItem("AUTODETECT_MNGT_SCALARS", "00120", "Export Auto Detected Scalars", SettingType.Boolean);
+            defItem.Category = "Mngt";
+            defItem.Information = defItem.Label + "\r\n\r\n";
+            defItem.Information += "Define if auto detected elements have to be exported.";
+            defItem.DefaultValue = "0";
+            defItem.Value = defItem.DefaultValue;
+            slDefaultSettings.Add(defItem.UniqueId, defItem);
+
+            defItem = new SettingItem("AUTODETECT_MNGT_BITFLAGS", "00130", "Export Auto Detected Bit Flags", SettingType.Boolean);
+            defItem.Category = "Mngt";
+            defItem.Information = defItem.Label + "\r\n\r\n";
+            defItem.Information += "Define if auto detected elements have to be exported.";
+            defItem.DefaultValue = "0";
             defItem.Value = defItem.DefaultValue;
             slDefaultSettings.Add(defItem.UniqueId, defItem);
 

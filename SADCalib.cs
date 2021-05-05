@@ -63,6 +63,11 @@ namespace SAD806x
         public ArrayList alLoadCallsUniqueAddresses = null;
         public ArrayList alLoadRoutinesCodesOpsAddresses = null;
 
+        // Statistics
+        private SortedList slStatistics = null;
+        private SortedList slStatisticsAddresses = null;
+        private SortedList slStatisticsRegisters = null;
+
         private bool loaded = false;
         private bool is8061 = false;
         private bool isEarly = false;
@@ -83,6 +88,10 @@ namespace SAD806x
 
         public bool isLoaded { get { return loaded; } }
 
+        public SortedList Statistics { get { return slStatistics; } }
+        public SortedList StatisticsAddresses { get { return slStatisticsAddresses; } }
+        public SortedList StatisticsRegisters { get { return slStatisticsRegisters; } }
+        
         public SADCalib()
         {
             slRconst = new SortedList();
@@ -118,6 +127,10 @@ namespace SAD806x
             alLoadStructuresUniqueAddresses = new ArrayList();
             alLoadCallsUniqueAddresses = new ArrayList();
             alLoadRoutinesCodesOpsAddresses = new ArrayList();
+
+            slStatistics = new SortedList();
+            slStatisticsAddresses = new SortedList();
+            slStatisticsRegisters = new SortedList();
         }
         
         public void Load(SortedList slGivenRbases, ref SADBank calibBank, bool bIs8061, bool bIsEarly, bool bIsPilot, ref string[] arrBinBytes)
@@ -199,8 +212,11 @@ namespace SAD806x
                     calElem.ScalarElem.Byte = false;
                     calElem.ScalarElem.Word = true;
                     calElem.ScalarElem.Signed = false;
-                    calElem.ScalarElem.InitialValue = rBase.AddressBankEnd.Substring(2, 2) + SADDef.GlobalSeparator + rBase.AddressBankEnd.Substring(0, 2);
-                    calElem.ScalarElem.ValueInt = rBase.AddressBankEndInt + SADDef.EecBankStartAddress;
+                    // 20210102 - rBase.AddressBankEndInt is the value - 1, just to revert and to calculate on this basis
+                    //calElem.ScalarElem.ValueInt = rBase.AddressBankEndInt + SADDef.EecBankStartAddress;
+                    calElem.ScalarElem.ValueInt = rBase.AddressBankEndInt + 1 + SADDef.EecBankStartAddress;
+                    //calElem.ScalarElem.InitialValue = rBase.AddressBankEnd.Substring(2, 2) + SADDef.GlobalSeparator + rBase.AddressBankEnd.Substring(0, 2);
+                    calElem.ScalarElem.InitialValue = calElem.ScalarElem.Value(16).Substring(2, 2) + SADDef.GlobalSeparator + calElem.ScalarElem.Value(16).Substring(0, 2);
                     calElem.ScalarElem.Label = SADDef.LongLabelScalarRBaseEndNextAdr.Replace("%1%", calElem.RBaseCalc);
                     calElem.ScalarElem.ShortLabel = SADDef.ShortLabelScalarRBaseEndNextAdr.Replace("%1%", calElem.RBaseCalc);
 
@@ -268,6 +284,10 @@ namespace SAD806x
             slLoadExtStructures = null;
             slLoadCalls = null;
 
+            slStatistics = new SortedList();
+            slStatisticsAddresses = new SortedList();
+            slStatisticsRegisters = new SortedList();
+            
             GC.Collect();
         }
 
@@ -303,14 +323,14 @@ namespace SAD806x
                             if (tScalerIndex >= 0)
                             {
                                 tScaler = (TableScaler)alTablesScalers[tScalerIndex];
-                                tScaler.addRegister(ciCi.ColsScalerRegister);
+                                if (Tools.RegisterValideUniqueAddress(ciCi.ColsScalerRegister)) tScaler.addRegister(ciCi.ColsScalerRegister);
                                 tScaler.addFunction(ciCi.ColsScalerFunctionUniqueAddress);
                                 tScaler.addColsScaledTable(calElem.TableElem.UniqueAddress);
                             }
                             else
                             {
                                 tScaler = new TableScaler();
-                                tScaler.addRegister(ciCi.ColsScalerRegister);
+                                if (Tools.RegisterValideUniqueAddress(ciCi.ColsScalerRegister))tScaler.addRegister(ciCi.ColsScalerRegister);
                                 tScaler.addFunction(ciCi.ColsScalerFunctionUniqueAddress);
                                 tScaler.addColsScaledTable(calElem.TableElem.UniqueAddress);
                                 alTablesScalers.Add(tScaler);
@@ -323,21 +343,21 @@ namespace SAD806x
                             if (tScalerIndex >= 0)
                             {
                                 tScaler = (TableScaler)alTablesScalers[tScalerIndex];
-                                tScaler.addRegister(ciCi.RowsScalerRegister);
+                                if (Tools.RegisterValideUniqueAddress(ciCi.RowsScalerRegister)) tScaler.addRegister(ciCi.RowsScalerRegister);
                                 tScaler.addFunction(ciCi.RowsScalerFunctionUniqueAddress);
                                 tScaler.addRowsScaledTable(calElem.TableElem.UniqueAddress);
                             }
                             else
                             {
                                 tScaler = new TableScaler();
-                                tScaler.addRegister(ciCi.RowsScalerRegister);
+                                if (Tools.RegisterValideUniqueAddress(ciCi.RowsScalerRegister)) tScaler.addRegister(ciCi.RowsScalerRegister);
                                 tScaler.addFunction(ciCi.RowsScalerFunctionUniqueAddress);
                                 tScaler.addRowsScaledTable(calElem.TableElem.UniqueAddress);
                                 alTablesScalers.Add(tScaler);
                             }
                             tScaler = null;
                         }
-                        if (ciCi.ColsScalerRegister != string.Empty)
+                        if (ciCi.ColsScalerRegister != string.Empty && Tools.RegisterValideUniqueAddress(ciCi.ColsScalerRegister))
                         {
                             rReg = (Register)slRegisters[Tools.RegisterUniqueAddress(ciCi.ColsScalerRegister)];
                             if (rReg == null)
@@ -350,7 +370,7 @@ namespace SAD806x
                             if (!slUpdatedRegisters.ContainsKey(rReg.UniqueAddress)) slUpdatedRegisters.Add(rReg.UniqueAddress, rReg);
                             rReg = null;
                         }
-                        if (ciCi.RowsScalerRegister != string.Empty)
+                        if (ciCi.RowsScalerRegister != string.Empty && Tools.RegisterValideUniqueAddress(ciCi.RowsScalerRegister))
                         {
                             rReg = (Register)slRegisters[Tools.RegisterUniqueAddress(ciCi.RowsScalerRegister)];
                             if (rReg == null)
@@ -363,7 +383,7 @@ namespace SAD806x
                             if (!slUpdatedRegisters.ContainsKey(rReg.UniqueAddress)) slUpdatedRegisters.Add(rReg.UniqueAddress, rReg);
                             rReg = null;
                         }
-                        if (ciCi.OutputRegister != string.Empty)
+                        if (ciCi.OutputRegister != string.Empty && Tools.RegisterValideUniqueAddress(ciCi.OutputRegister))
                         {
                             rReg = (Register)slRegisters[Tools.RegisterUniqueAddress(ciCi.OutputRegister)];
                             if (rReg == null)
@@ -376,7 +396,7 @@ namespace SAD806x
                             if (!slUpdatedRegisters.ContainsKey(rReg.UniqueAddress)) slUpdatedRegisters.Add(rReg.UniqueAddress, rReg);
                             rReg = null;
                         }
-                        if (ciCi.OutputRegisterByte != string.Empty)
+                        if (ciCi.OutputRegisterByte != string.Empty && Tools.RegisterValideUniqueAddress(ciCi.OutputRegisterByte))
                         {
                             rReg = (Register)slRegisters[Tools.RegisterUniqueAddress(ciCi.OutputRegisterByte)];
                             if (rReg == null)
@@ -1241,7 +1261,8 @@ namespace SAD806x
             {
                 if (function.S6xFunction == null)
                 {
-
+                    // 20210218 - PYM - Reviewed
+                    /*
                     if (!(iAddress <= currentRbaseEndAddress && (function.AddressInt == iAddress || !slCalibrationElements.ContainsKey(Tools.UniqueAddress(function.BankNum, iAddress)))))
                     {
                         if (forcedRowsNum <= 0 || forcedRowsNum < alLines.Count) break;
@@ -1251,10 +1272,36 @@ namespace SAD806x
                         if (function.S6xElementSignatureSource.Function == null) break;
                         if (function.S6xElementSignatureSource.Function.RowsNumber != forcedRowsNum) break;
                     }
+                    */
 
+                    CalibrationElement conflictElement = null;
+                    bool preventBreak = false;
+
+                    if (iAddress > currentRbaseEndAddress) break;
                     if (forcedRowsNum > 0)
                     {
                         if (alLines.Count >= forcedRowsNum) break;
+                    }
+
+                    // 20210218 - PYM - Defaulted Structures, often badly identifed, are ignored for ending Funtion Read
+                    if (function.AddressInt != iAddress && slCalibrationElements.ContainsKey(Tools.UniqueAddress(function.BankNum, iAddress)))
+                    {
+                        // Forced from Signature overrides this control
+                        if (forcedRowsNum > 0 && function.S6xElementSignatureSource == null)
+                        {
+                            if (function.S6xElementSignatureSource.Function == null) preventBreak = function.S6xElementSignatureSource.Function.RowsNumber == forcedRowsNum;
+                        }
+
+                        if (!preventBreak)
+                        {
+                            conflictElement = (CalibrationElement)slCalibrationElements[Tools.UniqueAddress(function.BankNum, iAddress)];
+                            if (conflictElement != null)
+                            {
+                                if (conflictElement.isStructure && conflictElement.StructureElem != null) preventBreak = conflictElement.StructureElem.Defaulted && conflictElement.StructureElem.S6xStructure == null;
+                            }
+                        }
+
+                        if (!preventBreak) break;
                     }
                 }
                 else
@@ -1608,6 +1655,8 @@ namespace SAD806x
             {
                 if (table.S6xTable == null)
                 {
+                    // 20210218 - PYM - Reviewed
+                    /*
                     if (table.WordOutput)
                     {
                         if (iAddress + 1 > currentRbaseEndAddress) break;
@@ -1627,6 +1676,46 @@ namespace SAD806x
                     else if (scalerRowsNum > 0)
                     {
                         if (alLines.Count >= scalerRowsNum) break;
+                    }
+                    */
+
+                    CalibrationElement conflictElement = null;
+                    bool preventBreak = false;
+
+                    if (iAddress > currentRbaseEndAddress) break;
+                    if (forcedRowsNum > 0)
+                    {
+                        if (alLines.Count >= forcedRowsNum) break;
+                    }
+                    else if (scalerRowsNum > 0)
+                    {
+                        if (alLines.Count >= scalerRowsNum) break;
+                    }
+
+                    // 20210218 - PYM - Defaulted Structures, often badly identifed, are ignored for ending Table Read
+                    if (table.AddressInt != iAddress && slCalibrationElements.ContainsKey(Tools.UniqueAddress(table.BankNum, iAddress)))
+                    {
+                        conflictElement = (CalibrationElement)slCalibrationElements[Tools.UniqueAddress(table.BankNum, iAddress)];
+                        if (conflictElement != null)
+                        {
+                            if (conflictElement.isStructure && conflictElement.StructureElem != null) preventBreak = conflictElement.StructureElem.Defaulted && conflictElement.StructureElem.S6xStructure == null;
+                        }
+                        if (!preventBreak) break;
+                    }
+                    if (table.WordOutput)
+                    {
+                        preventBreak = false;
+                        if (iAddress + 1 > currentRbaseEndAddress) break;
+                        // 20210218 - PYM - Defaulted Structures, often badly identifed, are ignored for ending Table Read
+                        if (slCalibrationElements.ContainsKey(Tools.UniqueAddress(table.BankNum, iAddress + 1)))
+                        {
+                            conflictElement = (CalibrationElement)slCalibrationElements[Tools.UniqueAddress(table.BankNum, iAddress + 1)];
+                            if (conflictElement != null)
+                            {
+                                if (conflictElement.isStructure && conflictElement.StructureElem != null) preventBreak = conflictElement.StructureElem.Defaulted && conflictElement.StructureElem.S6xStructure == null;
+                            }
+                            if (!preventBreak) break;
+                        }
                     }
                 }
                 else
@@ -1991,7 +2080,7 @@ namespace SAD806x
                     // Initial Translation not managed
                     if (S6x.Properties.NoNumbering)
                     {
-                        cCall.Label = SADDef.ShortCallPrefix + SADDef.NamingShortBankSeparator + cCall.UniqueAddressHex.Replace(" ", SADDef.NamingShortBankSeparator);
+                        cCall.Label = SADDef.ShortCallPrefix + SADDef.NamingShortBankSeparator + cCall.UniqueAddressHex.Replace(" ", S6x.Properties.NoNumberingShortFormat ? string.Empty : SADDef.NamingShortBankSeparator);
                     }
                     else
                     {
@@ -2009,7 +2098,7 @@ namespace SAD806x
                     {
                         if (S6x.Properties.NoNumbering)
                         {
-                            cCall.Label = SADDef.ShortCallPrefix + SADDef.NamingShortBankSeparator + cCall.UniqueAddressHex.Replace(" ", SADDef.NamingShortBankSeparator);
+                            cCall.Label = SADDef.ShortCallPrefix + SADDef.NamingShortBankSeparator + cCall.UniqueAddressHex.Replace(" ", S6x.Properties.NoNumberingShortFormat ? string.Empty : SADDef.NamingShortBankSeparator);
                         }
                         else
                         {
@@ -2032,7 +2121,7 @@ namespace SAD806x
                     // Normally they should not appear in slCalls
                     if (S6x.Properties.NoNumbering)
                     {
-                        cCall.Label = SADDef.ShortCallFakePrefix + SADDef.NamingShortBankSeparator + cCall.UniqueAddressHex.Replace(" ", SADDef.NamingShortBankSeparator);
+                        cCall.Label = SADDef.ShortCallFakePrefix + SADDef.NamingShortBankSeparator + cCall.UniqueAddressHex.Replace(" ", S6x.Properties.NoNumberingShortFormat ? string.Empty : SADDef.NamingShortBankSeparator);
                     }
                     else
                     {
@@ -2061,7 +2150,7 @@ namespace SAD806x
                         default:
                             if (S6x.Properties.NoNumbering)
                             {
-                                cCall.Label = SADDef.ShortCallPrefix + SADDef.NamingShortBankSeparator + cCall.UniqueAddressHex.Replace(" ", SADDef.NamingShortBankSeparator);
+                                cCall.Label = SADDef.ShortCallPrefix + SADDef.NamingShortBankSeparator + cCall.UniqueAddressHex.Replace(" ", S6x.Properties.NoNumberingShortFormat ? string.Empty : SADDef.NamingShortBankSeparator);
                             }
                             else
                             {
@@ -2577,6 +2666,72 @@ namespace SAD806x
                 }
             }
             return -1;
+        }
+
+        public void incStatistics(StatisticsItems sItem)
+        {
+            incStatistics(sItem, 1);
+        }
+
+        public void incStatistics(StatisticsItems sItem, int incValue)
+        {
+            if (slStatistics == null) slStatistics = new SortedList();
+
+            int prevValue = slStatistics.ContainsKey(sItem) ? (int)slStatistics[sItem] : 0;
+            
+            setStatistics(sItem, prevValue + incValue);
+        }
+
+        public void setStatistics(StatisticsItems sItem, int sValue)
+        {
+            if (slStatistics == null) slStatistics = new SortedList();
+
+            if (!slStatistics.ContainsKey(sItem)) slStatistics.Add(sItem, sValue);
+            else slStatistics[sItem] = sValue;
+        }
+
+        public void addStatisticsAddress(StatisticsItems sItem, int iBankNum, int iAddress, object oObject)
+        {
+            if (slStatisticsAddresses == null) slStatisticsAddresses = new SortedList();
+
+            SortedList slSA = (SortedList)slStatisticsAddresses[sItem];
+            if (slSA == null)
+            {
+                slSA = new SortedList();
+                slStatisticsAddresses.Add(sItem, slSA);
+            }
+            string uniqueAddress = Tools.UniqueAddress(iBankNum, iAddress);
+            if (!slSA.ContainsKey(uniqueAddress)) slSA.Add(uniqueAddress, new object[] { iBankNum, iAddress, oObject });
+            slSA = null;
+        }
+
+        public void addStatisticsRegisterAddress(Register rReg, StatisticsRegisterItems srItem, int iBankNum, int iAddress, object oObject)
+        {
+            if (rReg == null) return;
+            
+            if (slStatisticsRegisters == null) slStatisticsRegisters = new SortedList();
+
+            SortedList slSA = (SortedList)slStatisticsRegisters[srItem];
+            if (slSA == null)
+            {
+                slSA = new SortedList();
+                slStatisticsRegisters.Add(srItem, slSA);
+            }
+
+            object[] arrSR = (object[])slSA[rReg.UniqueAddress];
+            if (arrSR == null)
+            {
+                arrSR = new object[] {rReg, new SortedList()};
+                slSA.Add(rReg.UniqueAddress, arrSR);
+            }
+            SortedList slSI = (SortedList)arrSR[1];
+
+            string uniqueAddress = Tools.UniqueAddress(iBankNum, iAddress);
+            if (!slSI.ContainsKey(uniqueAddress)) slSI.Add(uniqueAddress, new object[] { iBankNum, iAddress, oObject });
+
+            slSI = null;
+            arrSR = null;
+            slSA = null;
         }
 
         public string getBytes(int startPos, int len) { return Tools.getBytes(startPos - AddressBankInt, len, ref arrBytes); }

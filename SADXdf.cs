@@ -6,6 +6,16 @@ using System.Xml.Serialization;
 namespace SAD806x
 {
     [Serializable]
+    [XmlRoot("CATEGORYMEM")]
+    public class XdfCategory
+    {
+        [XmlAttribute]
+        public string index { get; set; }                   // 0 (A), 1 (B), 2 (C)
+        [XmlAttribute]
+        public string category { get; set; }                // Decimal value for category 1 => 300   1 matches with Category 0x0
+    }
+    
+    [Serializable]
     [XmlRoot("EMBEDDEDDATA")]
     public class XdfData
     {
@@ -163,6 +173,9 @@ namespace SAD806x
         public string title { get; set; }
         public string description { get; set; }
 
+        [XmlElement("CATEGORYMEM")]
+        public XdfCategory[] xdfCategories { get; set; }
+        
         [XmlElement("XDFPATCHENTRY")]
         public XdfPatchEntry xdfPatchEntry { get; set; }
 
@@ -183,6 +196,9 @@ namespace SAD806x
 
         public string title { get; set; }
         public string description { get; set; }
+
+        [XmlElement("CATEGORYMEM")]
+        public XdfCategory[] xdfCategories { get; set; }
 
         [XmlElement("EMBEDDEDDATA")]
         public XdfData xdfData { get; set; }
@@ -216,10 +232,10 @@ namespace SAD806x
             xdfData = new XdfData();
         }
 
-        public XdfFlag(S6xScalar s6xScalar, S6xBitFlag s6xBitFlag, int xdfBaseOffset)
+        public XdfFlag(S6xScalar s6xScalar, S6xBitFlag s6xBitFlag, int xdfBaseOffset, XdfHeaderCategory[] xdfHeaderCategories)
         {
             Init();
-            Import(s6xScalar, s6xBitFlag, xdfBaseOffset);
+            Import(s6xScalar, s6xBitFlag, xdfBaseOffset, xdfHeaderCategories);
         }
 
         public void Init()
@@ -237,10 +253,12 @@ namespace SAD806x
             mask = "0x0001";
         }
 
-        public void Import(S6xScalar s6xScalar, S6xBitFlag s6xBitFlag, int xdfBaseOffset)
+        public void Import(S6xScalar s6xScalar, S6xBitFlag s6xBitFlag, int xdfBaseOffset, XdfHeaderCategory[] xdfHeaderCategories)
         {
             title = s6xBitFlag.Label;
             description = Tools.XDFLabelSLabelComXdfComment(s6xBitFlag.Label, s6xBitFlag.ShortLabel, s6xBitFlag.Comments);
+
+            xdfCategories = Tools.XDFElementCategories(xdfHeaderCategories, new string[] { s6xBitFlag.Category, s6xBitFlag.Category2, s6xBitFlag.Category3 });
 
             xdfData.mmedaddress = Tools.xdfAddressFromBinAddress(s6xScalar.AddressBinInt, xdfBaseOffset);
             xdfData.mmedtypeflags = "0x02";
@@ -269,6 +287,9 @@ namespace SAD806x
         public string title { get; set; }
         public string description { get; set; }
 
+        [XmlElement("CATEGORYMEM")]
+        public XdfCategory[] xdfCategories { get; set; }
+
         [XmlElement("EMBEDDEDDATA")]
         public XdfData xdfData { get; set; }
 
@@ -276,8 +297,11 @@ namespace SAD806x
         public string decimalpl { get; set; }       // 2 for 1.00, 3 for 1.000
         public string outputtype { get; set; }      // 1 for Floating Point / 2 for Integer / 3 Hex / 4 Ascii
 
-        public string min { get; set; }             // Min Value    0.000000
-        public string max { get; set; }             // Max Value    25.000000
+        public string min { get; set; }             // Min Value 1.50    0.000000
+        public string max { get; set; }             // Max Value 1.50    25.000000
+
+        public string rangehigh { get; set; }       // Min Value 1.60    0.000000
+        public string rangelow { get; set; }        // Max Value 1.60    25.000000
 
         public string datatype { get; set; }        // 0
 
@@ -312,16 +336,16 @@ namespace SAD806x
             xdfMath = new XdfMath();
         }
 
-        public XdfScalar(S6xScalar s6xScalar, int xdfBaseOffset)
+        public XdfScalar(S6xScalar s6xScalar, int xdfBaseOffset, XdfHeaderCategory[] xdfHeaderCategories)
         {
             Init();
-            Import(s6xScalar, xdfBaseOffset);
+            Import(s6xScalar, xdfBaseOffset, xdfHeaderCategories);
         }
 
-        public XdfScalar(ReservedAddress resAdr, int xdfBaseOffset)
+        public XdfScalar(ReservedAddress resAdr, int xdfBaseOffset, XdfHeaderCategory[] xdfHeaderCategories)
         {
             Init();
-            Import(resAdr, xdfBaseOffset);
+            Import(resAdr, xdfBaseOffset, xdfHeaderCategories);
         }
 
         public void Init()
@@ -345,10 +369,12 @@ namespace SAD806x
             unittype = "0";
         }
 
-        public void Import(S6xScalar s6xScalar, int xdfBaseOffset)
+        public void Import(S6xScalar s6xScalar, int xdfBaseOffset, XdfHeaderCategory[] xdfHeaderCategories)
         {
             title = s6xScalar.Label;
             description = Tools.XDFLabelSLabelComXdfComment(s6xScalar.Label, s6xScalar.ShortLabel, s6xScalar.Comments);
+
+            xdfCategories = Tools.XDFElementCategories(xdfHeaderCategories, new string[] { s6xScalar.Category, s6xScalar.Category2, s6xScalar.Category3 });
 
             xdfData.mmedaddress = Tools.xdfAddressFromBinAddress(s6xScalar.AddressBinInt, xdfBaseOffset);
             if (s6xScalar.Signed) xdfData.mmedtypeflags = "0x03";
@@ -363,9 +389,13 @@ namespace SAD806x
             {
                 decimalpl = s6xScalar.ScalePrecision.ToString();
             }
+            min = Tools.getValidMinMax(s6xScalar.Min);
+            max = Tools.getValidMinMax(s6xScalar.Max);
+            rangelow = min;
+            rangehigh = max;
         }
 
-        public void Import(ReservedAddress resAdr, int xdfBaseOffset)
+        public void Import(ReservedAddress resAdr, int xdfBaseOffset, XdfHeaderCategory[] xdfHeaderCategories)
         {
             title = resAdr.Label;
             description = Tools.XDFLabelSLabelComXdfComment(resAdr.Label, resAdr.ShortLabel, resAdr.Comments);
@@ -416,6 +446,9 @@ namespace SAD806x
         public string title { get; set; }
         public string description { get; set; }
 
+        [XmlElement("CATEGORYMEM")]
+        public XdfCategory[] xdfCategories { get; set; }
+
         [XmlElement("XDFAXIS")]
         public XdfAxis[] xdfAxis { get; set; }
 
@@ -445,10 +478,10 @@ namespace SAD806x
             xdfAxis[1] = new XdfAxis();
         }
 
-        public XdfFunction(S6xFunction s6xFunction, int xdfBaseOffset)
+        public XdfFunction(S6xFunction s6xFunction, int xdfBaseOffset, XdfHeaderCategory[] xdfHeaderCategories)
         {
             Init();
-            Import(s6xFunction, xdfBaseOffset);
+            Import(s6xFunction, xdfBaseOffset, xdfHeaderCategories);
         }
 
         private void Init()
@@ -487,10 +520,12 @@ namespace SAD806x
             xdfAxis[1].xdfLink.index = "0";
         }
 
-        public void Import(S6xFunction s6xFunction, int xdfBaseOffset)
+        public void Import(S6xFunction s6xFunction, int xdfBaseOffset, XdfHeaderCategory[] xdfHeaderCategories)
         {
             title = s6xFunction.Label;
             description = s6xFunction.Comments;
+
+            xdfCategories = Tools.XDFElementCategories(xdfHeaderCategories, new string[] { s6xFunction.Category, s6xFunction.Category2, s6xFunction.Category3 });
 
             xdfAxis[0].xdfData.mmedaddress = Tools.xdfAddressFromBinAddress(s6xFunction.AddressBinInt, xdfBaseOffset);
             if (s6xFunction.SignedInput) xdfAxis[0].xdfData.mmedtypeflags = "0x03";
@@ -508,6 +543,8 @@ namespace SAD806x
             {
                 xdfAxis[0].decimalpl = s6xFunction.InputScalePrecision.ToString();
             }
+            xdfAxis[0].min = Tools.getValidMinMax(s6xFunction.InputMin);
+            xdfAxis[0].max = Tools.getValidMinMax(s6xFunction.InputMax);
 
             if (s6xFunction.ByteInput) xdfAxis[1].xdfData.mmedaddress = Tools.xdfAddressFromBinAddress(s6xFunction.AddressBinInt + 1, xdfBaseOffset);  // Based on Input Type
             else xdfAxis[1].xdfData.mmedaddress = Tools.xdfAddressFromBinAddress(s6xFunction.AddressBinInt + 2, xdfBaseOffset);
@@ -526,6 +563,8 @@ namespace SAD806x
             {
                 xdfAxis[1].decimalpl = s6xFunction.OutputScalePrecision.ToString();
             }
+            xdfAxis[1].min = Tools.getValidMinMax(s6xFunction.OutputMin);
+            xdfAxis[1].max = Tools.getValidMinMax(s6xFunction.OutputMax);
         }
 
         public string getMmedAddress()
@@ -552,6 +591,9 @@ namespace SAD806x
 
         public string title { get; set; }
         public string description { get; set; }
+
+        [XmlElement("CATEGORYMEM")]
+        public XdfCategory[] xdfCategories { get; set; }
 
         [XmlElement("XDFAXIS")]
         public XdfAxis[] xdfAxis { get; set; }
@@ -583,16 +625,16 @@ namespace SAD806x
             xdfAxis[2] = new XdfAxis();
         }
 
-        public XdfTable(S6xTable s6xTable, int xdfBaseOffset)
+        public XdfTable(S6xTable s6xTable, int xdfBaseOffset, XdfHeaderCategory[] xdfHeaderCategories)
         {
             Init();
-            Import(s6xTable, xdfBaseOffset);
+            Import(s6xTable, xdfBaseOffset, xdfHeaderCategories);
         }
 
-        public XdfTable(ReservedAddress resAdr, int xdfBaseOffset)
+        public XdfTable(ReservedAddress resAdr, int xdfBaseOffset, XdfHeaderCategory[] xdfHeaderCategories)
         {
             Init();
-            Import(resAdr, xdfBaseOffset);
+            Import(resAdr, xdfBaseOffset, xdfHeaderCategories);
         }
 
         private void Init()
@@ -654,11 +696,13 @@ namespace SAD806x
             xdfAxis[2].unittype = "0";
             xdfAxis[2].xdfLink = null;
         }
-        
-        public void Import(S6xTable s6xTable, int xdfBaseOffset)
+
+        public void Import(S6xTable s6xTable, int xdfBaseOffset, XdfHeaderCategory[] xdfHeaderCategories)
         {
             title = s6xTable.Label;
             description = Tools.XDFLabelSLabelComXdfComment(s6xTable.Label, s6xTable.ShortLabel, s6xTable.Comments);
+
+            xdfCategories = Tools.XDFElementCategories(xdfHeaderCategories, new string[] { s6xTable.Category, s6xTable.Category2, s6xTable.Category3 });
 
             xdfAxis[0].units = s6xTable.ColsUnits;
             xdfAxis[0].indexcount = s6xTable.ColsNumber.ToString();
@@ -715,9 +759,11 @@ namespace SAD806x
             {
                 xdfAxis[2].decimalpl = s6xTable.CellsScalePrecision.ToString();
             }
+            xdfAxis[2].min = Tools.getValidMinMax(s6xTable.CellsMin);
+            xdfAxis[2].max = Tools.getValidMinMax(s6xTable.CellsMax);
         }
 
-        public void Import(ReservedAddress resAdr, int xdfBaseOffset)
+        public void Import(ReservedAddress resAdr, int xdfBaseOffset, XdfHeaderCategory[] xdfHeaderCategories)
         {
             int iCols = -1;
             string sOutputType = "3";
@@ -826,7 +872,7 @@ namespace SAD806x
     public class XdfHeaderCategory
     {
         [XmlAttribute]
-        public string index { get; set; }
+        public string index { get; set; }       // Hexadecimal value 0x0 => 0x12B   0x0 is visible with value 1
         [XmlAttribute]
         public string name { get; set; }
     }
@@ -851,7 +897,7 @@ namespace SAD806x
         [XmlElement("REGION")]
         public XdfHeaderRegion xdfRegion { get; set; }
         [XmlElement("CATEGORY")]
-        public XdfHeaderCategory xdfCategories { get; set; }
+        public XdfHeaderCategory[] xdfCategories { get; set; }
 
         [XmlIgnore]
         public string deftitleXmlValid { get { return ToolsXml.CleanXmlString(deftitle); } }
@@ -921,7 +967,6 @@ namespace SAD806x
         public XdfFile()
         {
         }
-    
 
         public XdfFile(ref SADBin sadBin)
         {
@@ -968,7 +1013,7 @@ namespace SAD806x
             {
                 if (!s6xObject.Skip && s6xObject.Store && s6xObject.AddressBinInt >= xdfBaseOffset)
                 {
-                    XdfFunction xdfObject = new XdfFunction(s6xObject, xdfBaseOffset);
+                    XdfFunction xdfObject = new XdfFunction(s6xObject, xdfBaseOffset, xdfHeader.xdfCategories);
                     xdfObject.uniqueid = "0x" + string.Format("{0:x4}", lastXdfUniqueId);
                     s6xObject.XdfUniqueId = xdfObject.uniqueid;
                     lastXdfUniqueId++;
@@ -980,7 +1025,7 @@ namespace SAD806x
             {
                 if (!s6xObject.Skip && s6xObject.Store && s6xObject.AddressBinInt >= xdfBaseOffset)
                 {
-                    XdfFunction xdfObject = new XdfFunction(s6xObject, xdfBaseOffset);
+                    XdfFunction xdfObject = new XdfFunction(s6xObject, xdfBaseOffset, xdfHeader.xdfCategories);
                     xdfObject.uniqueid = "0x" + string.Format("{0:x4}", lastXdfUniqueId);
                     s6xObject.XdfUniqueId = xdfObject.uniqueid;
                     lastXdfUniqueId++;
@@ -1005,7 +1050,7 @@ namespace SAD806x
                         else if (sadBin.S6x.slDupFunctions.ContainsKey(s6xObject.RowsScalerAddress)) s6xObject.RowsScalerXdfUniqueId = ((S6xFunction)sadBin.S6x.slDupFunctions[s6xObject.RowsScalerAddress]).XdfUniqueId;
                         else s6xObject.RowsScalerXdfUniqueId = string.Empty;
                     }
-                    XdfTable xdfObject = new XdfTable(s6xObject, xdfBaseOffset);
+                    XdfTable xdfObject = new XdfTable(s6xObject, xdfBaseOffset, xdfHeader.xdfCategories);
                     xdfObject.uniqueid = "0x" + string.Format("{0:x4}", lastXdfUniqueId);
                     s6xObject.XdfUniqueId = xdfObject.uniqueid;
                     lastXdfUniqueId++;
@@ -1030,7 +1075,7 @@ namespace SAD806x
                         else if (sadBin.S6x.slDupFunctions.ContainsKey(s6xObject.RowsScalerAddress)) s6xObject.RowsScalerXdfUniqueId = ((S6xFunction)sadBin.S6x.slDupFunctions[s6xObject.RowsScalerAddress]).XdfUniqueId;
                         else s6xObject.RowsScalerXdfUniqueId = string.Empty;
                     }
-                    XdfTable xdfObject = new XdfTable(s6xObject, xdfBaseOffset);
+                    XdfTable xdfObject = new XdfTable(s6xObject, xdfBaseOffset, xdfHeader.xdfCategories);
                     xdfObject.uniqueid = "0x" + string.Format("{0:x4}", lastXdfUniqueId);
                     s6xObject.XdfUniqueId = xdfObject.uniqueid;
                     lastXdfUniqueId++;
@@ -1042,7 +1087,7 @@ namespace SAD806x
             {
                 if (!s6xObject.Skip && s6xObject.Store && s6xObject.AddressBinInt >= xdfBaseOffset)
                 {
-                    XdfScalar xdfObject = new XdfScalar(s6xObject, xdfBaseOffset);
+                    XdfScalar xdfObject = new XdfScalar(s6xObject, xdfBaseOffset, xdfHeader.xdfCategories);
                     xdfObject.uniqueid = "0x" + string.Format("{0:x4}", lastXdfUniqueId);
                     s6xObject.XdfUniqueId = xdfObject.uniqueid;
                     lastXdfUniqueId++;
@@ -1054,7 +1099,7 @@ namespace SAD806x
             {
                 if (!s6xObject.Skip && s6xObject.Store && s6xObject.AddressBinInt >= xdfBaseOffset)
                 {
-                    XdfScalar xdfObject = new XdfScalar(s6xObject, xdfBaseOffset);
+                    XdfScalar xdfObject = new XdfScalar(s6xObject, xdfBaseOffset, xdfHeader.xdfCategories);
                     xdfObject.uniqueid = "0x" + string.Format("{0:x4}", lastXdfUniqueId);
                     s6xObject.XdfUniqueId = xdfObject.uniqueid;
                     lastXdfUniqueId++;

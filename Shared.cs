@@ -4,6 +4,25 @@ using System.Text;
 
 namespace SAD806x
 {
+    // Statistics
+    public enum StatisticsItems
+    {
+        RegShortcut0x100 = 0,
+        RegShortcut0x100SFR = 1
+    }
+
+    public enum StatisticsRegisterItems
+    {
+        Count = 0,
+        RegShortcut0x100 = 1,
+        Immediate = 2,
+        Direct = 3,
+        Indirect = 4,
+        AutoIncrement = 5,
+        ShortIndex = 6,
+        LongIndex = 7
+    }
+    
     // Routine Signature available 806x options
     public enum Signature806xOptions
     {
@@ -2515,86 +2534,93 @@ namespace SAD806x
                     if (arrBytes == null) return string.Empty;
                     break;
             }
-            
-            switch (Type)
+
+            try
             {
-                case StructureItemType.Byte:
-                    if (Size == 1)
-                    {
-                        iValue = Tools.getByteInt(arrBytes[0], false);
+                switch (Type)
+                {
+                    case StructureItemType.Byte:
+                        if (Size == 1)
+                        {
+                            iValue = Tools.getByteInt(arrBytes[0], false);
 
-                        if (ScaleExpression == string.Empty) return iValue.ToString();
-                        else return string.Format("{0:F2}", Tools.ScaleValue(iValue, ScaleExpression, SADDef.DefaultScalePrecision, false));
-                    }
-                    break;
-                case StructureItemType.Word:
-                    if (Size == 2)
-                    {
-                        iValue = Tools.getWordInt(arrBytes, false, true);
+                            if (ScaleExpression == string.Empty) return iValue.ToString();
+                            else return string.Format("{0:F2}", Tools.ScaleValue(iValue, ScaleExpression, SADDef.DefaultScalePrecision, false));
+                        }
+                        break;
+                    case StructureItemType.Word:
+                        if (Size == 2)
+                        {
+                            iValue = Tools.getWordInt(arrBytes, false, true);
 
-                        if (ScaleExpression == string.Empty) return iValue.ToString();
-                        else return string.Format("{0:F2}", Tools.ScaleValue(iValue, ScaleExpression, SADDef.DefaultScalePrecision, false));
-                    }
-                    break;
-                case StructureItemType.SignedByte:
-                    if (Size == 1)
-                    {
-                        iValue = Tools.getByteInt(arrBytes[0], true);
+                            if (ScaleExpression == string.Empty) return iValue.ToString();
+                            else return string.Format("{0:F2}", Tools.ScaleValue(iValue, ScaleExpression, SADDef.DefaultScalePrecision, false));
+                        }
+                        break;
+                    case StructureItemType.SignedByte:
+                        if (Size == 1)
+                        {
+                            iValue = Tools.getByteInt(arrBytes[0], true);
 
-                        if (ScaleExpression == string.Empty) return iValue.ToString();
-                        else return string.Format("{0:F2}", Tools.ScaleValue(iValue, ScaleExpression, SADDef.DefaultScalePrecision, false));
-                    }
-                    break;
-                case StructureItemType.SignedWord:
-                    if (Size == 2)
-                    {
-                        iValue =  Tools.getWordInt(arrBytes, true, true);
+                            if (ScaleExpression == string.Empty) return iValue.ToString();
+                            else return string.Format("{0:F2}", Tools.ScaleValue(iValue, ScaleExpression, SADDef.DefaultScalePrecision, false));
+                        }
+                        break;
+                    case StructureItemType.SignedWord:
+                        if (Size == 2)
+                        {
+                            iValue = Tools.getWordInt(arrBytes, true, true);
 
+                            if (ScaleExpression == string.Empty) return iValue.ToString();
+                            else return string.Format("{0:F2}", Tools.ScaleValue(iValue, ScaleExpression, SADDef.DefaultScalePrecision, false));
+                        }
+                        break;
+                    case StructureItemType.ByteHex:
+                        if (Size == 1) return Convert.ToString(Tools.getByteInt(arrBytes[0], false), 16);
+                        break;
+                    case StructureItemType.WordHex:
+                        if (Size == 2) return Convert.ToString(Tools.getWordInt(arrBytes, false, true), 16);
+                        break;
+                    case StructureItemType.Hex:
+                        return string.Join(string.Empty, arrBytes).ToUpper();
+                    case StructureItemType.HexLsb:
+                        string[] arrRes = new string[arrBytes.Length];
+                        for (int iPos = 0; iPos < arrRes.Length; iPos++)
+                        {
+                            if (iPos % 2 != 0) arrRes[iPos - 1] = arrBytes[iPos];
+                            else if (iPos % 2 == 0 && iPos + 1 < arrRes.Length) arrRes[iPos + 1] = arrBytes[iPos];
+                            else arrRes[iPos] = arrBytes[iPos];
+                        }
+                        return string.Join(string.Empty, arrRes).ToUpper();
+                    case StructureItemType.Ascii:
+                        string sRes = string.Empty;
+                        foreach (string sByte in arrBytes) sRes += Convert.ToChar(Convert.ToByte(sByte, 16));
+                        return sRes;
+                    case StructureItemType.Skip:
+                        return string.Empty;
+                    case StructureItemType.String:
+                        return FixedValue;
+                    case StructureItemType.Vector8:
+                    case StructureItemType.Vector1:
+                    case StructureItemType.Vector9:
+                    case StructureItemType.Vector0:
+                        if (Size == 2) return Convert.ToString(Tools.getWordInt(arrBytes, false, true), 16);
+                        break;
+                    case StructureItemType.Num:
+                        iValue = structLineNum;
                         if (ScaleExpression == string.Empty) return iValue.ToString();
-                        else return string.Format("{0:F2}", Tools.ScaleValue(iValue, ScaleExpression, SADDef.DefaultScalePrecision, false));
-                    }
-                    break;
-                case StructureItemType.ByteHex:
-                    if (Size == 1) return Convert.ToString(Tools.getByteInt(arrBytes[0], false), 16);
-                    break;
-                case StructureItemType.WordHex:
-                    if (Size == 2) return Convert.ToString(Tools.getWordInt(arrBytes, false, true), 16);
-                    break;
-                case StructureItemType.Hex:
-                    return string.Join(string.Empty, arrBytes).ToUpper();
-                case StructureItemType.HexLsb:
-                    string[] arrRes = new string[arrBytes.Length];
-                    for (int iPos = 0; iPos < arrRes.Length; iPos++)
-                    {
-                        if (iPos % 2 != 0) arrRes[iPos - 1] = arrBytes[iPos];
-                        else if (iPos % 2 == 0 && iPos + 1 < arrRes.Length) arrRes[iPos + 1] = arrBytes[iPos];
-                        else arrRes[iPos] = arrBytes[iPos];
-                    }
-                    return string.Join(string.Empty, arrRes).ToUpper();
-                case StructureItemType.Ascii:
-                    string sRes = string.Empty;
-                    foreach (string sByte in arrBytes) sRes += Convert.ToChar(Convert.ToByte(sByte, 16));
-                    return sRes;
-                case StructureItemType.Skip:
-                    return string.Empty;
-                case StructureItemType.String:
-                    return FixedValue;
-                case StructureItemType.Vector8:
-                case StructureItemType.Vector1:
-                case StructureItemType.Vector9:
-                case StructureItemType.Vector0:
-                    if (Size == 2) return Convert.ToString(Tools.getWordInt(arrBytes, false, true), 16);
-                    break;
-                case StructureItemType.Num:
-                    iValue = structLineNum;
-                    if (ScaleExpression == string.Empty) return iValue.ToString();
-                    else return string.Format("{0}", Tools.ScaleValue(iValue, ScaleExpression, 0, false));
-                case StructureItemType.NumHex:
-                    iValue = structLineNum;
-                    if (ScaleExpression != string.Empty) iValue = (int)Tools.ScaleValue(iValue, ScaleExpression, false);
-                    return string.Format("{0:x}", iValue);
-                case StructureItemType.Empty:
-                    return string.Empty;
+                        else return string.Format("{0}", Tools.ScaleValue(iValue, ScaleExpression, 0, false));
+                    case StructureItemType.NumHex:
+                        iValue = structLineNum;
+                        if (ScaleExpression != string.Empty) iValue = (int)Tools.ScaleValue(iValue, ScaleExpression, false);
+                        return string.Format("{0:x}", iValue);
+                    case StructureItemType.Empty:
+                        return string.Empty;
+                }
+            }
+            catch
+            {
+                return string.Join(string.Empty, arrBytes);
             }
 
             return string.Join(string.Empty, arrBytes);
@@ -4399,6 +4425,23 @@ namespace SAD806x
         public string DefaultTranslatedParam = string.Empty;
 
         public object EmbeddedParam = null;
+
+        public string OriginalInstructedParam = string.Empty;
+
+        // Statistics
+        private ArrayList possibleStatistics = null;
+
+        public void addPossibleStatistic(object statisticsEnumItem)
+        {
+            if (possibleStatistics == null) possibleStatistics = new ArrayList();
+            if (!possibleStatistics.Contains(statisticsEnumItem)) possibleStatistics.Add(statisticsEnumItem);
+        }
+
+        public bool isPossibleStatistic(object statisticsEnumItem)
+        {
+            if (possibleStatistics == null) return false;
+            return possibleStatistics.Contains(statisticsEnumItem);
+        }
     }
 
     public class CallArgsParam

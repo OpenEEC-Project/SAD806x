@@ -177,6 +177,7 @@ namespace SAD806x
             int bankNum = -1;
             int bankStartAddress = -1;
             int bankEndAddress = -1;
+            int iLastFoundStartAddress = -1;
 
             // Used at Bank identification
             int bank8StartAddress = -1;
@@ -221,12 +222,24 @@ namespace SAD806x
                 else
                 {
                     validPrevPattern = false;
-                    foreach (string patEnd in validPrevPatternEnds)
+                    // 20210215 - PYM - Bank directly following another one
+                    //      Addresses starting each 0x2000 are managed like having valid previous pattern
+                    if (iLastFoundStartAddress >= 0)
                     {
-                        if (sPrevPattern.EndsWith(patEnd))
+                        if (iPos - iLastFoundStartAddress >= SADDef.Bank_Min_Size && iPos - iLastFoundStartAddress <= SADDef.Bank_Max_Size)
                         {
-                            validPrevPattern = true;
-                            break;
+                            validPrevPattern = (iPos - iLastFoundStartAddress) % 0x2000 == 0;
+                        }
+                    }
+                    if (!validPrevPattern)
+                    {
+                        foreach (string patEnd in validPrevPatternEnds)
+                        {
+                            if (sPrevPattern.EndsWith(patEnd))
+                            {
+                                validPrevPattern = true;
+                                break;
+                            }
                         }
                     }
                 }
@@ -240,6 +253,7 @@ namespace SAD806x
                         bis8061 = true;
                         bisEarly = true;
                         banksInfos.Add(new int[] { 8, iPos, SADDef.Bank_Max_Size });
+                        iLastFoundStartAddress = iPos;
                         bank8StartAddress = iPos;
                         iPos += SADDef.Bank_Min_Size - 16;
                         sPrevPattern = string.Empty;
@@ -250,10 +264,36 @@ namespace SAD806x
                         if (sPattern.StartsWith(SADDef.Bank_9_0_SigStart.ToLower()))
                         // Bank 9 0
                         {
+                            // 20210215 - PYM - Searching for Copyright only on Bank 9 for 100% Accuracy
+                            if (!foundBank9 && arrBytes.Length >  iPos + 0xDFFF)
+                            {
+                                if (getBytes(iPos + 0xDFFF - 0x9F + 3, SADDef.Bank_1_9_Copyright_Ascii.Length / 2).ToUpper() == SADDef.Bank_1_9_Copyright_Ascii.ToUpper())
+                                // Bank 9
+                                {
+                                    banksInfos.Add(new int[] { 9, iPos, SADDef.Bank_Max_Size });
+                                    iLastFoundStartAddress = iPos;
+                                    iPos += SADDef.Bank_Min_Size - 16;
+                                    sPrevPattern = string.Empty;
+                                    foundBank9 = true;
+                                    continue;
+                                }
+                                else if (!foundBank0)
+                                // Bank 0
+                                {
+                                    banksInfos.Add(new int[] { 0, iPos, SADDef.Bank_Max_Size });
+                                    iLastFoundStartAddress = iPos;
+                                    iPos += SADDef.Bank_Min_Size - 16;
+                                    sPrevPattern = string.Empty;
+                                    foundBank0 = true;
+                                    continue;
+                                }
+                            }
+                            // Classical identificaion
                             if (!foundBank0 && (sPattern.EndsWith(SADDef.Bank_0_SigEnd_1.ToLower()) || sPattern.EndsWith(SADDef.Bank_0_SigEnd_2.ToLower())))
                             // Bank 0
                             {
                                 banksInfos.Add(new int[] { 0, iPos, SADDef.Bank_Max_Size });
+                                iLastFoundStartAddress = iPos;
                                 iPos += SADDef.Bank_Min_Size - 16;
                                 sPrevPattern = string.Empty;
                                 foundBank0 = true;
@@ -262,6 +302,7 @@ namespace SAD806x
                             // Bank 9
                             {
                                 banksInfos.Add(new int[] { 9, iPos, SADDef.Bank_Max_Size });
+                                iLastFoundStartAddress = iPos;
                                 iPos += SADDef.Bank_Min_Size - 16;
                                 sPrevPattern = string.Empty;
                                 foundBank9 = true;
@@ -270,6 +311,7 @@ namespace SAD806x
                             // Bank 0 In Priority
                             {
                                 banksInfos.Add(new int[] { 0, iPos, SADDef.Bank_Max_Size });
+                                iLastFoundStartAddress = iPos;
                                 iPos += SADDef.Bank_Min_Size - 16;
                                 sPrevPattern = string.Empty;
                                 foundBank0 = true;
@@ -278,17 +320,19 @@ namespace SAD806x
                             // Bank 9
                             {
                                 banksInfos.Add(new int[] { 9, iPos, SADDef.Bank_Max_Size });
+                                iLastFoundStartAddress = iPos;
                                 iPos += SADDef.Bank_Min_Size - 16;
                                 sPrevPattern = string.Empty;
                                 foundBank9 = true;
                             }
                         }
-                        else if (sPattern.StartsWith(SADDef.Bank_8_Early_SigStart_1.ToLower()) || sPattern.StartsWith(SADDef.Bank_8_Early_SigStart_2.ToLower()) || sPattern.StartsWith(SADDef.Bank_8_Early_SigStart_3.ToLower()))
+                        else if (sPattern.StartsWith(SADDef.Bank_8_Early_SigStart_1.ToLower()) || sPattern.StartsWith(SADDef.Bank_8_Early_SigStart_2.ToLower()) || sPattern.StartsWith(SADDef.Bank_8_Early_SigStart_3.ToLower()) || sPattern.StartsWith(SADDef.Bank_8_Early_SigStart_4.ToLower()))
                         // Bank 8 Early
                         {
                             bis8061 = true;
                             bisEarly = true;
                             banksInfos.Add(new int[] { 8, iPos, SADDef.Bank_Max_Size });
+                            iLastFoundStartAddress = iPos;
                             bank8StartAddress = iPos;
                             iPos += SADDef.Bank_Min_Size - 16;
                             sPrevPattern = string.Empty;
@@ -297,6 +341,7 @@ namespace SAD806x
                         // Bank 8
                         {
                             banksInfos.Add(new int[] { 8, iPos, SADDef.Bank_Max_Size });
+                            iLastFoundStartAddress = iPos;
                             bank8StartAddress = iPos;
                             iPos += SADDef.Bank_Min_Size - 16;
                             sPrevPattern = string.Empty;
@@ -306,6 +351,7 @@ namespace SAD806x
                     else if (!foundBank1 && (sPattern.StartsWith(SADDef.Bank_1_SigStart.ToLower())))
                     {
                         banksInfos.Add(new int[] { 1, iPos, SADDef.Bank_Max_Size });
+                        iLastFoundStartAddress = iPos;
                         iPos += SADDef.Bank_Min_Size - 16;
                         sPrevPattern = string.Empty;
                         foundBank1 = true;
@@ -407,6 +453,84 @@ namespace SAD806x
                 }
             }
 
+            // Searching for Bank 1 on Early and Pilot 8065 binaries, as far as for others if badly written
+            // Searching for following Bank End VID Block fixed parts
+            //  43 6F 70 79 72 69 67 68 74 - Copyright (Ascii)
+            // Early 8065 Bank 1 will start like this :
+            //  XX XX FF FF FF FF FF FF FF FF XX XX FF FF FF FF     => First Word is First RBase end Address starting at 1 2000, 4 Last Byte are always FF FF FF FF
+            //  ex: 84 31 00 00 00 00 00 00 00 00 33 2F FF FF FF FF
+            //  ex: F8 2C 00 00 00 00 00 00 00 00 0F 7E FF FF FF FF
+            //  ex: 0E 20 FF FF FF FF FF FF FF FF 19 4F FF FF FF FF
+            // Other 8065 will often have their first line like this
+            //  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+            //  20210216 - PYM - Reviewed
+            if (!is8061 && bank8StartAddress >= 0 && !foundBank1 && arrBytes.Length > SADDef.Bank_Max_Size && (!foundBank0 || !foundBank9))
+            {
+                int bank1PossibleStartAddress = -1;
+                // Searching for Bank End VID Block fixed parts in unknown Bank 9
+                for (int iBankPos = 0; iBankPos < banksInfos.Count; iBankPos++)
+                {
+                    if (((int[])banksInfos[iBankPos])[1] < SADDef.Bank_Min_Size - SADDef.Bank_Min_Size / 4) continue;
+                    for (int iPos = ((int[])banksInfos[iBankPos])[1]; iPos >= SADDef.Bank_Min_Size - SADDef.Bank_Min_Size / 4; iPos -= SADDef.Bank_Min_Size / 4)
+                    {
+                        if (getBytes(iPos - 0x9d, 9) == SADDef.Bank_1_9_Copyright_Ascii.ToLower()) // Copyright (Ascii)
+                        {
+                            bank1PossibleStartAddress = iPos - SADDef.Bank_Max_Size;
+                            if (bank1PossibleStartAddress < 0) bank1PossibleStartAddress = 0;
+                            banksInfos.Insert(iBankPos, new int[] { 1, bank1PossibleStartAddress, SADDef.Bank_Max_Size });
+                            foundBank1 = true;
+                            break;
+                        }
+                    }
+                    if (foundBank1) break;
+                }
+                if (!foundBank1)
+                // At the end of the binary
+                {
+                    for (int iPos = arrBytes.Length; iPos >= SADDef.Bank_Max_Size; iPos -= SADDef.Bank_Min_Size / 4)
+                    {
+                        if (getBytes(iPos - 0x9d, 9) == SADDef.Bank_1_9_Copyright_Ascii.ToLower()) // Copyright (Ascii)
+                        {
+                            bank1PossibleStartAddress = iPos - SADDef.Bank_Max_Size;
+                            if (bank1PossibleStartAddress < 0) bank1PossibleStartAddress = 0;
+                            banksInfos.Add(new int[] { 1, bank1PossibleStartAddress, SADDef.Bank_Max_Size });
+                            foundBank1 = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Now Checking if it is an early one or not
+                if (foundBank1)
+                {
+                    for (int iBankPos = 0; iBankPos < banksInfos.Count; iBankPos++)
+                    {
+                        if (((int[])banksInfos[iBankPos])[0] != 1) continue;
+                        string bank1FirstLine = getBytes(((int[])banksInfos[iBankPos])[1], 16).ToUpper();
+                        bisEarly = (!bank1FirstLine.StartsWith("FFFF") && bank1FirstLine.EndsWith("FFFFFFFF"));
+                        if (bisEarly)
+                        {
+                            bool possiblyPilot = true;
+                            // Empty Bank 1 detection, Empty Bank 1 so FF regularly
+                            for (int iPos = ((int[])banksInfos[iBankPos])[1] + 0x60; iPos < SADDef.Bank_Min_Size - SADDef.Bank_Min_Size / 4; iPos += 0x100)
+                            {
+                                if (getBytes(iPos, 16).ToUpper() != new string('F', 32))
+                                {
+                                    possiblyPilot = false;
+                                    break;
+                                }
+                            }
+                            if (possiblyPilot)
+                            {
+                                bisEarly = false;
+                                bisPilot = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            /*
             // Searching for Bank 1 on Early and Pilot 8065 binaries
             // Searching for following Bank End VID Block fixed parts
             //  43 6F 70 79 72 69 67 68 74 - Copyright (Ascii)
@@ -486,7 +610,89 @@ namespace SAD806x
                     }
                 }
             }
+            */
 
+            // Checking for not found Banks 0 or 9 on 8065
+            //  To prevent thinking a 4 Banks is only a 2 Banks
+            //  20210216 - PYM - New
+            if (!is8061 && bank8StartAddress >= 0 && foundBank1 && arrBytes.Length > 3 * SADDef.Bank_Max_Size && (!foundBank0 || !foundBank9))
+            {
+                if (!foundBank9)
+                {
+                    int bank9PossibleStartAddress = -1;
+                    int lastBankStartAddress = 0;
+                    // Searching for Bank End VID Block fixed parts in unknown Bank 9
+                    for (int iBankPos = 0; iBankPos < banksInfos.Count; iBankPos++)
+                    {
+                        if (((int[])banksInfos[iBankPos])[1] < SADDef.Bank_Max_Size - SADDef.Bank_Min_Size / 4)
+                        {
+                            lastBankStartAddress = ((int[])banksInfos[iBankPos])[1];
+                            continue;
+                        }
+                        for (int iPos = ((int[])banksInfos[iBankPos])[1]; iPos >= lastBankStartAddress + SADDef.Bank_Max_Size - SADDef.Bank_Min_Size / 4; iPos -= SADDef.Bank_Min_Size / 4)
+                        {
+                            if (getBytes(iPos - 0x9d, 9) == SADDef.Bank_1_9_Copyright_Ascii.ToLower()) // Copyright (Ascii)
+                            {
+                                // Bank 1 probably
+                                if (lastBankStartAddress == iPos - SADDef.Bank_Max_Size) continue;
+                                // Really Bank 9
+                                bank9PossibleStartAddress = iPos - SADDef.Bank_Max_Size;
+                                if (bank9PossibleStartAddress < 0) bank9PossibleStartAddress = 0;
+                                banksInfos.Insert(iBankPos, new int[] { 9, bank9PossibleStartAddress, SADDef.Bank_Max_Size });
+                                foundBank9 = true;
+                                break;
+                            }
+                        }
+                        if (foundBank9) break;
+                        lastBankStartAddress = ((int[])banksInfos[iBankPos])[1];
+                    }
+                    if (!foundBank9)
+                    // At the end of the binary
+                    {
+                        if (getBytes(arrBytes.Length - 0x9d, 9) == SADDef.Bank_1_9_Copyright_Ascii.ToLower()) // Copyright (Ascii)
+                        {
+                            bank9PossibleStartAddress = arrBytes.Length - SADDef.Bank_Max_Size;
+                            if (bank9PossibleStartAddress < 0) bank9PossibleStartAddress = 0;
+                            banksInfos.Add(new int[] { 9, bank9PossibleStartAddress, SADDef.Bank_Max_Size });
+                            foundBank9 = true;
+                        }
+                    }
+                }
+                // This is a 4 Banks strategy
+                if (foundBank9 && !foundBank0)
+                {
+                    int bank0PossibleStartAddress = -1;
+                    int iPrevBankStartAddress = 0;
+                    for (int iBankPos = 0; iBankPos < banksInfos.Count; iBankPos++)
+                    {
+                        if (((int[])banksInfos[iBankPos])[1] - iPrevBankStartAddress < SADDef.Bank_Min_Size)
+                        {
+                            iPrevBankStartAddress = ((int[])banksInfos[iBankPos])[1];
+                            continue;
+                        }
+                        bank0PossibleStartAddress = ((int[])banksInfos[iBankPos])[1] - SADDef.Bank_Max_Size;
+                        if (bank0PossibleStartAddress < 0) bank0PossibleStartAddress = 0;
+                        banksInfos.Insert(iBankPos, new int[] { 0, bank0PossibleStartAddress, SADDef.Bank_Max_Size });
+                        foundBank0 = true;
+                        break;
+                    }
+
+                    if (!foundBank0)
+                    // At the end of the binary
+                    {
+                        bank0PossibleStartAddress = arrBytes.Length + 1 - SADDef.Bank_Max_Size;
+                        if (bank0PossibleStartAddress < 0) bank0PossibleStartAddress = 0;
+
+                        // But at least after last Bank
+                        if (bank0PossibleStartAddress > iPrevBankStartAddress + SADDef.Bank_Min_Size)
+                        {
+                            banksInfos.Add(new int[] { 0, bank0PossibleStartAddress, SADDef.Bank_Max_Size });
+                            foundBank0 = true;
+                        }
+                    }
+                }
+            }
+            
             // Last chance Searching for Early 8061 Bank Start
             if (!is8061 && !foundBank1 && !foundBank0 && !foundBank9)
             {
@@ -523,8 +729,18 @@ namespace SAD806x
             }
 
             // 20200624 - PYM - 8065 Single Bank (Dev Only) management
-            if (!is8061 && !foundBank1 && !foundBank0 && !foundBank9) bis8065SingleBank = binaryFileSize >= SADDef.Bank_Min_Size && binaryFileSize <= SADDef.Bank_Max_Size;
+            if (!is8061 && !foundBank1 && !foundBank0 && !foundBank9)
+            {
+                bis8065SingleBank = binaryFileSize >= SADDef.Bank_Min_Size && binaryFileSize <= SADDef.Bank_Max_Size;
+                if (bis8065SingleBank) bisPilot = true;
+            }
                 
+            // ReAligning Bank Sizes
+            //  20210217 - PYM - End of Bank should not be higher than start of the next one
+            for (int iBankPos = 1; iBankPos < banksInfos.Count; iBankPos++)
+            {
+                if (((int[])banksInfos[iBankPos - 1])[1] + ((int[])banksInfos[iBankPos - 1])[2] > ((int[])banksInfos[iBankPos])[1]) ((int[])banksInfos[iBankPos - 1])[2] = ((int[])banksInfos[iBankPos])[1] - ((int[])banksInfos[iBankPos - 1])[1];
+            }
             // Creating Bank objects
             for (int iBankPos = 0; iBankPos < banksInfos.Count; iBankPos++)
             {
@@ -615,7 +831,7 @@ namespace SAD806x
             // 8061
             if (is8061) firstRBaseResSign = new string[] {SADDef.Info_8061_FirstRBase_Signature_1.ToLower(), SADDef.Info_8061_FirstRBase_Signature_2.ToLower(), SADDef.Info_8061_FirstRBase_Signature_3.ToLower()};
             // 8065
-            else firstRBaseResSign = new string[] { SADDef.Info_8065_FirstRBase_Signature_1.ToLower(), SADDef.Info_8065_FirstRBase_Signature_2.ToLower(), SADDef.Info_8065_FirstRBase_Signature_3.ToLower() };
+            else firstRBaseResSign = new string[] { SADDef.Info_8065_FirstRBase_Signature_1.ToLower(), SADDef.Info_8065_FirstRBase_Signature_2.ToLower(), SADDef.Info_8065_FirstRBase_Signature_3.ToLower(), SADDef.Info_8065_FirstRBase_Signature_4.ToLower() };
 
             foreach (string sig in firstRBaseResSign)
             {
@@ -680,16 +896,32 @@ namespace SAD806x
                         if (is8061 || isPilot || is8065SingleBank)
                         {
                             rBase.BankNum = 8;
-                            rBase.AddressBinInt = rBase.AddressBankInt + Bank8.AddressBinInt;
-                            rBase.AddressBankEndInt = Bank8.getWordInt(rBase.AddressBankInt, false, true) - 1 - SADDef.EecBankStartAddress;
+                            if (rBase.AddressBankInt >= Bank8.AddressInternalInt)
+                            {
+                                rBase.AddressBinInt = rBase.AddressBankInt + Bank8.AddressBinInt;
+                                rBase.AddressBankEndInt = Bank8.getWordInt(rBase.AddressBankInt, false, true) - 1 - SADDef.EecBankStartAddress;
+                            }
+                            else
+                            //  Real Error, no RBase Mngt
+                            {
+                                continue;
+                            }
                         }
                         else
                         {
                             rBase.BankNum = 1;
                             if (Bank1 != null)
                             {
-                                rBase.AddressBinInt = rBase.AddressBankInt + Bank1.AddressBinInt;
-                                rBase.AddressBankEndInt = Bank1.getWordInt(rBase.AddressBankInt, false, true) - 1 - SADDef.EecBankStartAddress;
+                                if (rBase.AddressBankInt >= Bank1.AddressInternalInt)
+                                {
+                                    rBase.AddressBinInt = rBase.AddressBankInt + Bank1.AddressBinInt;
+                                    rBase.AddressBankEndInt = Bank1.getWordInt(rBase.AddressBankInt, false, true) - 1 - SADDef.EecBankStartAddress;
+                                }
+                            }
+                            else
+                            //  Real Error, no RBase Mngt
+                            {
+                                continue;
                             }
                         }
 
@@ -703,6 +935,7 @@ namespace SAD806x
                 // 20200512 - PYM
                 // Added to S6xRegisters except for Rsi
                 if (rBase.Code.ToLower() == "si") continue;
+
                 S6xRegister s6xReg = (S6xRegister)S6x.slRegisters[Tools.RegisterUniqueAddress(rBase.Code)];
                 if (s6xReg == null)
                 {
@@ -1324,7 +1557,8 @@ namespace SAD806x
                             }
                             break;
                         case "WORD":
-                            if (arrRes[0].ToLower() == "ff" && arrRes[1].ToLower() == "ff") intRes = 0;
+                            if (arrRes[0] == string.Empty || arrRes[1] == string.Empty) intRes = 0;
+                            else if (arrRes[0].ToLower() == "ff" && arrRes[1].ToLower() == "ff") intRes = 0;
                             else intRes = (int)(Tools.getWordInt(arrRes, false, true) * Convert.ToDouble(vidPart[4]));
                             rAddress = new ReservedAddress(Calibration.Info.VidBankNum, (int)vidPart[0] + vidAddressAdder, (int)vidPart[1], ReservedAddressType.Word);
                             rAddress.AddressBinInt = rAddress.AddressInt + vidBankAddressBin;
@@ -1473,12 +1707,39 @@ namespace SAD806x
             // OP Codes
             SADOPCode opCode = null;
 
-            if (Calibration.slOPCodes != null) return;
-            
+            // 20210411 - PYM - Reload for each Disassembly to take changes (S6x ones) into account
+            //if (Calibration.slOPCodes != null) return;
+
+            // 20210406 - PYM - 0x100 Register Shortcut & SFR Mngt, through S6x and booleans
+            bool bApply0x100RegisterShortcut = true;
+            bool bApply0x100RegisterSFRShortcut = true;
+
+            if (is8061 || isPilot)
+            {
+                bApply0x100RegisterShortcut = false;
+                bApply0x100RegisterSFRShortcut = false;
+            }
+            else
+            {
+                if (S6x != null)
+                {
+                    if (S6x.Properties != null)
+                    {
+                        if (S6x.Properties.Ignore8065RegShortcut0x100) bApply0x100RegisterShortcut = false;
+                        if (S6x.Properties.Ignore8065RegShortcut0x100SFR) bApply0x100RegisterSFRShortcut = false;
+                    }
+                }
+            }
+
             Calibration.slOPCodes = new SortedList();
             for (int iOPCode = 0; iOPCode <= 255; iOPCode++)
             {
-                opCode = new SADOPCode(iOPCode, is8061);
+                opCode = new SADOPCode(iOPCode, is8061, isEarly, isPilot, is8065SingleBank);
+
+                // 20210406 - PYM - 0x100 Register Shortcut & SFR Mngt
+                opCode.Apply0x100RegisterShortcut = bApply0x100RegisterShortcut;
+                opCode.Apply0x100RegisterSFRShortcut = bApply0x100RegisterSFRShortcut;
+
                 if (opCode.isActive) Calibration.slOPCodes.Add(opCode.OPCode, opCode);
                 opCode = null;
             }
@@ -1571,7 +1832,7 @@ namespace SAD806x
             
             Calibration.processCalibrationInit();
 
-            S6x.processS6xInit();
+            S6x.processS6xInit(this);
 
             GC.Collect();
         }
@@ -1579,6 +1840,7 @@ namespace SAD806x
         public void processBin()
         {
             ArrayList alErrors = null;
+            ArrayList alBanks = null;
 
             ProgressStatus = 0;
             ProgressLabel = string.Empty;
@@ -1602,17 +1864,17 @@ namespace SAD806x
             // Starting with S6x Signature detection
             foreach (S6xSignature s6xSig in S6x.slProcessSignatures.Values) s6xSig.Information = null;
             foreach (S6xElementSignature s6xESig in S6x.slProcessElementsSignatures.Values) s6xESig.Information = null;
-            
-            //  On All Banks instead of doing it Bank after Bank, to be sure Matching Signatures are filled before cross Banks Calls
-            if (Bank8 != null) Bank8.processSignatures(ref S6x);
-            if (Bank1 != null) Bank1.processSignatures(ref S6x);
-            if (Bank9 != null) Bank9.processSignatures(ref S6x);
-            if (Bank0 != null) Bank0.processSignatures(ref S6x);
 
-            if (Bank8 != null) Bank8.processElementsSignatures(ref S6x);
-            if (Bank1 != null) Bank1.processElementsSignatures(ref S6x);
-            if (Bank9 != null) Bank9.processElementsSignatures(ref S6x);
-            if (Bank0 != null) Bank0.processElementsSignatures(ref S6x);
+            alBanks = new ArrayList();
+            if (Bank8 != null) alBanks.Add(Bank8);
+            if (Bank1 != null) alBanks.Add(Bank1);
+            if (Bank9 != null) alBanks.Add(Bank9);
+            if (Bank0 != null) alBanks.Add(Bank0);
+
+            //  On All Banks instead of doing it Bank after Bank, to be sure Matching Signatures are filled before cross Banks Calls
+            foreach (SADBank bBank in alBanks) bBank.processSignatures(ref S6x);
+
+            foreach (SADBank bBank in alBanks) bBank.processElementsSignatures(ref S6x);
 
             // Signatures to be Ignored - Detected more than one time in one Bank or Globally
             foreach (MatchingSignature msMS in Calibration.slMatchingSignatures.Values)
@@ -1621,29 +1883,13 @@ namespace SAD806x
             }
 
             // Bank Process
-            if (Bank8 != null)
+            for (int iBank = 0; iBank < alBanks.Count; iBank++)
             {
-                Bank8.processBank(ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
-                ProgressStatus += 60 / (Calibration.Info.slBanksInfos.Count * 1);
-                ProgressLabel += "Bank 8 Processed.";
-            }
-            if (Bank1 != null)
-            {
-                Bank1.processBank(ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
-                ProgressStatus += 60 / (Calibration.Info.slBanksInfos.Count * 2);
-                ProgressLabel += "\r\nBank 1 Processed.";
-            }
-            if (Bank9 != null)
-            {
-                Bank9.processBank(ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
-                ProgressStatus += 60 / (Calibration.Info.slBanksInfos.Count * 3);
-                ProgressLabel += "\r\nBank 9 Processed.";
-            }
-            if (Bank0 != null)
-            {
-                Bank0.processBank(ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
-                ProgressStatus += 60 / (Calibration.Info.slBanksInfos.Count * 4);
-                ProgressLabel += "\r\nBank 0 Processed.";
+                SADBank bBank = (SADBank)alBanks[iBank];
+                bBank.processBank(ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
+                ProgressStatus += 60 / (Calibration.Info.slBanksInfos.Count * (iBank + 1));
+                if (iBank > 0) ProgressLabel += "\r\n";
+                ProgressLabel += "Bank " + bBank.Num.ToString() + " Processed.";
             }
 
             // 8061 Early - End of Calibration Part Definition
@@ -1672,13 +1918,13 @@ namespace SAD806x
 
             // Recursive Process to manage multiple steps after elements detection
             //  Includes :
-            //      Operations Conflict Errors
+            //      Operations Conflict Errors with correction management
             //      Find Additional Calibration Elements
             //      Calibration Elements Identification
             //      Calibration Elements Related Registers Identification (Tables and Functions)
             //      Find Non Calibration Elements (Table, Functions, Scalars, Structures outside Calibration Part) // NOT MANAGED FOR NOW
             //      Process Non Calibration Elements (Table, Functions, Scalars outside Calibration Part)
-            processBinRecursive(ref alErrors);
+            processBinRecursive(ref alBanks, ref alErrors);
 
             // Forced Signatures analysis
             //  20200402 - PYM - New process added
@@ -1691,10 +1937,7 @@ namespace SAD806x
             Calibration.readCalibrationElements(ref S6x);
 
             // Elements Translation in Operations
-            if (Bank8 != null) Bank8.processElemTranslations(ref S6x);
-            if (Bank1 != null) Bank1.processElemTranslations(ref S6x);
-            if (Bank9 != null) Bank9.processElemTranslations(ref S6x);
-            if (Bank0 != null) Bank0.processElemTranslations(ref S6x);
+            foreach (SADBank bBank in alBanks) bBank.processElemTranslations(ref S6x);
 
             // Calibration Elements Errors
             processBinCalibCheck(ref alErrors);
@@ -1705,10 +1948,7 @@ namespace SAD806x
 
             // Call Translations
             Calibration.processCallTranslations(ref S6x);
-            if (Bank8 != null) Bank8.processCallTranslations(ref S6x);
-            if (Bank1 != null) Bank1.processCallTranslations(ref S6x);
-            if (Bank9 != null) Bank9.processCallTranslations(ref S6x);
-            if (Bank0 != null) Bank0.processCallTranslations(ref S6x);
+            foreach (SADBank bBank in alBanks) bBank.processCallTranslations(ref S6x);
 
             ProgressStatus += 10;
             ProgressLabel += "\r\nTranslations Processed.";
@@ -1716,10 +1956,7 @@ namespace SAD806x
             unknownElemsStartTime = DateTime.Now;
 
             // Unknown Operation Store
-            if (Bank8 != null) Bank8.readUnknownOpElements(ref S6x);
-            if (Bank1 != null) Bank1.readUnknownOpElements(ref S6x);
-            if (Bank9 != null) Bank9.readUnknownOpElements(ref S6x);
-            if (Bank0 != null) Bank0.readUnknownOpElements(ref S6x);
+            foreach (SADBank bBank in alBanks) bBank.readUnknownOpElements(ref S6x);
 
             // Unknown Calibration Store
             Calibration.readUnknownCalibElements(ref S6x);
@@ -1730,6 +1967,8 @@ namespace SAD806x
             // To Replace MainForm treatment
             // S6x ReMapping based on generated Calibration objects
             Calibration.RemapS6x(ref S6x, this);
+
+            alBanks = null;
 
             disassembled = true;
             disassemblyEndTime = DateTime.Now;
@@ -1753,44 +1992,42 @@ namespace SAD806x
         //      Calibration Elements Related Registers Identification (Tables and Functions)
         //      Find Non Calibration Elements (Table, Functions, Scalars, Structures outside Calibration Part) // NOT MANAGED FOR NOW
         //      Process Non Calibration Elements (Table, Functions, Scalars outside Calibration Part)
-        private void processBinRecursive(ref ArrayList alErrors)
+        private void processBinRecursive(ref ArrayList alBanks, ref ArrayList alErrors)
         {
+            bool newGeneratedOperations = false;
+
             // Operations Conflict Errors
-            processBinOpeConflictCheck(ref alErrors);
+            //  20210305 - PYM - processBinOpeConflictCheck can process call and can generate new conflicts
+            //                   so running it until no new operations are generated or until security is reached
+            int securityCount = 10;
+            while (true)
+            {
+                securityCount--;
+                if (securityCount < 0) break;
+
+                newGeneratedOperations = processBinOpeConflicts(ref alBanks, ref alErrors);
+                if (newGeneratedOperations) continue;
+                break;
+            }
 
             // Find Additional Calibration Elements
-            if (Bank8 != null) Bank8.findAdditionalCalibrationElements(ref S6x);
-            if (Bank1 != null) Bank1.findAdditionalCalibrationElements(ref S6x);
-            if (Bank9 != null) Bank9.findAdditionalCalibrationElements(ref S6x);
-            if (Bank0 != null) Bank0.findAdditionalCalibrationElements(ref S6x);
+            foreach (SADBank bBank in alBanks) bBank.findAdditionalCalibrationElements(ref S6x);
 
             // Calibration Elements Identification
-            if (Bank8 != null) Bank8.processCalibrationElements(ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
-            if (Bank1 != null) Bank1.processCalibrationElements(ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
-            if (Bank9 != null) Bank9.processCalibrationElements(ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
-            if (Bank0 != null) Bank0.processCalibrationElements(ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
+            foreach (SADBank bBank in alBanks) bBank.processCalibrationElements(ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
 
             // Calibration Elements Related Registers Identification (Tables and Functions)
-            if (Bank8 != null) Bank8.processCalibrationElementsRegisters(ref S6x);
-            if (Bank1 != null) Bank1.processCalibrationElementsRegisters(ref S6x);
-            if (Bank9 != null) Bank9.processCalibrationElementsRegisters(ref S6x);
-            if (Bank0 != null) Bank0.processCalibrationElementsRegisters(ref S6x);
+            foreach (SADBank bBank in alBanks) bBank.processCalibrationElementsRegisters(ref S6x);
 
             // Find Non Calibration Elements (Table, Functions, Scalars, Structures outside Calibration Part) // NOT MANAGED FOR NOW
-            if (Bank8 != null) Bank8.findOtherElements(ref S6x);
-            if (Bank1 != null) Bank1.findOtherElements(ref S6x);
-            if (Bank9 != null) Bank9.findOtherElements(ref S6x);
-            if (Bank0 != null) Bank0.findOtherElements(ref S6x);
-
+            foreach (SADBank bBank in alBanks) bBank.findOtherElements(ref S6x);
+            
             // Process Non Calibration Elements (Table, Functions, Scalars outside Calibration Part)
-            if (Bank8 != null) Bank8.processOtherElements(ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
-            if (Bank1 != null) Bank1.processOtherElements(ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
-            if (Bank9 != null) Bank9.processOtherElements(ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
-            if (Bank0 != null) Bank0.processOtherElements(ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
+            foreach (SADBank bBank in alBanks) bBank.processOtherElements(ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
 
             // New vectors have been identifed in elements (especially structures)
             // Additional Vectors provided from S6x Vectors Lists and Structures including Vectors
-            bool newGeneratedOperations = false;
+            newGeneratedOperations = false;
             foreach (Structure sStruct in Calibration.slExtStructures.Values)
             {
                 if (sStruct.S6xStructure != null) continue; // Already processed
@@ -1801,97 +2038,753 @@ namespace SAD806x
                 if (sStruct.Lines.Count == 0) continue;
 
                 // SADBank.processOtherVectors returns true if new operations have been generated
-                if (Bank8 != null) newGeneratedOperations |= Bank8.processOtherVectors(sStruct.GetOtherVectorAddresses(8), ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
-                if (Bank1 != null) newGeneratedOperations |= Bank1.processOtherVectors(sStruct.GetOtherVectorAddresses(1), ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
-                if (Bank9 != null) newGeneratedOperations |= Bank9.processOtherVectors(sStruct.GetOtherVectorAddresses(9), ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
-                if (Bank0 != null) newGeneratedOperations |= Bank0.processOtherVectors(sStruct.GetOtherVectorAddresses(0), ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
+                foreach (SADBank bBank in alBanks) newGeneratedOperations |= bBank.processOtherVectors(sStruct.GetOtherVectorAddresses(bBank.Num), ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
             }
 
-            if (newGeneratedOperations) processBinRecursive(ref alErrors);
+            if (newGeneratedOperations) processBinRecursive(ref alBanks, ref alErrors);
         }
 
         // Operations Conflict Errors Mngt
-        private void processBinOpeConflictCheck(ref ArrayList alErrors)
+        private bool processBinOpeConflicts(ref ArrayList alBanks, ref ArrayList alErrors)
         {
-            Operation prevOpe = null;
-            string errorFormat = string.Empty;
-
-            errorFormat = "Operations Conflict : {0,1} vs {1,1}";
+            bool reprocessConflicts = false;
 
             alErrors.Clear();
-            
-            if (Bank8 != null)
+
+            string errorFormat = "Operations Conflict : {0,1} vs {1,1}";
+
+            // Conflict Check done on all banks, to be reused in analysis
+            foreach (SADBank bBank in alBanks)
             {
-                prevOpe = null;
-                foreach (Operation ope in Bank8.slOPs.Values)
+                bBank.slConflictOperations = new SortedList();
+                bBank.slErrorsConflictOperations = new SortedList();
+
+                // 20210303 - PYM - Now all conflicts are managed, through multiple previous operations
+                ArrayList alPrevOps = new ArrayList();
+                foreach (Operation ope in bBank.slOPs.Values)
                 {
-                    if (prevOpe != null)
+                    if (alPrevOps.Count == 0)
                     {
+                        alPrevOps.Add(ope);
+                        continue;
+                    }
+
+                    for (int iPrevOpe = 0; iPrevOpe < alPrevOps.Count; iPrevOpe++)
+                    {
+                        Operation prevOpe = (Operation)alPrevOps[iPrevOpe];
                         if (ope.AddressInt >= prevOpe.AddressInt && ope.AddressInt < prevOpe.AddressNextInt)
                         {
                             if (prevOpe.OriginalOp.StartsWith("fe") && (ope.AddressInt - prevOpe.AddressInt == 1)) ope.isFEConflict = true;
-                            else  alErrors.Add(string.Format(errorFormat, prevOpe.UniqueAddressHex, ope.UniqueAddressHex));
-                        }
-                    }
-                    prevOpe = ope;
-                }
-            }
+                            else
+                            {
+                                if (!bBank.slConflictOperations.ContainsKey(prevOpe.AddressInt)) bBank.slConflictOperations.Add(prevOpe.AddressInt, new SortedList());
+                                if (!((SortedList)bBank.slConflictOperations[prevOpe.AddressInt]).ContainsKey(ope.AddressInt)) ((SortedList)bBank.slConflictOperations[prevOpe.AddressInt]).Add(ope.AddressInt, ope);
+                                if (!bBank.slConflictOperations.ContainsKey(ope.AddressInt)) bBank.slConflictOperations.Add(ope.AddressInt, new SortedList());
+                                if (!((SortedList)bBank.slConflictOperations[ope.AddressInt]).ContainsKey(prevOpe.AddressInt)) ((SortedList)bBank.slConflictOperations[ope.AddressInt]).Add(prevOpe.AddressInt, prevOpe);
 
-            if (Bank1 != null)
-            {
-                prevOpe = null;
-                foreach (Operation ope in Bank1.slOPs.Values)
-                {
-                    if (prevOpe != null)
-                    {
-                        if (ope.AddressInt >= prevOpe.AddressInt && ope.AddressInt < prevOpe.AddressNextInt)
+                                if (!bBank.slErrorsConflictOperations.ContainsKey(prevOpe.AddressInt)) bBank.slErrorsConflictOperations.Add(prevOpe.AddressInt, new SortedList());
+                                if (!((SortedList)bBank.slErrorsConflictOperations[prevOpe.AddressInt]).ContainsKey(ope.AddressInt)) ((SortedList)bBank.slErrorsConflictOperations[prevOpe.AddressInt]).Add(ope.AddressInt, ope);
+                            }
+                        }
+                        if (ope.AddressNextInt >= prevOpe.AddressNextInt)
                         {
-                            if (prevOpe.OriginalOp.StartsWith("fe") && (ope.AddressInt - prevOpe.AddressInt == 1)) ope.isFEConflict = true;
-                            else alErrors.Add(string.Format(errorFormat, prevOpe.UniqueAddressHex, ope.UniqueAddressHex));
+                            alPrevOps.RemoveAt(iPrevOpe);
+                            iPrevOpe--;
                         }
                     }
-                    prevOpe = ope;
+                    alPrevOps.Add(ope);
                 }
             }
 
-            if (Bank9 != null)
+            // 20210225 - PYM - Conflict Operations Analysis and Removal
+            // Conflict Analysis and Removal done on all banks, before Pushing Errors
+            foreach (SADBank bBank in alBanks)
             {
-                prevOpe = null;
-                foreach (Operation ope in Bank9.slOPs.Values)
+                // Conflict Operations Analysis
+                if (bBank.slConflictOperations != null)
                 {
-                    if (prevOpe != null)
+                    ArrayList alConflictsOpsToCorrect = new ArrayList();
+                    foreach (int iOpeAddress in bBank.slConflictOperations.Keys)
                     {
-                        if (ope.AddressInt >= prevOpe.AddressInt && ope.AddressInt < prevOpe.AddressNextInt)
+                        Operation ope = (Operation)bBank.slOPs[Tools.UniqueAddress(bBank.Num, iOpeAddress)];
+                        if (ope == null) continue;
+
+                        SortedList slConflictOps = (SortedList)bBank.slConflictOperations[iOpeAddress];
+                        if (slConflictOps == null) continue;
+
+                        // Searching for other conflicts in source
+                        ArrayList alConflictsOps = new ArrayList();
+                        // Starting on Conflicts Ops, except if they are related to definition
+                        // Source Conflict (Ope) will be managed as Conflict Ope on next iOpeAddress
+                        foreach (Operation conflictOpe in slConflictOps.Values) if (conflictOpe.S6xOperation == null) alConflictsOps.Add(conflictOpe);
+
+                        for (int iConflictOpe = 0; iConflictOpe < alConflictsOps.Count; iConflictOpe++)
                         {
-                            if (prevOpe.OriginalOp.StartsWith("fe") && (ope.AddressInt - prevOpe.AddressInt == 1)) ope.isFEConflict = true;
-                            else alErrors.Add(string.Format(errorFormat, prevOpe.UniqueAddressHex, ope.UniqueAddressHex));
+                            Operation conflictOpe = (Operation)alConflictsOps[iConflictOpe];
+                            SortedList slPossibleOpsToCorrect = new SortedList();
+                            SortedList slPossibleOpsCorrected = new SortedList();
+
+                            int nonConflicOpsTolerance = 3;
+                            slPossibleOpsCorrected.Add(ope.AddressInt, ope);
+                            slPossibleOpsToCorrect.Add(conflictOpe.AddressInt, new object[] { conflictOpe, slPossibleOpsCorrected });
+                            while (true)
+                            {
+                                if (!bBank.slOPsOrigins.ContainsKey(conflictOpe.AddressInt)) break;
+                                SortedList slOrigins = (SortedList)bBank.slOPsOrigins[conflictOpe.AddressInt];
+                                // 20210410 - PYM - Origins are now managed with real Previous operation first
+                                //  When multiple origins are in conflict, the real Previous operation is the one to follow
+                                //  or it could finish in a loop based on conflicts which will not correct the issue
+                                SortedList slOriginsPreviousFirst = slOrigins;
+                                if (slOriginsPreviousFirst.Count > 1)
+                                {
+                                    slOriginsPreviousFirst = new SortedList();
+                                    foreach (Operation sourceOpe in slOrigins.Values)
+                                    {
+                                        string uniqueKey = sourceOpe.UniqueAddress;
+                                        if (sourceOpe.BankNum == conflictOpe.BankNum && sourceOpe.AddressNextInt == conflictOpe.AddressInt) uniqueKey = "0." + uniqueKey;
+                                        else uniqueKey = "1." + uniqueKey;
+                                        slOriginsPreviousFirst.Add(uniqueKey, sourceOpe);
+                                    }
+                                }
+                                bool continueSearching = false;
+                                foreach (Operation conflictSourceOpe in slOriginsPreviousFirst.Values)
+                                {
+                                    // To prevent Loop
+                                    if (conflictSourceOpe.UniqueAddress == conflictOpe.UniqueAddress) continue;
+                                    // To prevent Loop
+                                    if (slPossibleOpsToCorrect.ContainsKey(conflictSourceOpe.AddressInt)) continue;
+
+                                    if (bBank.slConflictOperations.ContainsKey(conflictSourceOpe.AddressInt))
+                                    {
+                                        conflictOpe = conflictSourceOpe;
+                                        slPossibleOpsCorrected = (SortedList)bBank.slConflictOperations[conflictOpe.AddressInt];
+                                        slPossibleOpsToCorrect.Add(conflictOpe.AddressInt, new object[] { conflictOpe, slPossibleOpsCorrected });
+                                        continueSearching = true;
+                                        break;
+                                    }
+
+                                    // Operation already removed, probably from another Bank
+                                    if (conflictSourceOpe.BankNum == bBank.Num && !bBank.slOPs.ContainsKey(conflictSourceOpe.UniqueAddress))
+                                    {
+                                        conflictOpe = conflictSourceOpe;
+                                        slPossibleOpsToCorrect.Add(conflictOpe.AddressInt, new object[] { conflictOpe, new SortedList() });
+                                        break;
+                                    }
+
+                                    // 100% Chance => Valid Call, but on wrong Bank
+                                    if (conflictSourceOpe.CallType == CallType.Call || conflictSourceOpe.CallType == CallType.Jump) break;
+                                        
+                                    if (nonConflicOpsTolerance > 0)
+                                    {
+                                        nonConflicOpsTolerance--;
+                                        conflictOpe = conflictSourceOpe;
+                                        slPossibleOpsToCorrect.Add(conflictOpe.AddressInt, new object[] { conflictOpe, new SortedList() });
+                                        continueSearching = true;
+                                    }
+                                }
+                                if (!continueSearching) break;
+                            }
+
+                            // Origin Check
+                            bool hasOrigin = bBank.slOPsOrigins.ContainsKey(conflictOpe.AddressInt);
+                            if (hasOrigin)
+                            {
+                                SortedList slCheckOrigins = (SortedList)bBank.slOPsOrigins[conflictOpe.AddressInt];
+                                hasOrigin = slCheckOrigins != null;
+                                if (hasOrigin) hasOrigin = slCheckOrigins.Count != 0;
+                                slCheckOrigins = null;
+                            }
+
+                            // No Origin, strange
+                            if (!hasOrigin)
+                            {
+                                if (slPossibleOpsToCorrect != null)
+                                {
+                                    // Checking for Vector List Source to validate removal
+                                    foreach (Vector addVector in Calibration.slAdditionalVectors.Values)
+                                    {
+                                        if (addVector.ApplyOnBankNum == bBank.Num && addVector.AddressInt == conflictOpe.AddressInt && addVector.VectList != null)
+                                        {
+                                            alConflictsOpsToCorrect.Add(new object[] { slPossibleOpsToCorrect, addVector });
+                                            slPossibleOpsToCorrect = null;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                // Other possibilities ?
+                                if (slPossibleOpsToCorrect != null)
+                                {
+                                }
+
+                                // Operation without Origin, to be removed
+                                if (slPossibleOpsToCorrect != null)
+                                {
+                                    alConflictsOpsToCorrect.Add(new object[] { slPossibleOpsToCorrect, conflictOpe });
+                                    slPossibleOpsToCorrect = null;
+                                }
+                            }
+
+                            // Operation already removed, probably from another Bank
+                            if (slPossibleOpsToCorrect != null)
+                            {
+                                if (conflictOpe.BankNum == bBank.Num && !bBank.slOPs.ContainsKey(conflictOpe.UniqueAddress))
+                                {
+                                    alConflictsOpsToCorrect.Add(new object[] { slPossibleOpsToCorrect, conflictOpe });
+                                    slPossibleOpsToCorrect = null;
+                                }
+                            }
+
+                            // Valid Call, but on wrong Bank
+                            // 10,00                rbnk  0                  Set Bank 0;
+                            // ef,1c,a6             call  52ea               Sub0684();
+                            // with Conflict operation just before call/jump, rbnk could be ignored
+                            // or basically a bad hard Push
+                            // c9,1c,ca             push  ca1c               push(Sub0552);
+                            if (slPossibleOpsToCorrect != null)
+                            {
+                                if (Calibration.slCalls.ContainsKey(conflictOpe.UniqueAddress))
+                                {
+                                    if (bBank.slOPsOrigins.ContainsKey(conflictOpe.AddressInt))
+                                    {
+                                        SortedList slOrigins = (SortedList)bBank.slOPsOrigins[conflictOpe.AddressInt];
+                                        if (slOrigins != null)
+                                        {
+                                            // No Interest when more than 1 origin, origin should be the call/jump operation
+                                            for (int iOrigin = 0; iOrigin < slOrigins.Count; iOrigin++)
+                                            {
+                                                Operation callOpe = (Operation)slOrigins.GetByIndex(iOrigin);
+                                                if (callOpe == null) continue;
+                                                if (callOpe.CallType != CallType.Call && callOpe.CallType != CallType.Jump) continue;
+
+                                                // Now Call/Jump ApplyOnBank should be valid
+                                                SADBank bCallOpeBank = null;
+                                                switch (callOpe.BankNum)
+                                                {
+                                                    case 8:
+                                                        bCallOpeBank = Bank8;
+                                                        break;
+                                                    case 1:
+                                                        bCallOpeBank = Bank1;
+                                                        break;
+                                                    case 9:
+                                                        bCallOpeBank = Bank9;
+                                                        break;
+                                                    case 0:
+                                                        bCallOpeBank = Bank0;
+                                                        break;
+                                                }
+                                                if (bCallOpeBank == null) continue;
+
+                                                if (!bCallOpeBank.slOPsOrigins.ContainsKey(callOpe.AddressInt)) continue;
+
+                                                SortedList slCallOrigins = (SortedList)bCallOpeBank.slOPsOrigins[callOpe.AddressInt];
+                                                if (slCallOrigins == null) continue;
+
+                                                // No Interest with only one Origin, In Conflict or Not
+                                                //  Goal is to proof Conflict Origin has replaced a valid rbnk when processing Call/Jump
+                                                Operation callOpeConflictOrigin = null;
+                                                Operation callOpeValidRbnkOrigin = null;
+                                                if (slCallOrigins.Count > 1)
+                                                {
+                                                    foreach (Operation callOpeOrigin in slCallOrigins.Values)
+                                                    {
+                                                        if (callOpeOrigin == null) continue;
+                                                        if (bCallOpeBank.slConflictOperations.ContainsKey(callOpeOrigin.AddressInt))
+                                                        {
+                                                            if (callOpeOrigin.OriginalOPCode == "10") callOpeValidRbnkOrigin = callOpeOrigin;
+                                                            else callOpeConflictOrigin = callOpeOrigin;
+                                                        }
+                                                        if (callOpeConflictOrigin != null && callOpeValidRbnkOrigin != null) break;
+                                                    }
+                                                    if (callOpeConflictOrigin != null && callOpeValidRbnkOrigin != null)
+                                                    {
+                                                        if (callOpe.ApplyOnBankNum != callOpeValidRbnkOrigin.SetBankNum)
+                                                        {
+                                                            alConflictsOpsToCorrect.Add(new object[] { slPossibleOpsToCorrect, new Operation[] { callOpe, callOpeValidRbnkOrigin, callOpeConflictOrigin } });
+                                                            slPossibleOpsToCorrect = null;
+                                                        }
+                                                    }
+                                                }
+                                                else if (slCallOrigins.Count == 1)
+                                                // Could basically be a bad Hard Push
+                                                {
+                                                    if (callOpe.OriginalOPCode == "c9")
+                                                    {
+                                                        alConflictsOpsToCorrect.Add(new object[] { slPossibleOpsToCorrect, conflictOpe });
+                                                        slPossibleOpsToCorrect = null;
+                                                    }
+                                                }
+                                            }
+                                            slOrigins = null;
+                                        }
+                                    }
+                                }
+                            }
+
+                                    // Other possibilities ?
+                            if (slPossibleOpsToCorrect != null)
+                            {
+                            }
                         }
                     }
-                    prevOpe = ope;
+
+                    // CleanUp
+                    if (alConflictsOpsToCorrect.Count > 0)
+                    {
+                        //  Vector List size to reduce
+                        //  Vectors removal
+                        SortedList slVectorsToRemove = new SortedList();
+                        SortedList slIdentifiedVectListsVectors = new SortedList();
+                        foreach (object[] arrConflictsOpsToCorrect in alConflictsOpsToCorrect)
+                        {
+                            if (arrConflictsOpsToCorrect[1] == null) continue;
+                            if (arrConflictsOpsToCorrect[1].GetType() != typeof(Vector)) continue;
+                            Vector addVector = (Vector)arrConflictsOpsToCorrect[1];
+                            if (addVector.VectList == null) continue;
+                            if (!slVectorsToRemove.ContainsKey(addVector.UniqueSourceAddress)) slVectorsToRemove.Add(addVector.UniqueSourceAddress, addVector);
+                            if (!slIdentifiedVectListsVectors.ContainsKey(addVector.VectList.UniqueAddress)) slIdentifiedVectListsVectors.Add(addVector.VectList.UniqueAddress, new SortedList());
+                            if (!((SortedList)slIdentifiedVectListsVectors[addVector.VectList.UniqueAddress]).ContainsKey(addVector.UniqueSourceAddress)) ((SortedList)slIdentifiedVectListsVectors[addVector.VectList.UniqueAddress]).Add(addVector.UniqueSourceAddress, addVector);
+                        }
+                        ArrayList alRemovedVectors = new ArrayList();
+                        foreach (string vectListUniqueAddress in slIdentifiedVectListsVectors.Keys)
+                        {
+                            Structure vectList = (Structure)Calibration.slAdditionalVectorsLists[vectListUniqueAddress];
+                            if (vectList == null) continue;
+                            if (vectList.Vectors == null) continue;
+                            if (vectList.Vectors.Count == 0) continue;
+                            if (vectList.Vectors.Count != vectList.Number) continue;
+                            SortedList slVects = (SortedList)slIdentifiedVectListsVectors[vectListUniqueAddress];
+                            if (slVects.Count == 0) continue;
+
+                            while (true)
+                            {
+                                Vector vVectListVector =  (Vector)vectList.Vectors.GetByIndex(vectList.Vectors.Count - 1);
+                                Vector vVect = (Vector)slVects.GetByIndex(slVects.Count - 1);
+                                if (vVectListVector.SourceAddress != vVect.SourceAddress)
+                                {
+                                    // One level tolerance
+                                    if (vectList.Vectors.Count <= 1) break;
+                                    Vector vVectListVectorN1 = (Vector)vectList.Vectors.GetByIndex(vectList.Vectors.Count - 2);
+                                    if (vVectListVectorN1.SourceAddress != vVect.SourceAddress) break;
+                                }
+
+                                vectList.Number--;
+                                vectList.Vectors.RemoveAt(vectList.Vectors.Count - 1);
+                                slVects.RemoveAt(slVects.Count - 1);
+                                if (Calibration.slAdditionalVectors.ContainsKey(vVect.UniqueSourceAddress)) Calibration.slAdditionalVectors.Remove(vVect.UniqueSourceAddress);
+                                if (slVectorsToRemove.ContainsKey(vVect.UniqueSourceAddress)) slVectorsToRemove.Remove(vVect.UniqueSourceAddress);
+                                alRemovedVectors.Add(vVect.UniqueSourceAddress);
+
+                                if (vectList.Vectors.Count == 0) break;
+                                if (slVects.Count == 0) break; ;
+                            }
+                        }
+                        slIdentifiedVectListsVectors = null;
+                        // 20210410 - PYM - Inactivating remaining Vectors
+                        // Remaing Vectors to inactivate, only for 8061
+                        if (is8061 && slVectorsToRemove.Count > 0)
+                        {
+                            foreach (Vector vVect in slVectorsToRemove.Values)
+                            {
+                                vVect.isValid = false;
+                                alRemovedVectors.Add(vVect.UniqueSourceAddress);
+                            }
+                        }
+                        slVectorsToRemove = null;
+
+                        //  Valid Call, but on wrong Bank
+                        foreach (object[] arrConflictsOpsToCorrect in alConflictsOpsToCorrect)
+                        {
+                            if (arrConflictsOpsToCorrect[1] == null) continue;
+                            if (arrConflictsOpsToCorrect[1].GetType() != typeof(Operation[])) continue;
+                            if (((Operation[])arrConflictsOpsToCorrect[1]).Length != 3) continue;
+
+                            reprocessConflicts |= processBinOpeConflictsCallBankCorrection(((Operation[])arrConflictsOpsToCorrect[1])[0], ((Operation[])arrConflictsOpsToCorrect[1])[1], ((Operation[])arrConflictsOpsToCorrect[1])[2]);
+                        }
+                        
+                        // Other Things ?
+
+                        // Operations to remove
+                        // First Removal and Conflict management
+                        foreach (object[] arrConflictsOpsToCorrect in alConflictsOpsToCorrect)
+                        {
+                            if (arrConflictsOpsToCorrect[1] == null) continue;
+                            if (arrConflictsOpsToCorrect[1].GetType() == typeof(Vector)) if (!alRemovedVectors.Contains(((Vector)arrConflictsOpsToCorrect[1]).UniqueSourceAddress)) continue;
+                            //if (arrConflictsOpsToCorrect[1].GetType() == typeof(Operation)) => OK
+                            //if (arrConflictsOpsToCorrect[1].GetType() == typeof(Operation[])) => OK
+
+                            foreach (object[] arrConflictsOpeToCorrect in ((SortedList)arrConflictsOpsToCorrect[0]).Values)
+                            {
+                                Operation opeToRemove = (Operation)arrConflictsOpeToCorrect[0];
+
+                                // Already removed
+                                if (!bBank.slOPs.ContainsKey(opeToRemove.UniqueAddress)) continue;
+
+                                bBank.removeOperation(opeToRemove);
+
+                                // Conflicts CleanUp for Errors management
+                                if (bBank.slErrorsConflictOperations.ContainsKey(opeToRemove.AddressInt)) bBank.slErrorsConflictOperations.Remove(opeToRemove.AddressInt);
+                                for (int iConflictOperation = 0; iConflictOperation < bBank.slErrorsConflictOperations.Count; iConflictOperation++)
+                                {
+                                    SortedList slOpsInConflict = (SortedList)bBank.slErrorsConflictOperations.GetByIndex(iConflictOperation);
+                                    if (slOpsInConflict.ContainsKey(opeToRemove.AddressInt)) slOpsInConflict.Remove(opeToRemove.AddressInt);
+                                    if (slOpsInConflict.Count == 0)
+                                    {
+                                        ((SortedList)bBank.slErrorsConflictOperations).RemoveAt(iConflictOperation);
+                                        iConflictOperation--;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Then Corrected conflicts can have consequences and are now managed
+                        //  To run after all removals
+                        //  For example Call reprocess requires removals to prevent conflict check to give bad result
+
+                        // Creating an orderer list for Operations idenfitied as corrected
+                        SortedList slAllOpsCorrected = new SortedList();
+                        foreach (object[] arrConflictsOpsToCorrect in alConflictsOpsToCorrect)
+                        {
+                            foreach (object[] arrConflictsOpeToCorrect in ((SortedList)arrConflictsOpsToCorrect[0]).Values)
+                            {
+                                Operation opeRemoved = (Operation)arrConflictsOpeToCorrect[0];
+                                SortedList slOpsCorrected = (SortedList)arrConflictsOpeToCorrect[1];
+                                if (slOpsCorrected == null) continue;
+
+                                // Not Removed
+                                if (bBank.slOPs.ContainsKey(opeRemoved.UniqueAddress)) continue;
+
+                                foreach (Operation opeCorrected in slOpsCorrected.Values)
+                                {
+                                    if (!slAllOpsCorrected.ContainsKey(opeCorrected.AddressInt)) slAllOpsCorrected.Add(opeCorrected.AddressInt, opeCorrected);
+                                }
+                            }
+                        }
+                        // Reviewing gopParams and Previous Operations on corrected operations
+                        foreach (Operation opeCorrected in slAllOpsCorrected.Values)
+                        {
+                            if (opeCorrected == null) continue;
+                            if (opeCorrected.OPCode == null) continue;
+
+                            SortedList slOrigins = (SortedList)bBank.slOPsOrigins[opeCorrected.AddressInt];
+                            if (slOrigins == null) continue;
+                            if (slOrigins.Count == 0) continue;
+
+                            Operation prevOpe = (Operation)slOrigins.GetByIndex(0);
+                            if (prevOpe == null) continue;
+
+                            GotoOpParams gopParams = null;
+                            if (prevOpe.GotoOpParams != null) gopParams = prevOpe.GotoOpParams.Clone();
+                            Operation tmpOpe = opeCorrected.OPCode.processOP(opeCorrected.AddressInt, opeCorrected.BankNum, opeCorrected.InitialCallAddressInt, opeCorrected.OriginalOpArr, ref Calibration, opeCorrected.ApplySignedAlt, ref prevOpe, ref gopParams, ref S6x);
+
+                            // gopParams Update
+                            if (opeCorrected.CallType == CallType.Goto && opeCorrected.OPCode.Type == OPCodeType.GotoOP)
+                            {
+                                if (gopParams == null) opeCorrected.GotoOpParams = new GotoOpParams(opeCorrected.BankNum, opeCorrected.AddressInt);
+                                else opeCorrected.GotoOpParams = gopParams.Clone();
+                            }
+
+                            // Previous Ope update
+                            if (opeCorrected.initialOpPrevResult == null) opeCorrected.initialOpPrevResult = prevOpe;
+                            else if (opeCorrected.initialOpPrevResult.AddressInt != prevOpe.AddressInt) opeCorrected.initialOpPrevResult = prevOpe;
+
+                            // No update for next operation in some cases
+                            if (opeCorrected.isReturn || opeCorrected.CallType == CallType.Jump || opeCorrected.CallType == CallType.ShortJump)
+                            {
+                                if (gopParams == null) opeCorrected.GotoOpParams = new GotoOpParams(opeCorrected.BankNum, opeCorrected.AddressInt);
+                                else opeCorrected.GotoOpParams = gopParams.Clone();
+                            }
+                            
+                            Operation refOpeCorrected = (Operation)bBank.slOPs[opeCorrected.UniqueAddress];
+                            if (refOpeCorrected == null) continue;
+                            Operation nextOpe = (Operation)bBank.slOPs[Tools.UniqueAddress(opeCorrected.BankNum, opeCorrected.AddressNextInt)];
+                            if (nextOpe == null) continue;
+
+                            tmpOpe = nextOpe.OPCode.processOP(nextOpe.AddressInt, nextOpe.BankNum, nextOpe.InitialCallAddressInt, nextOpe.OriginalOpArr, ref Calibration, nextOpe.ApplySignedAlt, ref refOpeCorrected, ref gopParams, ref S6x);
+
+                            if (nextOpe.CallType == CallType.Goto && nextOpe.OPCode.Type == OPCodeType.GotoOP)
+                            {
+                                if (gopParams == null) nextOpe.GotoOpParams = new GotoOpParams(nextOpe.BankNum, nextOpe.AddressInt);
+                                else nextOpe.GotoOpParams = gopParams.Clone();
+                            }
+
+                            // No update for next operation in some cases
+                            if (nextOpe.isReturn || nextOpe.CallType == CallType.Jump || nextOpe.CallType == CallType.ShortJump)
+                            {
+                                if (gopParams == null) nextOpe.GotoOpParams = new GotoOpParams(nextOpe.BankNum, nextOpe.AddressInt);
+                                else nextOpe.GotoOpParams = gopParams.Clone();
+                            }
+                        }
+                        slAllOpsCorrected = null;
+                        
+                        // Calculating new available addresses for Jumps
+                        ArrayList alNewAvailableJumpAddresses = new ArrayList();
+                        foreach (object[] arrConflictsOpsToCorrect in alConflictsOpsToCorrect)
+                        {
+                            foreach (object[] arrConflictsOpeToCorrect in ((SortedList)arrConflictsOpsToCorrect[0]).Values)
+                            {
+                                Operation opeRemoved = (Operation)arrConflictsOpeToCorrect[0];
+
+                                // Not Removed
+                                if (bBank.slOPs.ContainsKey(opeRemoved.UniqueAddress)) continue;
+
+                                for (int iAddress = opeRemoved.AddressInt; iAddress < opeRemoved.AddressNextInt; iAddress++)
+                                {
+                                    if (bBank.slOPs.ContainsKey(Tools.UniqueAddress(bBank.Num, iAddress))) continue;
+                                    if (!alNewAvailableJumpAddresses.Contains(iAddress)) alNewAvailableJumpAddresses.Add(iAddress);
+                                }
+                            }
+                        }
+
+                        // Searching for Call Ops (in all banks) using these addresses
+                        //  To generate the call when not existing
+                        foreach (SADBank bCallOpeBank in alBanks)
+                        {
+                            ArrayList alCallOPsUniqueAddresses = (ArrayList)bCallOpeBank.getCallOPsUniqueAddresses.Clone();
+                            if (alCallOPsUniqueAddresses == null) continue;
+                            foreach (string uniqueAddress in alCallOPsUniqueAddresses)
+                            {
+                                Operation callOpe = (Operation)bCallOpeBank.slOPs[uniqueAddress];
+                                if (callOpe == null) continue;
+
+                                if (callOpe.ApplyOnBankNum != bBank.Num) continue;
+                                if (callOpe.CallType != CallType.Call && callOpe.CallType != CallType.ShortCall && callOpe.CallType != CallType.Jump && callOpe.CallType != CallType.ShortJump && callOpe.CallType != CallType.Goto) continue;
+                                if (!alNewAvailableJumpAddresses.Contains(callOpe.AddressJumpInt)) continue;
+                                if (Calibration.slCalls.ContainsKey(Tools.UniqueAddress(callOpe.ApplyOnBankNum, callOpe.AddressJumpInt))) continue;
+
+                                int iCallOpeBankOpsCount = bCallOpeBank.slOPs.Count;    // New operations could be added
+                                int iCallOpeAddressNextInt = callOpe.AddressNextInt;    // Operation bytes number or arguments number could change
+
+                                GotoOpParams gopParams = null;
+                                if (callOpe.GotoOpParams != null) callOpe.GotoOpParams.Clone();
+                                bCallOpeBank.processOperationCall(ref callOpe, bCallOpeBank.AddressInternalEndInt, ref gopParams, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
+
+                                reprocessConflicts |= bCallOpeBank.slOPs.Count > iCallOpeBankOpsCount || iCallOpeAddressNextInt != callOpe.AddressNextInt;
+                            }
+                        }
+                        alNewAvailableJumpAddresses = null;
+
+                        /*
+                        foreach (object[] arrConflictsOpsToCorrect in alConflictsOpsToCorrect)
+                        {
+                            foreach (object[] arrConflictsOpeToCorrect in ((SortedList)arrConflictsOpsToCorrect[0]).Values)
+                            {
+                                SortedList slOpsCorrected = (SortedList)arrConflictsOpeToCorrect[1];
+                                if (slOpsCorrected == null) continue;
+
+                                // Operatations idenfitied as corrected
+                                foreach (Operation opeCorrected in slOpsCorrected.Values)
+                                {
+                                    // Not interesting for now
+                                    /*
+                                        Operation nextOpe = null;
+
+                                        // Bank change
+                                        if (opeCorrected.OriginalOPCode == "10")
+                                        {
+                                            nextOpe = (Operation)bBank.slOPs[Tools.UniqueAddress(opeCorrected.BankNum, opeCorrected.AddressNextInt)];
+                                            if (nextOpe == null) continue;
+                                        }
+                                    }
+                                    */
+                                    /*
+                                }
+
+                                // More complicated
+                            }
+                        }
+                        */
+                    }
                 }
             }
 
-            if (Bank0 != null)
+            // Remaining errors are pushed, for all Banks
+            foreach (SADBank bBank in alBanks)
             {
-                prevOpe = null;
-                foreach (Operation ope in Bank0.slOPs.Values)
+                foreach (int iConflictAddress in bBank.slErrorsConflictOperations.Keys)
                 {
-                    if (prevOpe != null)
+                    Operation ope = (Operation)bBank.slOPs[Tools.UniqueAddress(bBank.Num, iConflictAddress)];
+                    if (ope == null) continue;
+
+                    foreach (Operation conflictOpe in ((SortedList)bBank.slErrorsConflictOperations[iConflictAddress]).Values)
                     {
-                        if (ope.AddressInt >= prevOpe.AddressInt && ope.AddressInt < prevOpe.AddressNextInt)
-                        {
-                            if (prevOpe.OriginalOp.StartsWith("fe") && (ope.AddressInt - prevOpe.AddressInt == 1)) ope.isFEConflict = true;
-                            else alErrors.Add(string.Format(errorFormat, prevOpe.UniqueAddressHex, ope.UniqueAddressHex));
-                        }
+                        alErrors.Add(string.Format(errorFormat, ope.UniqueAddressHex, conflictOpe.UniqueAddressHex));
                     }
-                    prevOpe = ope;
                 }
             }
 
-            prevOpe = null;
+            return reprocessConflicts;
         }
 
-        // Operations Conflict Errors Mngt
+        // processBinOpeConflictCorrection
+        //
+        private bool processBinOpeConflictsCallBankCorrection(Operation callOpe, Operation callOpeValidRbnkOrigin, Operation callOpeConflictOrigin)
+        {
+            bool reprocessConflicts = false;
+
+            if (callOpe == null || callOpeValidRbnkOrigin == null) return reprocessConflicts;
+            if (callOpe.CallType != CallType.Call && callOpe.CallType != CallType.Jump) return reprocessConflicts;
+            if (callOpe.ApplyOnBankNum == callOpeValidRbnkOrigin.SetBankNum) return reprocessConflicts;
+            
+            // Changing callOpe ApplyOnBank
+            SADBank bCallOpeBank = null;
+            switch (callOpe.BankNum)
+            {
+                case 8:
+                    bCallOpeBank = Bank8;
+                    break;
+                case 1:
+                    bCallOpeBank = Bank1;
+                    break;
+                case 9:
+                    bCallOpeBank = Bank9;
+                    break;
+                case 0:
+                    bCallOpeBank = Bank0;
+                    break;
+            }
+
+            if (bCallOpeBank != null)
+            {
+                callOpe = (Operation)bCallOpeBank.slOPs[callOpe.UniqueAddress];
+
+                // callOpe initial version removed from Origins for AddressJump only
+                //  Only if ApplyOnBankNum was the same than BankNum
+                if (callOpe.BankNum == callOpe.ApplyOnBankNum)
+                {
+                    if (bCallOpeBank.slOPsOrigins.Contains(callOpe.AddressJumpInt))
+                    {
+                        SortedList slOriginsWithCallOpe = (SortedList)bCallOpeBank.slOPsOrigins[callOpe.AddressJumpInt];
+                        if (slOriginsWithCallOpe != null)
+                        {
+                            if (slOriginsWithCallOpe.ContainsKey(callOpe.AddressInt)) slOriginsWithCallOpe.Remove(callOpe.AddressInt);
+                        }
+                        slOriginsWithCallOpe = null;
+                    }
+                }
+
+                // callOpe ApplyOnBankNum correction
+                callOpe.ApplyOnBankNum = callOpeValidRbnkOrigin.SetBankNum;
+                // Other things to update on Call Ope ?
+
+                // callOpe new version added to Origins for AddressJump only
+                //  Only if ApplyOnBankNum is the same than BankNum
+                if (callOpe.BankNum == callOpe.ApplyOnBankNum)
+                {
+                    if (bCallOpeBank.slOPsOrigins.Contains(callOpe.AddressJumpInt))
+                    {
+                        SortedList slOriginsWithoutCallOpe = (SortedList)bCallOpeBank.slOPsOrigins[callOpe.AddressJumpInt];
+                        if (slOriginsWithoutCallOpe != null)
+                        {
+                            if (!slOriginsWithoutCallOpe.ContainsKey(callOpe.AddressInt)) slOriginsWithoutCallOpe.Add(callOpe.AddressInt, callOpe);
+                        }
+                    }
+                    else
+                    {
+                        // Call/Jump has probably to be processed
+                    }
+                }
+
+                // Call/Jump management                            
+                //  No Check on Call existence, it is done in processOperationCall and sub procedures
+                //  But it is required to do it each time to manage Call Ope Params
+                //if (!Calibration.slCalls.ContainsKey(Tools.UniqueAddress(callOpe.ApplyOnBankNum, callOpe.AddressJumpInt)))
+                //{
+                int iCallOpeBankOpsCount = bCallOpeBank.slOPs.Count;    // New operations could be added
+                int iCallOpeAddressNextInt = callOpe.AddressNextInt;    // Operation bytes number or arguments number could change
+
+                GotoOpParams gopParams = null;
+                if (callOpe.GotoOpParams != null) callOpe.GotoOpParams.Clone();
+                bCallOpeBank.processOperationCall(ref callOpe, bCallOpeBank.AddressInternalEndInt, ref gopParams, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
+
+                reprocessConflicts |= bCallOpeBank.slOPs.Count > iCallOpeBankOpsCount || iCallOpeAddressNextInt != callOpe.AddressNextInt;
+
+                if (iCallOpeAddressNextInt != callOpe.AddressNextInt)
+                {
+                    // Removing Operation which were created in Arguments addresses
+                    if (callOpe.AddressNextInt > iCallOpeAddressNextInt)
+                    {
+                        int iNewArgAddress = iCallOpeAddressNextInt;
+                        while (iNewArgAddress < callOpe.AddressNextInt)
+                        {
+                            // Operation starting at Argument place
+                            Operation badNextOperation = (Operation)bCallOpeBank.slOPs[Tools.UniqueAddress(callOpe.BankNum, iNewArgAddress)];
+                            if (badNextOperation != null)
+                            {
+                                bCallOpeBank.removeOperation(badNextOperation);
+                            }
+                            else
+                            {
+                            // Origin defined at Argument place
+                                foreach (SortedList slNewArgOrigins in bCallOpeBank.slOPsOrigins.Values)
+                                {
+                                    if (slNewArgOrigins == null) continue;
+                                    if (slNewArgOrigins.ContainsKey(iNewArgAddress)) slNewArgOrigins.Remove(iNewArgAddress);
+                                }
+                            }
+                            
+                            iNewArgAddress++;
+                        }
+                    }
+                    // Creation for Operations based on new Call Ope AddressNextInt
+                    int iNewAddressNextInt = callOpe.AddressNextInt;
+                    while (true)
+                    {
+                        Operation rightNextOperation = (Operation)bCallOpeBank.slOPs[Tools.UniqueAddress(callOpe.BankNum, iNewAddressNextInt)];
+                        if (rightNextOperation != null) break;  // Operation already exists at the right place, no issue
+                        
+                        bCallOpeBank.processOperation(callOpe.AddressNextInt, callOpe, CallType.Unknown, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
+
+                        rightNextOperation = (Operation)bCallOpeBank.slOPs[Tools.UniqueAddress(callOpe.BankNum, iNewAddressNextInt)];
+                        if (rightNextOperation == null) break;  // It should not
+
+                        // Origins check
+                        SortedList slRightNextOperationOrigins = (SortedList)bCallOpeBank.slOPsOrigins[rightNextOperation.AddressInt];
+                        if (slRightNextOperationOrigins == null)
+                        {
+                            slRightNextOperationOrigins = new SortedList();
+                            bCallOpeBank.slOPsOrigins.Add(rightNextOperation.AddressInt, slRightNextOperationOrigins);
+                        }
+                        if (!slRightNextOperationOrigins.ContainsKey(callOpe.AddressInt)) slRightNextOperationOrigins.Add(callOpe.AddressInt, callOpe);
+
+                        // New Operation can create conflicts, another run will be required
+                        reprocessConflicts = true;
+
+                        // No Chance, rightNextOperation created is a Set Bank, next operation has to be reviewed, only if it exists
+                        if (rightNextOperation.OriginalOPCode == "10")
+                        {
+                            Operation rightNextNextOperation = (Operation)bCallOpeBank.slOPs[Tools.UniqueAddress(callOpe.BankNum, rightNextOperation.AddressNextInt)];
+                            if (rightNextNextOperation != null)
+                            {
+                                if (rightNextNextOperation.CallType == CallType.Call || rightNextNextOperation.CallType == CallType.Jump)
+                                {
+                                    reprocessConflicts |= processBinOpeConflictsCallBankCorrection(rightNextNextOperation, rightNextOperation, null);
+                                }
+                                // Elements could be affected on bank read
+                                //      To be managed ?
+                                /*
+                                else if (...)
+                                {
+
+                                }
+                                */
+                            }
+                        }
+
+                        iNewAddressNextInt = rightNextOperation.AddressNextInt;
+                    }
+
+                    reprocessConflicts |= bCallOpeBank.slOPs.Count > iCallOpeBankOpsCount;
+                }
+
+                //}
+            }
+
+            return reprocessConflicts;
+        }
+
+        // Calibration Conflict Errors Mngt
         private void processBinCalibCheck(ref ArrayList alErrors)
         {
             CalibrationElement prevCalElem = null;
@@ -1931,7 +2824,11 @@ namespace SAD806x
                     }
                     else if (calElem.isFunction)
                     {
-                        if (calElem.FunctionElem.Lines.Length == 0)
+                        if (calElem.FunctionElem.Lines == null)
+                        {
+                            alErrors.Add(string.Format("Invalid Function (No line) : {0,1}", calElem.UniqueAddressHex));
+                        }
+                        else if (calElem.FunctionElem.Lines.Length == 0)
                         {
                             alErrors.Add(string.Format("Invalid Function (No line) : {0,1}", calElem.UniqueAddressHex));
                         }
@@ -1941,6 +2838,10 @@ namespace SAD806x
                         if (calElem.TableElem.ColsNumber <= 0)
                         {
                             alErrors.Add(string.Format("Invalid Table (No column) : {0,1}", calElem.UniqueAddressHex));
+                        }
+                        else if (calElem.TableElem.Lines == null)
+                        {
+                            alErrors.Add(string.Format("Invalid Table (No line) : {0,1}", calElem.UniqueAddressHex));
                         }
                         else if (calElem.TableElem.Lines.Length == 0)
                         {
@@ -1960,6 +2861,383 @@ namespace SAD806x
                 alErrors.Add(string.Format("{0,1} Invalid Calibration Element(s) (Struct ?)\r\n    ex: {1,1}", countInvalidCalElemType, sampleInvalidCalElemType.Trim().Replace(" ", SADDef.GlobalSeparator.ToString())));
             }
 
+        }
+
+        // processStatistics
+        //  Should replace all other statistics in code
+        public void processStatistics()
+        {
+            ArrayList alBanks = new ArrayList();
+            if (Bank8 != null) alBanks.Add(Bank8);
+            if (Bank1 != null) alBanks.Add(Bank1);
+            if (Bank9 != null) alBanks.Add(Bank9);
+            if (Bank0 != null) alBanks.Add(Bank0);
+
+            // Generic Registers Statistics to start
+            foreach (SADBank bBank in alBanks)
+            {
+                foreach (Operation ope in bBank.slOPs.Values)
+                {
+                    if (ope == null) continue;
+                    if (ope.OperationParams == null) continue;
+                    foreach (OperationParam opeParam in ope.OperationParams)
+                    {
+                        if (opeParam.EmbeddedParam == null) continue;
+                        if (opeParam.EmbeddedParam.GetType() != typeof(Register)) continue;
+
+                        Calibration.addStatisticsRegisterAddress((Register)opeParam.EmbeddedParam, StatisticsRegisterItems.Count, ope.BankNum, ope.AddressInt, ope);
+                    }
+                }
+            }
+            alBanks = null;
+
+            if (Calibration.StatisticsRegisters == null) return;
+
+            // Specific Registers Statistics
+            SortedList slCountRegisters = (SortedList)Calibration.StatisticsRegisters[StatisticsRegisterItems.Count];
+            if (slCountRegisters != null)
+            {
+                foreach (object[] arrSR in slCountRegisters.Values)
+                {
+                    Register rReg = (Register)arrSR[0];
+                    SortedList slSI = (SortedList)arrSR[1];
+
+                    foreach (StatisticsRegisterItems sriSRI in Enum.GetValues(typeof(StatisticsRegisterItems)))
+                    {
+                        switch (sriSRI)
+                        {
+                            case StatisticsRegisterItems.RegShortcut0x100:
+                                if (!rReg.isDual && rReg.AddressInt >= 0x100 && rReg.AddressInt < 0x200)
+                                {
+                                    foreach (object[] arrOpeInfos in slSI.Values)
+                                    {
+                                        if (arrOpeInfos == null) continue;
+                                        if (arrOpeInfos.Length < 3) continue;
+                                        Operation ope = (Operation)arrOpeInfos[2];
+                                        if (ope == null) continue;
+                                        if (ope.OperationParams == null) continue;
+                                        foreach (OperationParam opeParam in ope.OperationParams)
+                                        {
+                                            if (opeParam.EmbeddedParam == null) continue;
+                                            if (opeParam.EmbeddedParam != rReg) continue;
+                                            if (!opeParam.isPossibleStatistic(sriSRI)) continue;
+
+                                            Calibration.addStatisticsRegisterAddress(rReg, sriSRI, ope.BankNum, ope.AddressInt, ope);
+                                        }
+                                    }
+                                }
+                                break;
+                            case StatisticsRegisterItems.Immediate:
+                                foreach (object[] arrOpeInfos in slSI.Values)
+                                {
+                                    if (arrOpeInfos == null) continue;
+                                    if (arrOpeInfos.Length < 3) continue;
+                                    Operation ope = (Operation)arrOpeInfos[2];
+                                    if (ope == null) continue;
+                                    if (ope.OPCode == null) continue;
+                                    switch (ope.OPCode.OPCode.Substring(0, 1).ToLower())
+                                    {
+                                        case "4":
+                                        case "5":
+                                        case "6":
+                                        case "7":
+                                        case "8":
+                                        case "9":
+                                        case "a":
+                                        case "b":
+                                            switch (ope.OPCode.OPCode.Substring(1, 1).ToLower())
+                                            {
+                                                case "1":
+                                                case "5":
+                                                case "9":
+                                                case "d":
+                                                    Calibration.addStatisticsRegisterAddress(rReg, sriSRI, ope.BankNum, ope.AddressInt, ope);
+                                                    break;
+                                            }
+                                            break;
+                                    }
+                                }
+                                break;
+                            case StatisticsRegisterItems.Direct:
+                                foreach (object[] arrOpeInfos in slSI.Values)
+                                {
+                                    if (arrOpeInfos == null) continue;
+                                    if (arrOpeInfos.Length < 3) continue;
+                                    Operation ope = (Operation)arrOpeInfos[2];
+                                    if (ope == null) continue;
+                                    if (ope.OPCode == null) continue;
+                                    switch (ope.OPCode.OPCode.Substring(0, 1).ToLower())
+                                    {
+                                        case "4":
+                                        case "5":
+                                        case "6":
+                                        case "7":
+                                        case "8":
+                                        case "9":
+                                        case "a":
+                                        case "b":
+                                            switch (ope.OPCode.OPCode.Substring(1, 1).ToLower())
+                                            {
+                                                case "0":
+                                                case "4":
+                                                case "8":
+                                                case "c":
+                                                    Calibration.addStatisticsRegisterAddress(rReg, sriSRI, ope.BankNum, ope.AddressInt, ope);
+                                                    break;
+                                            }
+                                            break;
+                                        case "c":
+                                            switch (ope.OPCode.OPCode.Substring(1, 1).ToLower())
+                                            {
+                                                case "0":
+                                                case "4":
+                                                    Calibration.addStatisticsRegisterAddress(rReg, sriSRI, ope.BankNum, ope.AddressInt, ope);
+                                                    break;
+                                            }
+                                            break;
+                                    }
+                                }
+                                break;
+                            case StatisticsRegisterItems.Indirect:
+                                foreach (object[] arrOpeInfos in slSI.Values)
+                                {
+                                    if (arrOpeInfos == null) continue;
+                                    if (arrOpeInfos.Length < 3) continue;
+                                    Operation ope = (Operation)arrOpeInfos[2];
+                                    if (ope == null) continue;
+                                    if (ope.OPCode == null) continue;
+                                    int signedAltAdder = ope.ApplySignedAlt ? 1 : 0;
+                                    switch (ope.OPCode.OPCode.Substring(0, 1).ToLower())
+                                    {
+                                        case "4":
+                                        case "5":
+                                        case "6":
+                                        case "7":
+                                        case "8":
+                                        case "9":
+                                        case "a":
+                                        case "b":
+                                            switch (ope.OPCode.OPCode.Substring(1, 1).ToLower())
+                                            {
+                                                case "2":
+                                                case "6":
+                                                case "a":
+                                                case "e":
+                                                    if (ope.OriginalOpArr.Length == 3 + signedAltAdder)
+                                                    {
+                                                        if (ope.OriginalOpArr[1 + signedAltAdder] != string.Empty)
+                                                        {
+                                                            if (Convert.ToByte(ope.OriginalOpArr[1 + signedAltAdder], 16) % 2 == 0)
+                                                            {
+                                                                Calibration.addStatisticsRegisterAddress(rReg, sriSRI, ope.BankNum, ope.AddressInt, ope);
+                                                            }
+                                                        }
+                                                    }
+                                                    break;
+                                            }
+                                            break;
+                                        case "c":
+                                            switch (ope.OPCode.OPCode.Substring(1, 1).ToLower())
+                                            {
+                                                case "2":
+                                                case "6":
+                                                    if (ope.OriginalOpArr.Length == 3 + signedAltAdder)
+                                                    {
+                                                        if (ope.OriginalOpArr[1 + signedAltAdder] != string.Empty)
+                                                        {
+                                                            if (Convert.ToByte(ope.OriginalOpArr[1 + signedAltAdder], 16) % 2 == 0)
+                                                            {
+                                                                Calibration.addStatisticsRegisterAddress(rReg, sriSRI, ope.BankNum, ope.AddressInt, ope);
+                                                            }
+                                                        }
+                                                    }
+                                                    break;
+                                            }
+                                            break;
+                                    }
+                                }
+                                break;
+                            case StatisticsRegisterItems.AutoIncrement:
+                                foreach (object[] arrOpeInfos in slSI.Values)
+                                {
+                                    if (arrOpeInfos == null) continue;
+                                    if (arrOpeInfos.Length < 3) continue;
+                                    Operation ope = (Operation)arrOpeInfos[2];
+                                    if (ope == null) continue;
+                                    if (ope.OPCode == null) continue;
+                                    int signedAltAdder = ope.ApplySignedAlt ? 1 : 0;
+                                    switch (ope.OPCode.OPCode.Substring(0, 1).ToLower())
+                                    {
+                                        case "4":
+                                        case "5":
+                                        case "6":
+                                        case "7":
+                                        case "8":
+                                        case "9":
+                                        case "a":
+                                        case "b":
+                                            switch (ope.OPCode.OPCode.Substring(1, 1).ToLower())
+                                            {
+                                                case "2":
+                                                case "6":
+                                                case "a":
+                                                case "e":
+                                                    if (ope.OriginalOpArr.Length == 3 + signedAltAdder)
+                                                    {
+                                                        if (ope.OriginalOpArr[1 + signedAltAdder] != string.Empty)
+                                                        {
+                                                            if (Convert.ToByte(ope.OriginalOpArr[1 + signedAltAdder], 16) % 2 == 1)
+                                                            {
+                                                                Calibration.addStatisticsRegisterAddress(rReg, sriSRI, ope.BankNum, ope.AddressInt, ope);
+                                                            }
+                                                        }
+                                                    }
+                                                    break;
+                                            }
+                                            break;
+                                        case "c":
+                                            switch (ope.OPCode.OPCode.Substring(1, 1).ToLower())
+                                            {
+                                                case "2":
+                                                case "6":
+                                                    if (ope.OriginalOpArr.Length == 3 + signedAltAdder)
+                                                    {
+                                                        if (ope.OriginalOpArr[1 + signedAltAdder] != string.Empty)
+                                                        {
+                                                            if (Convert.ToByte(ope.OriginalOpArr[1 + signedAltAdder], 16) % 2 == 1)
+                                                            {
+                                                                Calibration.addStatisticsRegisterAddress(rReg, sriSRI, ope.BankNum, ope.AddressInt, ope);
+                                                            }
+                                                        }
+                                                    }
+                                                    break;
+                                            }
+                                            break;
+                                    }
+                                }
+                                break;
+                            case StatisticsRegisterItems.ShortIndex:
+                                foreach (object[] arrOpeInfos in slSI.Values)
+                                {
+                                    if (arrOpeInfos == null) continue;
+                                    if (arrOpeInfos.Length < 3) continue;
+                                    Operation ope = (Operation)arrOpeInfos[2];
+                                    if (ope == null) continue;
+                                    if (ope.OPCode == null) continue;
+                                    int signedAltAdder = ope.ApplySignedAlt ? 1 : 0;
+                                    switch (ope.OPCode.OPCode.Substring(0, 1).ToLower())
+                                    {
+                                        case "4":
+                                        case "5":
+                                        case "6":
+                                        case "7":
+                                        case "8":
+                                        case "9":
+                                        case "a":
+                                        case "b":
+                                            switch (ope.OPCode.OPCode.Substring(1, 1).ToLower())
+                                            {
+                                                case "3":
+                                                case "7":
+                                                case "b":
+                                                case "f":
+                                                    if (ope.OriginalOpArr.Length == 5 + signedAltAdder) Calibration.addStatisticsRegisterAddress(rReg, sriSRI, ope.BankNum, ope.AddressInt, ope);
+                                                    break;
+                                            }
+                                            break;
+                                        case "c":
+                                            switch (ope.OPCode.OPCode.Substring(1, 1).ToLower())
+                                            {
+                                                case "3":
+                                                case "7":
+                                                    if (ope.OriginalOpArr.Length == 5 + signedAltAdder) Calibration.addStatisticsRegisterAddress(rReg, sriSRI, ope.BankNum, ope.AddressInt, ope);
+                                                    break;
+                                            }
+                                            break;
+                                    }
+                                }
+                                break;
+                            case StatisticsRegisterItems.LongIndex:
+                                foreach (object[] arrOpeInfos in slSI.Values)
+                                {
+                                    if (arrOpeInfos == null) continue;
+                                    if (arrOpeInfos.Length < 3) continue;
+                                    Operation ope = (Operation)arrOpeInfos[2];
+                                    if (ope == null) continue;
+                                    if (ope.OPCode == null) continue;
+                                    int signedAltAdder = ope.ApplySignedAlt ? 1 : 0;
+                                    switch (ope.OPCode.OPCode.Substring(0, 1).ToLower())
+                                    {
+                                        case "4":
+                                        case "5":
+                                        case "6":
+                                        case "7":
+                                        case "8":
+                                        case "9":
+                                        case "a":
+                                        case "b":
+                                            switch (ope.OPCode.OPCode.Substring(1, 1).ToLower())
+                                            {
+                                                case "3":
+                                                case "7":
+                                                case "b":
+                                                case "f":
+                                                    if (ope.OriginalOpArr.Length == 6 + signedAltAdder) Calibration.addStatisticsRegisterAddress(rReg, sriSRI, ope.BankNum, ope.AddressInt, ope);
+                                                    break;
+                                            }
+                                            break;
+                                        case "c":
+                                            switch (ope.OPCode.OPCode.Substring(1, 1).ToLower())
+                                            {
+                                                case "3":
+                                                case "7":
+                                                    if (ope.OriginalOpArr.Length == 6 + signedAltAdder) Calibration.addStatisticsRegisterAddress(rReg, sriSRI, ope.BankNum, ope.AddressInt, ope);
+                                                    break;
+                                            }
+                                            break;
+                                    }
+                                }
+                                break;
+                        }
+                    }
+                }
+                slCountRegisters = null;
+            }
+
+            // Specific Statistics
+            SortedList slRegShortcut0x100Registers = (SortedList)Calibration.StatisticsRegisters[StatisticsRegisterItems.RegShortcut0x100];
+            if (slRegShortcut0x100Registers != null)
+            {
+                foreach (object[] arrSR in slRegShortcut0x100Registers.Values)
+                {
+                    Register rReg = (Register)arrSR[0];
+                    SortedList slSI = (SortedList)arrSR[1];
+
+                    foreach (StatisticsItems siSI in Enum.GetValues(typeof(StatisticsItems)))
+                    {
+                        switch (siSI)
+                        {
+                            case StatisticsItems.RegShortcut0x100:
+                            case StatisticsItems.RegShortcut0x100SFR:
+                                if (rReg.isDual || rReg.AddressInt < 0x100 || rReg.AddressInt >= 0x200) continue;
+                                if (rReg.AddressInt <= 0x123 || siSI == StatisticsItems.RegShortcut0x100) 
+                                {
+                                    foreach (object[] arrOpeInfos in slSI.Values)
+                                    {
+                                        if (arrOpeInfos == null) continue;
+                                        if (arrOpeInfos.Length < 3) continue;
+                                        Operation ope = (Operation)arrOpeInfos[2];
+                                        if (ope == null) continue;
+                                        Calibration.incStatistics(siSI);
+                                        Calibration.addStatisticsAddress(siSI, ope.BankNum, ope.AddressInt, ope);
+                                    }
+                                }
+                                break;
+                        }
+                    }
+                }
+                slRegShortcut0x100Registers = null;
+            }
         }
 
         public Operation[] getElementRelatedOps(string uniqueAddress, bool forElem)

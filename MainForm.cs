@@ -10,13 +10,14 @@ using System.IO;
 using System.Threading;
 using System.Diagnostics;
 using System.Reflection;
+using System.Globalization;
 using SQLite806x;
 
 namespace SAD806x
 {
     public partial class MainForm : Form
     {
-        private bool activatedUniDb806x = false;
+        private bool activatedUniDb806x = true;
         
         private string binaryFilePath = string.Empty;
         private string s6xFilePath = string.Empty;
@@ -59,6 +60,8 @@ namespace SAD806x
         private SearchForm searchForm = null;
         private CompareForm compareForm = null;
         private CompareRoutinesForm compareRoutinesForm = null;
+
+        private SQLite806xForm sqLite806xForm = null;
         
         // Start Options
         private bool autoDisassembly = false;
@@ -88,10 +91,20 @@ namespace SAD806x
             categsContextMenuStrip.Opening += new CancelEventHandler(categsContextMenuStrip_Opening);
             elemsContextMenuStrip.Opening += new CancelEventHandler(elemsContextMenuStrip_Opening);
             fileToolStripMenuItem.DropDownOpening += new EventHandler(fileToolStripMenuItem_DropDownOpening);
+            recentToolStripMenuItem.DropDownOpening += new EventHandler(recentToolStripMenuItem_DropDownOpening);
             toolsToolStripMenuItem.DropDownOpening += new EventHandler(toolsToolStripMenuItem_DropDownOpening);
             helpToolStripMenuItem.DropDownOpening += new EventHandler(helpToolStripMenuItem_DropDownOpening);
+            uniDb806xToolStripMenuItem.DropDownOpening += new EventHandler(uniDb806xToolStripMenuItem_DropDownOpening);
+            iesOptionsUniDb806xToolStripMenuItem.DropDown.Closing += new ToolStripDropDownClosingEventHandler(iesOptionsUniDb806xToolStripMenuItemDropDown_Closing);
 
             elemDataGridView.DataBindingComplete += new DataGridViewBindingCompleteEventHandler(elemDataGridView_DataBindingComplete);
+
+            sharedIdentificationStatusTrackBar.ValueChanged += new EventHandler(sharedIdentificationStatusTrackBar_ValueChanged);
+
+            sharedCategsDepthMaxToolStripMenuItem.Click += new EventHandler(sharedCategsDepthToolStripMenuItem_Click);
+            sharedCategsDepthMedToolStripMenuItem.Click += new EventHandler(sharedCategsDepthToolStripMenuItem_Click);
+            sharedCategsDepthMinToolStripMenuItem.Click += new EventHandler(sharedCategsDepthToolStripMenuItem_Click);
+            sharedCategsDepthNoneToolStripMenuItem.Click += new EventHandler(sharedCategsDepthToolStripMenuItem_Click);
 
             tableColsScalerButton.Click += new EventHandler(tableScalerButton_Click);
             tableRowsScalerButton.Click += new EventHandler(tableScalerButton_Click);
@@ -112,6 +125,8 @@ namespace SAD806x
 
             pasteMultToolStripMenuItem.DropDownItemClicked += new ToolStripItemClickedEventHandler(pasteMultToolStripMenuItem_DropDownItemClicked);
             pasteMultOnItemToolStripMenuItem.DropDownItemClicked += new ToolStripItemClickedEventHandler(pasteMultToolStripMenuItem_DropDownItemClicked);
+
+            sqLite806xFileContextMenuStrip.Opening += new CancelEventHandler(sqLite806xFileContextMenuStrip_Opening);
 
             for (int iCMenu = 1; iCMenu <= 16; iCMenu++)
             {
@@ -141,8 +156,8 @@ namespace SAD806x
                 if (piDGV != null) piDGV.SetValue(elemDataGridView, true, null);
                 piDGV = null;
                 tDGV = null;
-            }            
-            
+            }
+
             elemOpsRichTextBox.Font = new Font(FontFamily.GenericMonospace, elemOpsRichTextBox.Font.Size);
 
             structureTipPictureBox.Tag = SharedUI.StructureTip();
@@ -163,6 +178,10 @@ namespace SAD806x
             tableScalePrecNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
             tableScalePrecNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
             tableScalePrecNumericUpDown.Value = SADDef.DefaultScalePrecision;
+
+            regScalePrecNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
+            regScalePrecNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
+            regScalePrecNumericUpDown.Value = SADDef.DefaultScalePrecision;
 
             tfSADVersionToolStripComboBox.Items.AddRange(TfSADTools.TFST_SAD_VERSIONS);
             if (tfSADVersionToolStripComboBox.Items.Count > 0) tfSADVersionToolStripComboBox.SelectedIndex = tfSADVersionToolStripComboBox.Items.Count - 1;
@@ -185,6 +204,10 @@ namespace SAD806x
             if (appStartArgs.Length == 0) return;
 
             bool autoFolderPath = false;
+            bool autoFolderStatistics = false;
+            bool autoFolderStatisticsAddresses = false;
+            bool autoFolderStatisticsRegisters = false;
+            bool autoFolderStatisticsRegistersAddresses = false;
             string autoPath = string.Empty;
             foreach (string appStartArg in appStartArgs)
             {
@@ -199,6 +222,18 @@ namespace SAD806x
                         break;
                     case "-f":   // Folder Disassemble + Output
                         autoFolderPath = true;
+                        break;
+                    case "-st":  // Folder Statistics
+                        autoFolderStatistics = true;
+                        break;
+                    case "-sa":  // Folder Statistics Addresses
+                        autoFolderStatisticsAddresses = true;
+                        break;
+                    case "-sr":  // Folder Statistics Addresses
+                        autoFolderStatisticsRegisters = true;
+                        break;
+                    case "-sra":  // Folder Statistics Registers Addresses
+                        autoFolderStatisticsRegistersAddresses = true;
                         break;
                     default:
                         autoPath = appStartArg;
@@ -226,7 +261,7 @@ namespace SAD806x
 
             if (autoFolderPath)
             {
-                folderStartProcess(autoPath);
+                folderStartProcess(autoPath, autoFolderStatistics, autoFolderStatisticsAddresses, autoFolderStatisticsRegisters, autoFolderStatisticsRegistersAddresses);
             }
             else
             {
@@ -250,6 +285,7 @@ namespace SAD806x
             string tmpBinFilePath = string.Empty;
             string tmpS6xFilePath = string.Empty;
             string tmpXdfFilePath = string.Empty;
+            string tmpXlsFilePath = string.Empty;
             string tmpDirFilePath = string.Empty;
             string tmpCmtFilePath = string.Empty;
             foreach (string dFile in dFiles)
@@ -262,6 +298,10 @@ namespace SAD806x
                         break;
                     case ".xdf":
                         tmpXdfFilePath = dFile;
+                        break;
+                    case ".xls":
+                    case ".xlsx":
+                        tmpXlsFilePath = dFile;
                         break;
                     case ".txt":
                         if (fiFI.Name.ToLower().Contains("_dir")) tmpDirFilePath = dFile;
@@ -279,7 +319,8 @@ namespace SAD806x
             if (!sadBin.isValid) return;
 
             if (tmpS6xFilePath != string.Empty) selectS6x(tmpS6xFilePath);
-            else if (tmpXdfFilePath != string.Empty) importXdfFile(tmpXdfFilePath);
+            else if (tmpXdfFilePath != string.Empty) importXdfFile(tmpXdfFilePath, false);
+            else if (tmpXlsFilePath != string.Empty) importXlsFile(tmpXlsFilePath);
             else if (tmpDirFilePath != string.Empty) importDirFile(tmpDirFilePath);
             else if (tmpCmtFilePath != string.Empty) importCmtFile(tmpCmtFilePath);
         }
@@ -393,6 +434,11 @@ namespace SAD806x
             }
         }
 
+        private void recentToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
+        {
+            initRecentFiles();
+        }
+
         private void toolsToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
         {
             importSignaturesToolStripMenuItem.Enabled = false;
@@ -402,8 +448,11 @@ namespace SAD806x
             importCmtFileToolStripMenuItem.Enabled = false;
             exportCmtFileToolStripMenuItem.Enabled = false;
             importXdfFileToolStripMenuItem.Enabled = false;
+            importXdfCategsToolStripMenuItem.Enabled = false;
             exportXdfFileToolStripMenuItem.Enabled = false;
             exportXdfResetToolStripMenuItem.Enabled = false;
+            importXlsFileToolStripMenuItem.Enabled = false;
+            exportXlsFileToolStripMenuItem.Enabled = false;
             showHexToolStripMenuItem.Enabled = false;
             searchObjectsToolStripMenuItem.Enabled = false;
             searchSignatureToolStripMenuItem.Enabled = false;
@@ -415,15 +464,13 @@ namespace SAD806x
             massUpdateToolStripMenuItem.Enabled = false;
 
             // Universal 806x DataBase
-            importUniDb806xToolStripMenuItem.Enabled = false;
-            exportUniDb806xToolStripMenuItem.Enabled = false;
-            syncUniDb806xToolStripMenuItem.Enabled = false;
-            extractBinUniDb806xToolStripMenuItem.Enabled = false;
+            uniDb806xToolStripMenuItem.Enabled = activatedUniDb806x;
 
             // Settings Imp/Exp
             settingsSAD806xToolStripMenuItem.Enabled = false;   // Not interesting for now
             settingsSADToolStripMenuItem.Enabled = true;
-            settingsTunerProToolStripMenuItem.Enabled = false;  // Not interesting for now
+            settingsTunerProToolStripMenuItem.Enabled = true;
+            settingsEABEToolStripMenuItem.Enabled = false; // Not interesting for now
             settings806xUniDbToolStripMenuItem.Enabled = false; // Not interesting for now
 
             if (sadBin != null)
@@ -437,8 +484,11 @@ namespace SAD806x
                     importCmtFileToolStripMenuItem.Enabled = true;
                     exportCmtFileToolStripMenuItem.Enabled = true;
                     importXdfFileToolStripMenuItem.Enabled = true;
+                    importXdfCategsToolStripMenuItem.Enabled = true;
                     exportXdfFileToolStripMenuItem.Enabled = true;
                     exportXdfResetToolStripMenuItem.Enabled = true;
+                    importXlsFileToolStripMenuItem.Enabled = true;
+                    exportXlsFileToolStripMenuItem.Enabled = true;
                     searchObjectsToolStripMenuItem.Enabled = true;
                     searchSignatureToolStripMenuItem.Enabled = true;
                     compareS6xToolStripMenuItem.Enabled = true;
@@ -450,12 +500,6 @@ namespace SAD806x
                         routinesComparisonToolStripMenuItem.Enabled = true;
                         calibChartViewToolStripMenuItem.Enabled = true;
                     }
-
-                    // Universal 806x DataBase
-                    importUniDb806xToolStripMenuItem.Enabled = activatedUniDb806x;
-                    exportUniDb806xToolStripMenuItem.Enabled = activatedUniDb806x;
-                    syncUniDb806xToolStripMenuItem.Enabled = activatedUniDb806x;
-                    extractBinUniDb806xToolStripMenuItem.Enabled = activatedUniDb806x;
                 }
 
                 showHexToolStripMenuItem.Enabled = true;
@@ -465,6 +509,32 @@ namespace SAD806x
         private void helpToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
         {
             // Nothing to be managed for now
+        }
+
+        private void uniDb806xToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
+        {
+            selectUniDb806xToolStripMenuItem.Enabled = true;
+
+            bool validDB = fileUniDb806xToolStripTextBox.Tag != null;
+            bool readyBin = false;
+            if (sadBin != null) if (sadBin.isLoaded && sadBin.isValid && sadBin.isDisassembled) readyBin = true;
+
+            openUniDb806xToolStripMenuItem.Enabled = validDB;
+
+            importUniDb806xToolStripMenuItem.Enabled = validDB && sadBin != null;
+            exportUniDb806xToolStripMenuItem.Enabled = validDB && readyBin;
+            syncUniDb806xToolStripMenuItem.Enabled = validDB && readyBin;
+
+            binariesUniDb806xToolStripMenuItem.Enabled = validDB;
+            filesUniDb806xToolStripMenuItem.Enabled = validDB;
+        }
+
+        private void iesOptionsUniDb806xToolStripMenuItemDropDown_Closing(object sender, ToolStripDropDownClosingEventArgs e)
+        {
+            if (e.CloseReason == ToolStripDropDownCloseReason.ItemClicked)
+            {
+                e.Cancel = true;
+            }
         }
 
         private void processUpdateTimer_Tick(object sender, EventArgs e)
@@ -589,8 +659,16 @@ namespace SAD806x
                             importXdfFilePostProcess();
                             analysis4ToolStripStatusLabel.Text = sadProcessManager.ProcessProgressLabel;
                             break;
+                        case "importXlsFilePostProcess":
+                            importXlsFilePostProcess();
+                            analysis4ToolStripStatusLabel.Text = sadProcessManager.ProcessProgressLabel;
+                            break;
                         case "exportXdfFilePostProcess":
                             exportXdfFilePostProcess();
+                            analysis4ToolStripStatusLabel.Text = sadProcessManager.ProcessProgressLabel;
+                            break;
+                        case "exportXlsFilePostProcess":
+                            exportXlsFilePostProcess();
                             analysis4ToolStripStatusLabel.Text = sadProcessManager.ProcessProgressLabel;
                             break;
                         case "importUniDb806xPostProcess":
@@ -679,6 +757,8 @@ namespace SAD806x
             attachPropertiesEventsControls(ref controls);
             controls = (Control.ControlCollection)elemElemSignatureTabPage.Controls;
             attachPropertiesEventsControls(ref controls);
+            controls = (Control.ControlCollection)sharedDetailsTabPage.Controls;
+            attachPropertiesEventsControls(ref controls);
         }
 
         private void attachPropertiesEventsControls(ref Control.ControlCollection controls)
@@ -700,6 +780,9 @@ namespace SAD806x
                         break;
                     case "NumericUpDown":
                         ((NumericUpDown)control).ValueChanged += new EventHandler(elemProperties_Modified);
+                        break;
+                    case "TrackBar":
+                        ((TrackBar)control).ValueChanged += new EventHandler(elemProperties_Modified);
                         break;
                     case "PictureBox":
                         // For Tips only for now
@@ -762,6 +845,8 @@ namespace SAD806x
             controls = (Control.ControlCollection)elemButtonsPanel.Controls;
             resetPropertiesModifiedStatusControls(ref controls);
             controls = (Control.ControlCollection)tabPage.Controls;
+            resetPropertiesModifiedStatusControls(ref controls);
+            controls = (Control.ControlCollection)sharedDetailsTabPage.Controls;
             resetPropertiesModifiedStatusControls(ref controls);
 
             dirtyProperties = false;
@@ -869,16 +954,45 @@ namespace SAD806x
             elemSignatureTabPage.Text = "Properties";
             elemElemSignatureTabPage.Text = "Properties";
 
-            showPropertiesTabPage(S6xNavHeaderCategory.UNDEFINED);
+            showPropertiesTabPage(S6xNavHeaderCategory.UNDEFINED, false);
             if (elemTabControl.TabPages.Contains(elemOpsTabPage)) elemTabControl.TabPages.Remove(elemOpsTabPage);
             if (elemTabControl.TabPages.Contains(s6xPropertiesTabPage)) elemTabControl.TabPages.Remove(s6xPropertiesTabPage);
         }
 
         private void initRecentFiles()
         {
-            recentToolStripMenuItem.DropDownItems.Clear();
+            bool cancelInit = true;
+
+            if (recentToolStripMenuItem.Tag == null) cancelInit = false;
+            else if (recentToolStripMenuItem.Tag.GetType() != typeof(DateTime)) cancelInit = false;
 
             string rfsFilePath = Application.StartupPath + "\\" + SADDef.recentFilesFileName;
+
+            if (cancelInit)
+            {
+                try
+                {
+                    FileInfo fiFI = new FileInfo(rfsFilePath);
+                    if (fiFI.Exists)
+                    {
+                        if ((DateTime)recentToolStripMenuItem.Tag != fiFI.LastWriteTime) cancelInit = false;
+                        recentToolStripMenuItem.Tag = fiFI.LastWriteTime;
+                    }
+                    else
+                    {
+                        recentToolStripMenuItem.Tag = null;
+                    }
+                    fiFI = null;
+                }
+                catch
+                {
+                    recentToolStripMenuItem.Tag = null;
+                }
+            }
+
+            if (cancelInit) return;
+
+            recentToolStripMenuItem.DropDownItems.Clear();
             
             recentFiles = (RecentFiles)ToolsXml.DeserializeFile(rfsFilePath, typeof(RecentFiles));
             if (recentFiles == null) recentFiles = new RecentFiles();
@@ -955,7 +1069,6 @@ namespace SAD806x
             }
 
             slConversions = null;
-
         }
 
         private void selectBinaryToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1447,29 +1560,102 @@ namespace SAD806x
             textOutputToolStripTextBox.Visible = true;
         }
 
-        private void folderStartProcess(string folderPath)
+        // Folder processing
+        //      Heavy mode, no threads
+        private void folderStartProcess(string folderPath, bool folderStatistics, bool folderStatisticsAddresses, bool folderStatisticsRegisters, bool folderStatisticsRegistersAddresses)
         {
             TextWriter txWriter = null;
+            TextWriter txDtWriter = null;
+            TextWriter txAdrWriter = null;
+            TextWriter txRegWriter = null;
+            TextWriter txRegAdrWriter = null;
             string logPath = string.Empty;
+            string textDataPath = string.Empty;
+            string statsAdrDataPath = string.Empty;
+            string statsRegDataPath = string.Empty;
+            string statsRegAdrDataPath = string.Empty;
+            
+            Cursor initialCursor = this.Cursor;
 
             try
             {
                 logPath = folderPath + "\\" + Application.ProductName + DateTime.Now.ToString(".yyyyMMdd.HHmmss") + ".txt";
+                textDataPath = folderPath + "\\" + Application.ProductName + DateTime.Now.ToString(".yyyyMMdd.HHmmss") + ".csv";
+                statsAdrDataPath = folderPath + "\\" + Application.ProductName + DateTime.Now.ToString(".yyyyMMdd.HHmmss") + ".statsadr.csv";
+                statsRegDataPath = folderPath + "\\" + Application.ProductName + DateTime.Now.ToString(".yyyyMMdd.HHmmss") + ".statsreg.csv";
+                statsRegAdrDataPath = folderPath + "\\" + Application.ProductName + DateTime.Now.ToString(".yyyyMMdd.HHmmss") + ".statsregadr.csv";
+                
                 txWriter = new StreamWriter(logPath, false, Encoding.UTF8);
                 txWriter.WriteLine(Application.ProductName + " - Folder Process (*.bin files) on folder : " + folderPath);
                 txWriter.WriteLine("\t" + DateTime.Now.ToString("HH:mm:ss") + " - Starting.");
+
+                List<string> lstTextDataRow = new List<string>() {"Binary Name", "Binary Creation Date", "Binary Modification Date", "Binary Size", "Load/Disassembly/Output Status", "806x Detected Type", "Disassembly Errors", "Disassembly Operations Errors", "Disassembly Elements Errors", "Disassembly Other Errors", "Output Errors", "Strategy", "Strategy Version", "Hardware Part Number", "Copyright"};
+                lstTextDataRow.Add("Scalars");
+                lstTextDataRow.Add("Tables (Valid)");
+                lstTextDataRow.Add("Tables (Invalid)");
+                lstTextDataRow.Add("Functions (Valid)");
+                lstTextDataRow.Add("Functions (Invalid)");
+                lstTextDataRow.Add("Structures (Valid)");
+                lstTextDataRow.Add("Structures (Invalid)");
+                if (folderStatistics) foreach (StatisticsItems siSI in Enum.GetValues(typeof(StatisticsItems))) lstTextDataRow.Add(Tools.getStatisticsItemLabel(siSI) + " Count");
+                string[] textDataRow = lstTextDataRow.ToArray();
+                lstTextDataRow = null;
+
+                txDtWriter = new StreamWriter(textDataPath, false, Encoding.UTF8);
+                txDtWriter.WriteLine(string.Join(",", textDataRow));
+
+                if (folderStatisticsAddresses)
+                {
+                    txAdrWriter = new StreamWriter(statsAdrDataPath, false, Encoding.UTF8);
+                    txAdrWriter.WriteLine(string.Join(",", new string[] { "Binary Name", "Statistics Type", "Address", "\"Details\"" }));
+                    txAdrWriter.Flush();
+                }
+
+                if (folderStatisticsRegisters)
+                {
+                    txRegWriter = new StreamWriter(statsRegDataPath, false, Encoding.UTF8);
+                    txRegWriter.WriteLine(string.Join(",", new string[] { "Binary Name", "Register", "Name", "Statistics Type", "Value" }));
+                    txRegWriter.Flush();
+                }
+
+                if (folderStatisticsRegistersAddresses)
+                {
+                    txRegAdrWriter = new StreamWriter(statsRegAdrDataPath, false, Encoding.UTF8);
+                    txRegAdrWriter.WriteLine(string.Join(",", new string[] { "Binary Name", "Register", "Name", "Statistics Type", "Address", "\"Details\"" }));
+                    txRegAdrWriter.Flush();
+                }
 
                 string[] binFiles = Directory.GetFiles(folderPath, "*.bin", SearchOption.TopDirectoryOnly);
 
                 for (int iBinFile = 0; iBinFile < binFiles.Length; iBinFile++)
                 {
+                    // Binary Name, Binary Creation Date, Binary Modification Date, Load/Disassemby/Output Status, Disassembly Errors, Output Errors, Strategy, Strategy Version, Hardware Part Number
+                    textDataRow = new string[textDataRow.Length];
+                    for (int iTextData = 0; iTextData < textDataRow.Length; iTextData++) textDataRow[iTextData] = string.Empty;
+
                     try
                     {
-                        txWriter.WriteLine("Processing Binary file : " + binFiles[iBinFile]);
+                        binaryFilePath = binFiles[iBinFile];
+                        if (binaryFilePath == string.Empty) continue;
+
+                        FileInfo fiFI = new FileInfo(binaryFilePath);
+                        if (fiFI == null) continue;
+
+                        textDataRow[0] = fiFI.Name;
+                        textDataRow[1] = fiFI.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss");
+                        textDataRow[2] = fiFI.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss");
+                        textDataRow[3] = fiFI.Length.ToString();
+
+                        fiFI = null;
+
+                        textDataRow[4] = "Initialized";
+
+                        txWriter.WriteLine("Processing Binary file : " + binaryFilePath);
                         txWriter.WriteLine("\t" + DateTime.Now.ToString("HH:mm:ss") + " - Starting.");
 
                         // Load
-                        binaryFilePath = binFiles[iBinFile];
+                        textDataRow[4] = "Loading";
+
                         s6xFilePath = string.Empty;
 
                         processLoad();
@@ -1479,14 +1665,28 @@ namespace SAD806x
                         if (sadBin == null)
                         {
                             txWriter.WriteLine("\tLoading Binary file has failed.");
+                            textDataRow[4] = "Load failed";
+                            txDtWriter.WriteLine(string.Join(",", textDataRow));
+                            txDtWriter.Flush();
                             continue;
                         }
 
                         if (!sadBin.isValid)
                         {
                             txWriter.WriteLine("\tBinary file is invalid.");
+                            textDataRow[4] = "Invalid Binary";
+                            txDtWriter.WriteLine(string.Join(",", textDataRow));
+                            txDtWriter.Flush();
                             continue;
                         }
+
+                        textDataRow[4] = "Loaded";
+                        if (sadBin.is8061) textDataRow[5] = "8061";
+                        else textDataRow[5] = "8065";
+                        if (sadBin.isPilot) textDataRow[5] += " Pilot";
+                        if (sadBin.isEarly) textDataRow[5] += " Early";
+                        if (sadBin.is8065SingleBank) textDataRow[5] += " Single Bank";
+                        if (sadBin.isCorrupted) textDataRow[5] += " Corrupted";
 
                         if (sadS6x.Properties.Label == null || sadS6x.Properties.Label == string.Empty)
                         {
@@ -1511,15 +1711,35 @@ namespace SAD806x
                             }
                         }
 
-                        FileInfo fiFI = new FileInfo(binaryFilePath);
+                        fiFI = new FileInfo(binaryFilePath);
                         textOutputSetFilePath(fiFI.Directory.FullName + "\\" + fiFI.Name.Substring(0, fiFI.Name.Length - fiFI.Extension.Length) + ".txt");
                         fiFI = null;
 
                         txWriter.WriteLine("\t" + DateTime.Now.ToString("HH:mm:ss") + " - Loaded.");
-                        if (sadBin.Calibration.Info.VidStrategy != string.Empty) txWriter.WriteLine("\t\tStrategy " + sadBin.Calibration.Info.VidStrategy + "(" + sadBin.Calibration.Info.VidStrategyVersion + ")");
-                        if (sadBin.Calibration.Info.VidSerial != string.Empty && sadBin.Calibration.Info.VidSerial.Length > 5) txWriter.WriteLine("\t\tPart Number " + sadBin.Calibration.Info.VidSerial.Substring(0, 4) + "-12A650-" + sadBin.Calibration.Info.VidSerial.Substring(4));
+                        if (sadBin.Calibration.Info.VidStrategy != string.Empty)
+                        {
+                            txWriter.WriteLine("\t\tStrategy " + sadBin.Calibration.Info.VidStrategy + "(" + sadBin.Calibration.Info.VidStrategyVersion + ")");
+                            textDataRow[11] = sadBin.Calibration.Info.VidStrategy;
+                            textDataRow[12] = sadBin.Calibration.Info.VidStrategyVersion;
+                            textDataRow[11] = textDataRow[11].Replace("\r\n", "\n").Replace("\n\r", "\n").Replace("\r", "\n").Replace("\n", " ").Trim();
+                            textDataRow[12] = textDataRow[12].Replace("\r\n", "\n").Replace("\n\r", "\n").Replace("\r", "\n").Replace("\n", " ").Trim();
+                        }
+                        if (sadBin.Calibration.Info.VidSerial != string.Empty && sadBin.Calibration.Info.VidSerial.Length > 5)
+                        {
+                            txWriter.WriteLine("\t\tPart Number " + sadBin.Calibration.Info.VidSerial.Substring(0, 4) + "-12A650-" + sadBin.Calibration.Info.VidSerial.Substring(4));
+                            textDataRow[13] = sadBin.Calibration.Info.VidSerial.Substring(0, 4) + "-12A650-" + sadBin.Calibration.Info.VidSerial.Substring(4);
+                            textDataRow[13] = textDataRow[13].Replace("\r\n", "\n").Replace("\n\r", "\n").Replace("\r", "\n").Replace("\n", " ").Trim();
+                        }
+                        if (sadBin.Calibration.Info.VidCopyright != string.Empty)
+                        {
+                            txWriter.WriteLine("\t\tCopyright " + sadBin.Calibration.Info.VidCopyright);
+                            textDataRow[14] = sadBin.Calibration.Info.VidCopyright;
+                            textDataRow[14] = textDataRow[14].Replace("\r\n", "\n").Replace("\n\r", "\n").Replace("\r", "\n").Replace("\n", " ").Trim();
+                        }
 
                         //Disassembly
+                        textDataRow[4] = "Disassembling";
+                        
                         sadBin.processBin();
 
                         GC.Collect();
@@ -1527,8 +1747,17 @@ namespace SAD806x
                         if (!sadBin.isDisassembled)
                         {
                             txWriter.WriteLine("\tDisassembly has failed.");
+                            textDataRow[4] = "Disassembly Failed";
+                            txDtWriter.WriteLine(string.Join(",", textDataRow));
+                            txDtWriter.Flush();
                             continue;
                         }
+
+                        textDataRow[4] = "Disassembled";
+                        textDataRow[6] = "0";
+                        textDataRow[7] = "0";
+                        textDataRow[8] = "0";
+                        textDataRow[9] = "0";
 
                         txWriter.WriteLine("\t" + DateTime.Now.ToString("HH:mm:ss") + " - Disassembled.");
                         if (sadBin.Errors != null)
@@ -1537,13 +1766,30 @@ namespace SAD806x
                             {
                                 txWriter.WriteLine("\t\tDisassembly Errors(" + sadBin.Errors.Length + ") :");
                                 txWriter.WriteLine("\t\t\t" + string.Join("\r\n\t\t\t", sadBin.Errors));
+                                textDataRow[6] = sadBin.Errors.Length.ToString();
+                                int opsErrors = 0;
+                                int elemsErrors = 0;
+                                foreach (string sError in sadBin.Errors)
+                                {
+                                    if (sError == null) continue;
+                                    if (sError.StartsWith("Operations Conflict : ")) opsErrors++;
+                                    else if (sError.StartsWith("Calibration Elements Conflict : ")) elemsErrors++;
+                                }
+                                textDataRow[7] = opsErrors.ToString();
+                                textDataRow[8] = elemsErrors.ToString();
+                                textDataRow[9] = (sadBin.Errors.Length - opsErrors - elemsErrors).ToString();
                             }
                         }
 
                         //Output
-                        outputStartProcess();
+                        textDataRow[4] = "Outputting";
+
+                        processOutputText();
 
                         GC.Collect();
+
+                        textDataRow[4] = "Outputted";
+                        textDataRow[10] = "0";
 
                         txWriter.WriteLine("\t" + DateTime.Now.ToString("HH:mm:ss") + " - Output done.");
                         if (sadBin.Errors != null)
@@ -1552,30 +1798,342 @@ namespace SAD806x
                             {
                                 txWriter.WriteLine("\t\tOutput Errors(" + sadBin.Errors.Length + ") :");
                                 txWriter.WriteLine("\t\t\t" + string.Join("\r\n\t\t\t", sadBin.Errors));
+                                textDataRow[10] = sadBin.Errors.Length.ToString();
+                            }
+                        }
+
+                        //Statistics
+                        if (folderStatistics || folderStatisticsAddresses || folderStatisticsRegisters || folderStatisticsRegistersAddresses) sadBin.processStatistics();
+
+                        int iScalars = 0;
+                        int iTablesValid = 0;
+                        int iTablesInvalid = 0;
+                        int iFunctionsValid = 0;
+                        int iFunctionsInvalid = 0;
+                        int iStructuresValid = 0;
+                        int iStructuresInvalid = 0;
+
+                        iScalars = sadBin.S6x.slScalars.Count;
+
+                        foreach (S6xTable s6xObject in sadBin.S6x.slTables.Values)
+                        {
+                            if (s6xObject == null) iTablesInvalid++;
+                            else if (s6xObject.ColsNumber > 0 && s6xObject.RowsNumber > 0) iTablesValid++;
+                            else iTablesInvalid++;
+                        }
+                        foreach (S6xFunction s6xObject in sadBin.S6x.slFunctions.Values)
+                        {
+                            if (s6xObject == null) iFunctionsInvalid++;
+                            else if (s6xObject.RowsNumber > 0) iFunctionsValid++;
+                            else iFunctionsInvalid++;
+                        }
+                        foreach (S6xStructure s6xObject in sadBin.S6x.slStructures.Values)
+                        {
+                            if (s6xObject == null) iStructuresInvalid++;
+                            else if (s6xObject.Number > 0) iStructuresValid++;
+                            else iStructuresInvalid++;
+                        }
+
+                        textDataRow[15] = iScalars.ToString();
+                        textDataRow[16] = iTablesValid.ToString();
+                        textDataRow[17] = iTablesInvalid.ToString();
+                        textDataRow[18] = iFunctionsValid.ToString();
+                        textDataRow[19] = iFunctionsInvalid.ToString();
+                        textDataRow[20] = iStructuresValid.ToString();
+                        textDataRow[21] = iStructuresInvalid.ToString();
+
+                        if (folderStatistics)
+                        {
+                            int statisticsIndex = textDataRow.Length - Enum.GetValues(typeof(StatisticsItems)).Length;
+                            foreach (StatisticsItems siSI in Enum.GetValues(typeof(StatisticsItems)))
+                            {
+                                textDataRow[statisticsIndex] = "0";
+                                if (sadBin.Calibration.Statistics != null)
+                                {
+                                    if (sadBin.Calibration.Statistics.ContainsKey(siSI)) textDataRow[statisticsIndex] = sadBin.Calibration.Statistics[siSI].ToString();
+                                }
+                                statisticsIndex++;
                             }
                         }
 
                         txWriter.Flush();
+
+                        txDtWriter.WriteLine(string.Join(",", textDataRow));
+                        txDtWriter.Flush();
+
+                        if (folderStatisticsAddresses)
+                        {
+                            if (sadBin.Calibration.StatisticsAddresses != null)
+                            {
+                                foreach (StatisticsItems sItem in sadBin.Calibration.StatisticsAddresses.Keys)
+                                {
+                                    SortedList slStatisticsAddresses = (SortedList)sadBin.Calibration.StatisticsAddresses[sItem];
+                                    if (slStatisticsAddresses == null) continue;
+                                    if (slStatisticsAddresses.Count > Tools.getStatisticsItemMaxCountForAddresses(sItem))
+                                    {
+                                        txAdrWriter.WriteLine(string.Join(",", new string[] { textDataRow[0], Tools.getStatisticsItemLabel(sItem), "X XXXX", "Addresses number is bigger than defined limit (" + Tools.getStatisticsItemMaxCountForAddresses(sItem).ToString() + "). No output will be done for current binary." }));
+                                        txAdrWriter.Flush();
+                                        continue;
+                                    }
+                                    foreach (object[] arrSA in slStatisticsAddresses.Values)
+                                    {
+                                        if (arrSA == null) continue;
+                                        if (arrSA.Length != 3) continue;
+                                        int iBankNum = (int)arrSA[0];
+                                        int iAddress = (int)arrSA[1];
+                                        string sDetails = string.Empty;
+                                        object oObject = arrSA[2];
+                                        if (oObject == null) continue;
+                                        if (oObject.GetType() == typeof(Operation))
+                                        {
+                                            Operation ope = (Operation)oObject;
+                                            switch (ope.BankNum)
+                                            {
+                                                case 8:
+                                                    if (sadBin.Bank8 != null) ope = (Operation)sadBin.Bank8.slOPs[ope.UniqueAddress];
+                                                    break;
+                                                case 1:
+                                                    if (sadBin.Bank1 != null) ope = (Operation)sadBin.Bank1.slOPs[ope.UniqueAddress];
+                                                    break;
+                                                case 9:
+                                                    if (sadBin.Bank9 != null) ope = (Operation)sadBin.Bank9.slOPs[ope.UniqueAddress];
+                                                    break;
+                                                case 0:
+                                                    if (sadBin.Bank0 != null) ope = (Operation)sadBin.Bank0.slOPs[ope.UniqueAddress];
+                                                    break;
+                                            }
+                                            if (ope == null) continue;
+                                            sDetails = string.Format("{0,6}: {1,-21}{2,-25}{3,-21}", ope.UniqueAddressHex, ope.OriginalOp, ope.Instruction, ope.Translation1);
+                                        }
+                                        if (sDetails == string.Empty) continue;
+                                        txAdrWriter.WriteLine(string.Join(",", new string[] { textDataRow[0], Tools.getStatisticsItemLabel(sItem), Tools.UniqueAddressHex(iBankNum, iAddress), "\"" + sDetails.Replace("\"", "''") + "\"" }));
+                                    }
+                                    txAdrWriter.Flush();
+                                }
+                            }
+                        }
+
+                        if (folderStatisticsRegisters)
+                        {
+                            if (sadBin.Calibration.StatisticsRegisters != null)
+                            {
+                                foreach (StatisticsRegisterItems srItem in sadBin.Calibration.StatisticsRegisters.Keys)
+                                {
+                                    SortedList slStatisticsRegs = (SortedList)sadBin.Calibration.StatisticsRegisters[srItem];
+                                    if (slStatisticsRegs == null) continue;
+                                    foreach (object[] arrSR in slStatisticsRegs.Values)
+                                    {
+                                        if (arrSR == null) continue;
+                                        if (arrSR.Length != 2) continue;
+                                        Register rReg = (Register)arrSR[0];
+                                        SortedList slStatisticsAdr = (SortedList)arrSR[1];
+                                        string regInst = Tools.RegisterInstruction(rReg.Address);
+                                        string regName = string.Empty;
+                                        if (rReg.S6xRegister != null)
+                                        {
+                                            if (rReg.S6xRegister.Label != regInst) regName = rReg.S6xRegister.Label;
+                                        }
+                                        txRegWriter.WriteLine(string.Join(",", new string[] { textDataRow[0], regInst, regName, Tools.getStatisticsRegisterItemLabel(srItem), slStatisticsAdr.Count.ToString() }));
+                                    }
+                                    txRegWriter.Flush();
+                                }
+                            }
+                        }
+
+                        if (folderStatisticsRegistersAddresses)
+                        {
+                            if (sadBin.Calibration.StatisticsRegisters != null)
+                            {
+                                foreach (StatisticsRegisterItems srItem in sadBin.Calibration.StatisticsRegisters.Keys)
+                                {
+                                    // Count has not to be managed
+                                    if (srItem == StatisticsRegisterItems.Count) continue;
+
+                                    SortedList slStatisticsRegs = (SortedList)sadBin.Calibration.StatisticsRegisters[srItem];
+                                    if (slStatisticsRegs == null) continue;
+                                    foreach (object[] arrSR in slStatisticsRegs.Values)
+                                    {
+                                        if (arrSR == null) continue;
+                                        if (arrSR.Length != 2) continue;
+                                        Register rReg = (Register)arrSR[0];
+                                        SortedList slStatisticsAdr = (SortedList)arrSR[1];
+                                        string regInst = Tools.RegisterInstruction(rReg.Address);
+                                        string regName = string.Empty;
+                                        if (rReg.S6xRegister != null)
+                                        {
+                                            if (rReg.S6xRegister.Label != regInst) regName = rReg.S6xRegister.Label;
+                                        }
+                                        if (slStatisticsAdr.Count > Tools.getStatisticsItemMaxCountForRegistersAddresses(srItem))
+                                        {
+                                            txRegAdrWriter.WriteLine(string.Join(",", new string[] { textDataRow[0], regInst, regName, Tools.getStatisticsRegisterItemLabel(srItem), "X XXXX", "Addresses number is bigger than defined limit (" + Tools.getStatisticsItemMaxCountForRegistersAddresses(srItem).ToString() + "). No output will be done for current register." }));
+                                            txRegAdrWriter.Flush();
+                                            continue;
+                                        }
+                                        foreach (object[] arrSA in slStatisticsAdr.Values)
+                                        {
+                                            if (arrSA == null) continue;
+                                            if (arrSA.Length != 3) continue;
+                                            int iBankNum = (int)arrSA[0];
+                                            int iAddress = (int)arrSA[1];
+                                            string sDetails = string.Empty;
+                                            object oObject = arrSA[2];
+                                            if (oObject == null) continue;
+                                            if (oObject.GetType() == typeof(Operation))
+                                            {
+                                                Operation ope = (Operation)oObject;
+                                                switch (ope.BankNum)
+                                                {
+                                                    case 8:
+                                                        if (sadBin.Bank8 != null) ope = (Operation)sadBin.Bank8.slOPs[ope.UniqueAddress];
+                                                        break;
+                                                    case 1:
+                                                        if (sadBin.Bank1 != null) ope = (Operation)sadBin.Bank1.slOPs[ope.UniqueAddress];
+                                                        break;
+                                                    case 9:
+                                                        if (sadBin.Bank9 != null) ope = (Operation)sadBin.Bank9.slOPs[ope.UniqueAddress];
+                                                        break;
+                                                    case 0:
+                                                        if (sadBin.Bank0 != null) ope = (Operation)sadBin.Bank0.slOPs[ope.UniqueAddress];
+                                                        break;
+                                                }
+                                                if (ope == null) continue;
+                                                sDetails = string.Format("{0,6}: {1,-21}{2,-25}{3,-21}", ope.UniqueAddressHex, ope.OriginalOp, ope.Instruction, ope.Translation1);
+                                            }
+                                            if (sDetails == string.Empty) continue;
+                                            txRegAdrWriter.WriteLine(string.Join(",", new string[] { textDataRow[0], regInst, regName, Tools.getStatisticsRegisterItemLabel(srItem), Tools.UniqueAddressHex(iBankNum, iAddress), "\"" + sDetails.Replace("\"", "''") + "\"" }));
+                                        }
+                                    }
+                                    txRegAdrWriter.Flush();
+                                }
+                            }
+                        }
                     }
                     catch (Exception ex)
                     {
                         txWriter.WriteLine("\t" + DateTime.Now.ToString("HH:mm:ss") + " - Process has failed.");
                         txWriter.WriteLine("\t\t" + ex.Message);
                         txWriter.Flush();
+
+                        textDataRow[4] += " and Failed";
+                        txDtWriter.WriteLine(string.Join(",", textDataRow));
+                        txDtWriter.Flush();
                     }
                 }
+
+                if (folderStatisticsAddresses)
+                {
+                    txAdrWriter.Close();
+                    txAdrWriter = null;
+                }
+
+                if (folderStatisticsRegisters)
+                {
+                    txRegWriter.Close();
+                    txRegWriter = null;
+                }
+
+                if (folderStatisticsRegistersAddresses)
+                {
+                    txRegAdrWriter.Close();
+                    txRegAdrWriter = null;
+                }
+
+                txDtWriter.Close();
+                txDtWriter = null;
+
                 txWriter.Flush();
 
+                txWriter.Close();
+                txWriter = null;
+                
                 MessageBox.Show("Folder Process has ended.\r\n\r\nLogs are available in folder with start time.", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
+                try
+                {
+                    if (folderStatisticsAddresses)
+                    {
+                        txAdrWriter.Close();
+                        txAdrWriter = null;
+                    }
+
+                    if (folderStatisticsRegisters)
+                    {
+                        txRegWriter.Close();
+                        txRegWriter = null;
+                    }
+
+                    if (folderStatisticsRegistersAddresses)
+                    {
+                        txRegAdrWriter.Close();
+                        txRegAdrWriter = null;
+                    }
+
+                    txDtWriter.Close();
+                    txDtWriter = null;
+
+                    txWriter.Flush();
+
+                    txWriter.Close();
+                    txWriter = null;
+                }
+                catch { }
+
                 MessageBox.Show("Folder Process has failed.\r\n\r\n" + ex.Message, Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
             {
-                txWriter.Close();
-                txWriter = null;
+                if (folderStatisticsAddresses)
+                {
+                    try
+                    {
+                        txAdrWriter.Close();
+                        txAdrWriter = null;
+                    }
+                    catch { }
+                }
+
+                if (folderStatisticsRegisters)
+                {
+                    try
+                    {
+                        txRegWriter.Close();
+                        txRegWriter = null;
+                    }
+                    catch { }
+                }
+
+                if (folderStatisticsRegistersAddresses)
+                {
+                    try
+                    {
+                        txRegAdrWriter.Close();
+                        txRegAdrWriter = null;
+                    }
+                    catch { }
+                }
+
+                try
+                {
+                    txDtWriter.Close();
+                    txDtWriter = null;
+                }
+                catch { }
+
+                try
+                {
+                    txWriter.Close();
+                    txWriter = null;
+                }
+                catch { }
+
+                sadBin = null;
+                sadS6x = null;
+                binaryFilePath = string.Empty;
+                s6xFilePath = string.Empty;
+
+                Cursor = initialCursor;
             }
         }
 
@@ -1815,6 +2373,16 @@ namespace SAD806x
             return status;
         }
 
+        private S6xNavCategoryDepth getS6xNavCategoryDepth()
+        {
+            S6xNavCategoryDepth categoryDepth = S6xNavCategoryDepth.DISABLED;
+            if (sharedCategsDepthMaxToolStripMenuItem.Checked) categoryDepth = S6xNavCategoryDepth.MAXIMUM;
+            else if (sharedCategsDepthMedToolStripMenuItem.Checked) categoryDepth = S6xNavCategoryDepth.MEDIUM;
+            else if (sharedCategsDepthMinToolStripMenuItem.Checked) categoryDepth = S6xNavCategoryDepth.MINIMUM;
+
+            return categoryDepth;
+        }
+        
         private void setElementsTreeCategLabel(S6xNavHeaderCategory headerCateg)
         {
             if (!elemsTreeView.Nodes.ContainsKey(S6xNav.getHeaderCategName(headerCateg))) return;
@@ -1851,6 +2419,7 @@ namespace SAD806x
                 tnNode.Name = S6xNav.getHeaderCategName(headerCateg);
                 tnNode.Text = S6xNav.getHeaderCategLabel(headerCateg);
                 tnNode.ToolTipText = S6xNav.getHeaderCategToolTip(headerCateg);
+                tnNode.StateImageKey = S6xNav.getS6xNavHeaderCategoryStateImageKey(headerCateg);
                 // Context Menu
                 switch (headerCateg)
                 {
@@ -1872,319 +2441,6 @@ namespace SAD806x
             }
             elemsTreeView.EndUpdate();
         }
-
-        // 20200909 - Replaced with SADCalib.RemapS6x
-        // Automatic S6xObjects Creation without Store Property and without link to parent object
-        /*
-        private void showElementsTreeRemapS6x()
-        {
-            if (sadBin == null) return;
-            if (sadBin.Calibration == null) return;
-
-            // Automatic S6xObjects Creation without Store Property and without link to parent object
-            //      Some Elements are created automatically before Disassembly
-            foreach (CalibrationElement calElem in sadBin.Calibration.slCalibrationElements.Values)
-            {
-                if (calElem.isTable)
-                {
-                    S6xTable s6xObject = (S6xTable)sadS6x.slTables[calElem.TableElem.UniqueAddress];
-                    if (s6xObject != null)
-                    {
-                        // Skipped and stored Element is moved to Duplicates before being overwritten
-                        if (s6xObject.Skip && s6xObject.Store)
-                        {
-                            S6xTable s6xDup = s6xObject;
-                            s6xDup.DuplicateNum = 1;
-                            while (sadS6x.slDupTables.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
-                            sadS6x.slDupTables.Add(s6xDup.DuplicateAddress, s6xDup);
-                            s6xObject = null;
-                        }
-                        else if (s6xObject.Store)
-                        {
-                            calElem.TableElem.S6xTable = s6xObject;
-                        }
-                        else
-                        {
-                            s6xObject = null;
-                        }
-                        if (s6xObject == null)
-                        {
-                            sadS6x.slTables[calElem.TableElem.UniqueAddress] = (calElem.TableElem.S6xTable == null) ? new S6xTable(calElem) : calElem.TableElem.S6xTable;
-                        }
-                    }
-                    else
-                    {
-                        sadS6x.slTables.Add(calElem.TableElem.UniqueAddress, (calElem.TableElem.S6xTable == null) ? new S6xTable(calElem) : calElem.TableElem.S6xTable);
-                    }
-                }
-                else if (calElem.isFunction)
-                {
-                    S6xFunction s6xObject = (S6xFunction)sadS6x.slFunctions[calElem.FunctionElem.UniqueAddress];
-                    if (s6xObject != null)
-                    {
-                        // Skipped and stored Element is moved to Duplicates before being overwritten
-                        if (s6xObject.Skip && s6xObject.Store)
-                        {
-                            S6xFunction s6xDup = s6xObject;
-                            s6xDup.DuplicateNum = 1;
-                            while (sadS6x.slDupFunctions.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
-                            sadS6x.slDupFunctions.Add(s6xDup.DuplicateAddress, s6xDup);
-                            s6xObject = null;
-                        }
-                        else if (s6xObject.Store)
-                        {
-                            calElem.FunctionElem.S6xFunction = s6xObject;
-                        }
-                        else
-                        {
-                            s6xObject = null;
-                        }
-                        if (s6xObject == null)
-                        {
-                            sadS6x.slFunctions[calElem.FunctionElem.UniqueAddress] = (calElem.FunctionElem.S6xFunction == null) ? new S6xFunction(calElem) : calElem.FunctionElem.S6xFunction;
-                        }
-                    }
-                    else
-                    {
-                        sadS6x.slFunctions.Add(calElem.FunctionElem.UniqueAddress, (calElem.FunctionElem.S6xFunction == null) ? new S6xFunction(calElem) : calElem.FunctionElem.S6xFunction);
-                    }
-                }
-                else if (calElem.isScalar)
-                {
-                    S6xScalar s6xObject = (S6xScalar)sadS6x.slScalars[calElem.ScalarElem.UniqueAddress];
-                    if (s6xObject != null)
-                    {
-                        // Skipped and stored Element is moved to Duplicates before being overwritten
-                        if (s6xObject.Skip && s6xObject.Store)
-                        {
-                            S6xScalar s6xDup = s6xObject;
-                            s6xDup.DuplicateNum = 1;
-                            while (sadS6x.slDupScalars.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
-                            sadS6x.slDupScalars.Add(s6xDup.DuplicateAddress, s6xDup);
-                            s6xObject = null;
-                        }
-                        else if (s6xObject.Store)
-                        {
-                            calElem.ScalarElem.S6xScalar = s6xObject;
-                        }
-                        else
-                        {
-                            s6xObject = null;
-                        }
-                        if (s6xObject == null)
-                        {
-                            sadS6x.slScalars[calElem.ScalarElem.UniqueAddress] = (calElem.ScalarElem.S6xScalar == null) ? new S6xScalar(calElem) : calElem.ScalarElem.S6xScalar;
-                        }
-                    }
-                    else
-                    {
-                        sadS6x.slScalars.Add(calElem.ScalarElem.UniqueAddress, (calElem.ScalarElem.S6xScalar == null) ? new S6xScalar(calElem) : calElem.ScalarElem.S6xScalar);
-                    }
-                }
-                else if (calElem.isStructure)
-                {
-                    if (calElem.StructureElem.ParentStructure == null)  // Included / Duplicated elements are not generated
-                    {
-                        S6xStructure s6xObject = (S6xStructure)sadS6x.slStructures[calElem.StructureElem.UniqueAddress];
-                        if (s6xObject != null)
-                        {
-                            // Skipped and stored Element is moved to Duplicates before being overwritten
-                            if (s6xObject.Skip && s6xObject.Store)
-                            {
-                                S6xStructure s6xDup = s6xObject;
-                                s6xDup.DuplicateNum = 1;
-                                while (sadS6x.slDupStructures.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
-                                sadS6x.slDupStructures.Add(s6xDup.DuplicateAddress, s6xDup);
-                                s6xObject = null;
-                            }
-                            else if (s6xObject.Store)
-                            {
-                                calElem.StructureElem.S6xStructure = s6xObject;
-                            }
-                            else
-                            {
-                                s6xObject = null;
-                            }
-                            if (s6xObject == null)
-                            {
-                                sadS6x.slStructures[calElem.StructureElem.UniqueAddress] = (calElem.StructureElem.S6xStructure == null) ? new S6xStructure(calElem) : calElem.StructureElem.S6xStructure;
-                            }
-                        }
-                        else
-                        {
-                            sadS6x.slStructures.Add(calElem.StructureElem.UniqueAddress, (calElem.StructureElem.S6xStructure == null) ? new S6xStructure(calElem) : calElem.StructureElem.S6xStructure);
-                        }
-                    }
-                }
-            }
-
-            foreach (Table extObject in sadBin.Calibration.slExtTables.Values)
-            {
-                int bankBinAddress = sadBin.getBankBinAddress(extObject.BankNum);
-                if (bankBinAddress < 0) continue;
-                S6xTable s6xObject = (S6xTable)sadS6x.slTables[extObject.UniqueAddress];
-                if (s6xObject != null)
-                {
-                    // Skipped and stored Element is moved to Duplicates before being overwritten
-                    if (s6xObject.Skip && s6xObject.Store)
-                    {
-                        S6xTable s6xDup = (S6xTable)sadS6x.slTables[extObject.UniqueAddress];
-                        s6xDup.DuplicateNum = 1;
-                        while (sadS6x.slDupTables.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
-                        sadS6x.slDupTables.Add(s6xDup.DuplicateAddress, s6xDup);
-                        s6xObject = null;
-                    }
-                    else if (s6xObject.Store)
-                    {
-                        extObject.S6xTable = s6xObject;
-                    }
-                    else
-                    {
-                        s6xObject = null;
-                    }
-                    if (s6xObject == null)
-                    {
-                        sadS6x.slTables[extObject.UniqueAddress] = (extObject.S6xTable == null) ? new S6xTable(extObject, bankBinAddress) : extObject.S6xTable;
-                    }
-                }
-                else
-                {
-                    sadS6x.slTables.Add(extObject.UniqueAddress, (extObject.S6xTable == null) ? new S6xTable(extObject, bankBinAddress) : extObject.S6xTable);
-                }
-            }
-
-            foreach (Function extObject in sadBin.Calibration.slExtFunctions.Values)
-            {
-                int bankBinAddress = sadBin.getBankBinAddress(extObject.BankNum);
-                if (bankBinAddress < 0) continue;
-                S6xFunction s6xObject = (S6xFunction)sadS6x.slFunctions[extObject.UniqueAddress];
-                if (s6xObject != null)
-                {
-                    // Skipped and stored Element is moved to Duplicates before being overwritten
-                    if (s6xObject.Skip && s6xObject.Store)
-                    {
-                        S6xFunction s6xDup = s6xObject;
-                        s6xDup.DuplicateNum = 1;
-                        while (sadS6x.slDupFunctions.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
-                        sadS6x.slDupFunctions.Add(s6xDup.DuplicateAddress, s6xDup);
-                        s6xObject = null;
-                    }
-                    else if (s6xObject.Store)
-                    {
-                        extObject.S6xFunction = s6xObject;
-                    }
-                    else
-                    {
-                        s6xObject = null;
-                    }
-                    if (s6xObject == null)
-                    {
-                        sadS6x.slFunctions[extObject.UniqueAddress] = (extObject.S6xFunction == null) ? new S6xFunction(extObject, bankBinAddress) : extObject.S6xFunction;
-                    }
-                }
-                else
-                {
-                    sadS6x.slFunctions.Add(extObject.UniqueAddress, (extObject.S6xFunction == null) ? new S6xFunction(extObject, bankBinAddress) : extObject.S6xFunction);
-                }
-            }
-
-            foreach (Scalar extObject in sadBin.Calibration.slExtScalars.Values)
-            {
-                int bankBinAddress = sadBin.getBankBinAddress(extObject.BankNum);
-                if (bankBinAddress < 0) continue;
-                S6xScalar s6xObject = (S6xScalar)sadS6x.slScalars[extObject.UniqueAddress];
-                if (s6xObject != null)
-                {
-                    // Skipped and stored Element is moved to Duplicates before being overwritten
-                    if (s6xObject.Skip && s6xObject.Store)
-                    {
-                        S6xScalar s6xDup = s6xObject;
-                        s6xDup.DuplicateNum = 1;
-                        while (sadS6x.slDupScalars.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
-                        sadS6x.slDupScalars.Add(s6xDup.DuplicateAddress, s6xDup);
-                        s6xObject = null;
-                    }
-                    else if (s6xObject.Store)
-                    {
-                        extObject.S6xScalar = s6xObject;
-                    }
-                    else
-                    {
-                        s6xObject = null;
-                    }
-                    if (s6xObject == null)
-                    {
-                        sadS6x.slScalars[extObject.UniqueAddress] = (extObject.S6xScalar == null) ? new S6xScalar(extObject, bankBinAddress) : extObject.S6xScalar;
-                    }
-                }
-                else
-                {
-                    sadS6x.slScalars.Add(extObject.UniqueAddress, (extObject.S6xScalar == null) ? new S6xScalar(extObject, bankBinAddress) : extObject.S6xScalar);
-                }
-            }
-
-            foreach (Structure sStruct in sadBin.Calibration.slExtStructures.Values)
-            {
-                if (sStruct.ParentStructure == null)    // Included / Duplicated elements are not generated
-                {
-                    S6xStructure s6xObject = (S6xStructure)sadS6x.slStructures[sStruct.UniqueAddress];
-                    if (s6xObject != null)
-                    {
-                        // Skipped and stored Element is moved to Duplicates before being overwritten
-                        if (s6xObject.Skip && s6xObject.Store)
-                        {
-                            S6xStructure s6xDup = s6xObject;
-                            s6xDup.DuplicateNum = 1;
-                            while (sadS6x.slDupStructures.ContainsKey(s6xDup.DuplicateAddress)) s6xDup.DuplicateNum++;
-                            sadS6x.slDupStructures.Add(s6xDup.DuplicateAddress, s6xDup);
-                            s6xObject = null;
-                        }
-                        else if (s6xObject.Store)
-                        {
-                            sStruct.S6xStructure = s6xObject;
-                        }
-                        else
-                        {
-                            s6xObject = null;
-                        }
-                        if (s6xObject == null)
-                        {
-                            sadS6x.slStructures[sStruct.UniqueAddress] = (sStruct.S6xStructure == null) ? new S6xStructure(sStruct) : sStruct.S6xStructure;
-                        }
-                    }
-                    else
-                    {
-                        sadS6x.slStructures.Add(sStruct.UniqueAddress, (sStruct.S6xStructure == null) ? new S6xStructure(sStruct) : sStruct.S6xStructure);
-                    }
-                }
-            }
-
-            foreach (string callAddress in sadBin.Calibration.alMainCallsUniqueAddresses)
-            {
-                Call cCall = (Call)sadBin.Calibration.slCalls[callAddress];
-                Routine rRoutine = null;
-                if (cCall.isRoutine) rRoutine = (Routine)sadBin.Calibration.slRoutines[cCall.UniqueAddress];
-                S6xRoutine s6xObject = (S6xRoutine)sadS6x.slRoutines[cCall.UniqueAddress];
-                if (s6xObject != null)
-                {
-                    if (s6xObject.Skip || !s6xObject.Store)
-                    {
-                        sadS6x.slRoutines[cCall.UniqueAddress] = (cCall.S6xRoutine == null) ? new S6xRoutine(cCall, rRoutine) : cCall.S6xRoutine;
-                    }
-                    else 
-                    {
-                        cCall.S6xRoutine = s6xObject;
-                    }
-                }
-                else
-                {
-                    sadS6x.slRoutines.Add(cCall.UniqueAddress, (cCall.S6xRoutine == null) ? new S6xRoutine(cCall, rRoutine) : cCall.S6xRoutine);
-                }
-                rRoutine = null;
-                cCall = null;
-            }
-        }
-        */
         
         private void ShowElementsTreeLoad()
         {
@@ -2214,11 +2470,18 @@ namespace SAD806x
             if (sadBin.Bank9 != null) alBanks.Add(sadBin.Bank9);
             if (sadBin.Bank0 != null) alBanks.Add(sadBin.Bank0);
 
+            // Categories Mngt
+            SortedList slCategoriesTree = new SortedList();
+            foreach (SADBank Bank in alBanks) ShowElementsTreeCategsPreparation(ref slCategoriesTree, "Bank " + Bank.Num.ToString(), string.Empty, string.Empty);
+            ShowElementsTreeCategsCreation(navInfoReserved, ref slCategoriesTree);
+            slCategoriesTree = null;
+
             foreach (SADBank Bank in alBanks)
             {
                 foreach (ReservedAddress resAdr in Bank.slReserved.Values)
                 {
                     bool bIgnore = false;
+                    bool bNoCategory = false;
                     TreeNode tnNode = new TreeNode();
                     tnNode.Name = resAdr.UniqueAddress;
                     tnNode.Text = resAdr.Label;
@@ -2242,6 +2505,7 @@ namespace SAD806x
                                 {
                                     tnNode.Text = SADDef.ShortRegisterPrefix + rBase.Code.ToLower();
                                     tnNode.ToolTipText = rBase.AddressBank;
+                                    bNoCategory = true;
                                     // Added to S6xRegisters in the same time, except for Rsi.
                                     if (rBase.Code.ToLower() != "si")
                                     {
@@ -2269,6 +2533,7 @@ namespace SAD806x
                         case ReservedAddressType.RomSize:
                             if (resAdr.ValueInt == 0xffff) tnNode.ToolTipText = resAdr.UniqueAddressHex + "\r\nNot Defined (ffff)\r\n" + resAdr.Comments;
                             else tnNode.ToolTipText = resAdr.UniqueAddressHex + "\r\n" + resAdr.Value(16) + "\r\n" + resAdr.Comments;
+                            bNoCategory = true;
                             break;
                         case ReservedAddressType.Ascii:
                         case ReservedAddressType.Hex:
@@ -2284,9 +2549,11 @@ namespace SAD806x
                         case ReservedAddressType.CheckSum:
                             tnNode.ToolTipText = resAdr.UniqueAddressHex + "\r\n" + resAdr.Value(16) + "\r\n" + resAdr.Comments;
                             tnNode.ContextMenuStrip = elemsContextMenuStrip;
+                            bNoCategory = true;
                             break;
                         default:
                             tnNode.ToolTipText = resAdr.UniqueAddressHex + "\r\n" + resAdr.Value(16) + "\r\n" + resAdr.Comments;
+                            bNoCategory = true;
                             break;
                     }
 
@@ -2298,10 +2565,22 @@ namespace SAD806x
                         if (sadBin.Calibration.Info.is8061) vidDef = SADDef.Info_8061_VID_Block_Addresses;
                         else vidDef = SADDef.Info_8065_VID_Block_Addresses;
 
-                        foreach (object[] vidPart in vidDef) if ((int)vidPart[0] == resAdr.AddressInt) tnNode.ContextMenuStrip = elemsContextMenuStrip;
+                        foreach (object[] vidPart in vidDef)
+                        {
+                            if ((int)vidPart[0] == resAdr.AddressInt)
+                            {
+                                tnNode.ContextMenuStrip = elemsContextMenuStrip;
+                                bNoCategory = true;
+                            }
+                        }
                     }
 
-                    if (!bIgnore) navInfoReserved.DirectNodes.Add(tnNode);
+                    if (!bIgnore)
+                    {
+                        tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(100);
+                        //navInfoReserved.DirectNodes.Add(tnNode);
+                        ShowElementsTreeNodeAdd(navInfoReserved, tnNode, bNoCategory ? string.Empty : "Bank " + Bank.Num.ToString(), string.Empty, string.Empty);
+                    }
                 }
             }
             alBanks = null;
@@ -2325,6 +2604,11 @@ namespace SAD806x
 
             niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES)]);
             niHeaderCateg.DirectNodes.Clear();
+            // Categories Mngt
+            slCategoriesTree = new SortedList();
+            foreach (S6xTable s6xObject in sadS6x.slTables.Values) ShowElementsTreeCategsPreparation(ref slCategoriesTree, s6xObject.Category, s6xObject.Category2, s6xObject.Category3);
+            ShowElementsTreeCategsCreation(niHeaderCateg, ref slCategoriesTree);
+            slCategoriesTree = null;
             foreach (S6xTable s6xTable in sadS6x.slTables.Values)
             {
                 tnNode = new TreeNode();
@@ -2332,7 +2616,9 @@ namespace SAD806x
                 tnNode.Text = s6xTable.Label;
                 tnNode.ToolTipText = s6xTable.UniqueAddressHex + "\r\n" + s6xTable.ShortLabel + "\r\n\r\n" + s6xTable.Comments;
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
-                niHeaderCateg.DirectNodes.Add(tnNode);
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xTable.IdentificationStatus);
+                //niHeaderCateg.DirectNodes.Add(tnNode);
+                ShowElementsTreeNodeAdd(niHeaderCateg, tnNode, s6xTable.Category, s6xTable.Category2, s6xTable.Category3);
                 tnNode = null;
             }
             setElementsTreeCategLabel(niHeaderCateg.HeaderCategory);
@@ -2346,12 +2632,21 @@ namespace SAD806x
                 tnNode.Text = s6xTable.Label;
                 tnNode.ToolTipText = s6xTable.UniqueAddressHex + "\r\n" + s6xTable.ShortLabel + "\r\n\r\n" + s6xTable.Comments;
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
-                niHeaderCateg.DirectNodes[s6xTable.UniqueAddress].Nodes.Add(tnNode);
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xTable.IdentificationStatus);
+                //niHeaderCateg.DirectNodes[s6xTable.UniqueAddress].Nodes.Add(tnNode);
+                TreeNode tnParent = niHeaderCateg.FindElement(s6xTable.UniqueAddress);
+                if (tnParent != null) tnParent.Nodes.Add(tnNode);
+                tnParent = null;
                 tnNode = null;
             }
 
             niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS)]);
             niHeaderCateg.DirectNodes.Clear();
+            // Categories Mngt
+            slCategoriesTree = new SortedList();
+            foreach (S6xFunction s6xObject in sadS6x.slFunctions.Values) ShowElementsTreeCategsPreparation(ref slCategoriesTree, s6xObject.Category, s6xObject.Category2, s6xObject.Category3);
+            ShowElementsTreeCategsCreation(niHeaderCateg, ref slCategoriesTree);
+            slCategoriesTree = null;
             foreach (S6xFunction s6xFunction in sadS6x.slFunctions.Values)
             {
                 tnNode = new TreeNode();
@@ -2359,7 +2654,9 @@ namespace SAD806x
                 tnNode.Text = s6xFunction.Label;
                 tnNode.ToolTipText = s6xFunction.UniqueAddressHex + "\r\n" + s6xFunction.ShortLabel + "\r\n\r\n" + s6xFunction.Comments;
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
-                niHeaderCateg.DirectNodes.Add(tnNode);
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xFunction.IdentificationStatus);
+                //niHeaderCateg.DirectNodes.Add(tnNode);
+                ShowElementsTreeNodeAdd(niHeaderCateg, tnNode, s6xFunction.Category, s6xFunction.Category2, s6xFunction.Category3);
                 tnNode = null;
             }
             setElementsTreeCategLabel(niHeaderCateg.HeaderCategory);
@@ -2373,13 +2670,22 @@ namespace SAD806x
                 tnNode.Text = s6xFunction.Label;
                 tnNode.ToolTipText = s6xFunction.UniqueAddressHex + "\r\n" + s6xFunction.ShortLabel + "\r\n\r\n" + s6xFunction.Comments;
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
-                niHeaderCateg.DirectNodes[s6xFunction.UniqueAddress].Nodes.Add(tnNode);
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xFunction.IdentificationStatus);
+                //niHeaderCateg.DirectNodes[s6xFunction.UniqueAddress].Nodes.Add(tnNode);
+                TreeNode tnParent = niHeaderCateg.FindElement(s6xFunction.UniqueAddress);
+                if (tnParent != null) tnParent.Nodes.Add(tnNode);
+                tnParent = null;
                 tnNode = null;
             }
             elemsTreeView.Nodes[niHeaderCateg.HeaderCategoryName].Tag = true;              // For Scalers Refresh
 
             niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS)]);
             niHeaderCateg.DirectNodes.Clear();
+            // Categories Mngt
+            slCategoriesTree = new SortedList();
+            foreach (S6xScalar s6xObject in sadS6x.slScalars.Values) ShowElementsTreeCategsPreparation(ref slCategoriesTree, s6xObject.Category, s6xObject.Category2, s6xObject.Category3);
+            ShowElementsTreeCategsCreation(niHeaderCateg, ref slCategoriesTree);
+            slCategoriesTree = null;
             foreach (S6xScalar s6xScalar in sadS6x.slScalars.Values)
             {
                 tnNode = new TreeNode();
@@ -2387,7 +2693,9 @@ namespace SAD806x
                 tnNode.Text = s6xScalar.Label;
                 tnNode.ToolTipText = s6xScalar.UniqueAddressHex + "\r\n" + s6xScalar.ShortLabel + "\r\n\r\n" + s6xScalar.Comments;
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
-                niHeaderCateg.DirectNodes.Add(tnNode);
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xScalar.IdentificationStatus);
+                //niHeaderCateg.DirectNodes.Add(tnNode);
+                ShowElementsTreeNodeAdd(niHeaderCateg, tnNode, s6xScalar.Category, s6xScalar.Category2, s6xScalar.Category3);
                 tnNode = null;
             }
             // Duplicates
@@ -2400,13 +2708,22 @@ namespace SAD806x
                 tnNode.Text = s6xScalar.Label;
                 tnNode.ToolTipText = s6xScalar.UniqueAddressHex + "\r\n" + s6xScalar.ShortLabel + "\r\n\r\n" + s6xScalar.Comments;
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
-                niHeaderCateg.DirectNodes[s6xScalar.UniqueAddress].Nodes.Add(tnNode);
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xScalar.IdentificationStatus);
+                //niHeaderCateg.DirectNodes[s6xScalar.UniqueAddress].Nodes.Add(tnNode);
+                TreeNode tnParent = niHeaderCateg.FindElement(s6xScalar.UniqueAddress);
+                if (tnParent != null) tnParent.Nodes.Add(tnNode);
+                tnParent = null;
                 tnNode = null;
             }
             setElementsTreeCategLabel(niHeaderCateg.HeaderCategory);
 
             niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES)]);
             niHeaderCateg.DirectNodes.Clear();
+            // Categories Mngt
+            slCategoriesTree = new SortedList();
+            foreach (S6xStructure s6xObject in sadS6x.slStructures.Values) ShowElementsTreeCategsPreparation(ref slCategoriesTree, s6xObject.Category, s6xObject.Category2, s6xObject.Category3);
+            ShowElementsTreeCategsCreation(niHeaderCateg, ref slCategoriesTree);
+            slCategoriesTree = null;
             foreach (S6xStructure s6xStructure in sadS6x.slStructures.Values)
             {
                 tnNode = new TreeNode();
@@ -2414,7 +2731,9 @@ namespace SAD806x
                 tnNode.Text = s6xStructure.Label;
                 tnNode.ToolTipText = s6xStructure.UniqueAddressHex + "\r\n" + s6xStructure.ShortLabel + "\r\n\r\n" + s6xStructure.Comments;
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
-                niHeaderCateg.DirectNodes.Add(tnNode);
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xStructure.IdentificationStatus);
+                //niHeaderCateg.DirectNodes.Add(tnNode);
+                ShowElementsTreeNodeAdd(niHeaderCateg, tnNode, s6xStructure.Category, s6xStructure.Category2, s6xStructure.Category3);
                 tnNode = null;
             }
             // Duplicates
@@ -2427,13 +2746,22 @@ namespace SAD806x
                 tnNode.Text = s6xStructure.Label;
                 tnNode.ToolTipText = s6xStructure.UniqueAddressHex + "\r\n" + s6xStructure.ShortLabel + "\r\n\r\n" + s6xStructure.Comments;
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
-                niHeaderCateg.DirectNodes[s6xStructure.UniqueAddress].Nodes.Add(tnNode);
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xStructure.IdentificationStatus);
+                //niHeaderCateg.DirectNodes[s6xStructure.UniqueAddress].Nodes.Add(tnNode);
+                TreeNode tnParent = niHeaderCateg.FindElement(s6xStructure.UniqueAddress);
+                if (tnParent != null) tnParent.Nodes.Add(tnNode);
+                tnParent = null;
                 tnNode = null;
             }
             setElementsTreeCategLabel(niHeaderCateg.HeaderCategory);
 
             niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.ROUTINES)]);
             niHeaderCateg.DirectNodes.Clear();
+            // Categories Mngt
+            slCategoriesTree = new SortedList();
+            foreach (S6xRoutine s6xObject in sadS6x.slRoutines.Values) ShowElementsTreeCategsPreparation(ref slCategoriesTree, s6xObject.Category, s6xObject.Category2, s6xObject.Category3);
+            ShowElementsTreeCategsCreation(niHeaderCateg, ref slCategoriesTree);
+            slCategoriesTree = null;
             foreach (S6xRoutine s6xRoutine in sadS6x.slRoutines.Values)
             {
                 tnNode = new TreeNode();
@@ -2441,13 +2769,20 @@ namespace SAD806x
                 tnNode.Text = s6xRoutine.Label;
                 tnNode.ToolTipText = s6xRoutine.UniqueAddressHex + "\r\n" + s6xRoutine.ShortLabel + "\r\n\r\n" + s6xRoutine.Comments;
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
-                niHeaderCateg.DirectNodes.Add(tnNode);
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xRoutine.IdentificationStatus);
+                //niHeaderCateg.DirectNodes.Add(tnNode);
+                ShowElementsTreeNodeAdd(niHeaderCateg, tnNode, s6xRoutine.Category, s6xRoutine.Category2, s6xRoutine.Category3);
                 tnNode = null;
             }
             setElementsTreeCategLabel(niHeaderCateg.HeaderCategory);
 
             niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.OPERATIONS)]);
             niHeaderCateg.DirectNodes.Clear();
+            // Categories Mngt
+            slCategoriesTree = new SortedList();
+            foreach (S6xOperation s6xObject in sadS6x.slOperations.Values) ShowElementsTreeCategsPreparation(ref slCategoriesTree, s6xObject.Category, s6xObject.Category2, s6xObject.Category3);
+            ShowElementsTreeCategsCreation(niHeaderCateg, ref slCategoriesTree);
+            slCategoriesTree = null;
             foreach (S6xOperation s6xOpe in sadS6x.slOperations.Values)
             {
                 tnNode = new TreeNode();
@@ -2455,13 +2790,20 @@ namespace SAD806x
                 tnNode.Text = s6xOpe.Label;
                 tnNode.ToolTipText = s6xOpe.UniqueAddressHex + "\r\n\r\n" + s6xOpe.Comments;
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
-                niHeaderCateg.DirectNodes.Add(tnNode);
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xOpe.IdentificationStatus);
+                //niHeaderCateg.DirectNodes.Add(tnNode);
+                ShowElementsTreeNodeAdd(niHeaderCateg, tnNode, s6xOpe.Category, s6xOpe.Category2, s6xOpe.Category3);
                 tnNode = null;
             }
             setElementsTreeCategLabel(niHeaderCateg.HeaderCategory);
 
             niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.REGISTERS)]);
             niHeaderCateg.DirectNodes.Clear();
+            // Categories Mngt
+            slCategoriesTree = new SortedList();
+            foreach (S6xRegister s6xObject in sadS6x.slRegisters.Values) ShowElementsTreeCategsPreparation(ref slCategoriesTree, s6xObject.Category, s6xObject.Category2, s6xObject.Category3);
+            ShowElementsTreeCategsCreation(niHeaderCateg, ref slCategoriesTree);
+            slCategoriesTree = null;
             foreach (S6xRegister s6xReg in sadS6x.slRegisters.Values)
             {
                 tnNode = new TreeNode();
@@ -2469,13 +2811,20 @@ namespace SAD806x
                 tnNode.Text = s6xReg.FullLabel;
                 tnNode.ToolTipText = s6xReg.FullComments;
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
-                niHeaderCateg.DirectNodes.Add(tnNode);
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xReg.IdentificationStatus);
+                //niHeaderCateg.DirectNodes.Add(tnNode);
+                ShowElementsTreeNodeAdd(niHeaderCateg, tnNode, s6xReg.Category, s6xReg.Category2, s6xReg.Category3);
                 tnNode = null;
             }
             setElementsTreeCategLabel(niHeaderCateg.HeaderCategory);
 
             niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.OTHER)]);
             niHeaderCateg.DirectNodes.Clear();
+            // Categories Mngt
+            slCategoriesTree = new SortedList();
+            foreach (S6xOtherAddress s6xObject in sadS6x.slOtherAddresses.Values) ShowElementsTreeCategsPreparation(ref slCategoriesTree, s6xObject.Category, s6xObject.Category2, s6xObject.Category3);
+            ShowElementsTreeCategsCreation(niHeaderCateg, ref slCategoriesTree);
+            slCategoriesTree = null;
             foreach (S6xOtherAddress s6xOth in sadS6x.slOtherAddresses.Values)
             {
                 tnNode = new TreeNode();
@@ -2483,16 +2832,19 @@ namespace SAD806x
                 tnNode.Text = s6xOth.Label;
                 tnNode.ToolTipText = s6xOth.UniqueAddressHex + "\r\n\r\n" + s6xOth.Comments;
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
-                niHeaderCateg.DirectNodes.Add(tnNode);
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xOth.IdentificationStatus);
+                //niHeaderCateg.DirectNodes.Add(tnNode);
+                ShowElementsTreeNodeAdd(niHeaderCateg, tnNode, s6xOth.Category, s6xOth.Category2, s6xOth.Category3);
                 tnNode = null;
             }
             setElementsTreeCategLabel(niHeaderCateg.HeaderCategory);
 
             niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.SIGNATURES)]);
+            niHeaderCateg.DirectNodes.Clear();
             // Categories Mngt
             slCategoriesTree = new SortedList();
-            foreach (S6xSignature s6xSig in sadS6x.slSignatures.Values) ShowElementsTreeLoadS6xCategsPreparation(ref slCategoriesTree, s6xSig.SignatureCategory, s6xSig.SignatureCategory2, s6xSig.SignatureCategory3);
-            ShowElementsTreeLoadS6xCategsCreation(niHeaderCateg, signatureCategComboBox, null, null, ref slCategoriesTree);
+            foreach (S6xSignature s6xSig in sadS6x.slSignatures.Values) ShowElementsTreeCategsPreparation(ref slCategoriesTree, s6xSig.SignatureCategory, s6xSig.SignatureCategory2, s6xSig.SignatureCategory3);
+            ShowElementsTreeCategsCreation(niHeaderCateg, ref slCategoriesTree);
             slCategoriesTree = null;
             foreach (S6xSignature s6xSig in sadS6x.slSignatures.Values)
             {
@@ -2506,8 +2858,9 @@ namespace SAD806x
                     else tnNode.ForeColor = Color.DarkGreen;
                 }
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xSig.IdentificationStatus);
 
-                ShowElementsTreeLoadS6xNodeAdd(niHeaderCateg, tnNode, s6xSig.SignatureCategory, s6xSig.SignatureCategory2, s6xSig.SignatureCategory3);
+                ShowElementsTreeNodeAdd(niHeaderCateg, tnNode, s6xSig.SignatureCategory, s6xSig.SignatureCategory2, s6xSig.SignatureCategory3);
 
                 tnNode = null;
             }
@@ -2517,8 +2870,8 @@ namespace SAD806x
             niHeaderCateg.DirectNodes.Clear();
             // Categories mngt
             slCategoriesTree = new SortedList();
-            foreach (S6xElementSignature s6xESig in sadS6x.slElementsSignatures.Values) ShowElementsTreeLoadS6xCategsPreparation(ref slCategoriesTree, s6xESig.SignatureCategory, s6xESig.SignatureCategory2, s6xESig.SignatureCategory3);
-            ShowElementsTreeLoadS6xCategsCreation(niHeaderCateg, elementSignatureCategComboBox, null, null, ref slCategoriesTree);
+            foreach (S6xElementSignature s6xESig in sadS6x.slElementsSignatures.Values) ShowElementsTreeCategsPreparation(ref slCategoriesTree, s6xESig.SignatureCategory, s6xESig.SignatureCategory2, s6xESig.SignatureCategory3);
+            ShowElementsTreeCategsCreation(niHeaderCateg, ref slCategoriesTree);
             slCategoriesTree = null;
             foreach (S6xElementSignature s6xESig in sadS6x.slElementsSignatures.Values)
             {
@@ -2531,8 +2884,9 @@ namespace SAD806x
                     tnNode.ForeColor = Color.DarkGreen;
                 }
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xESig.IdentificationStatus);
 
-                ShowElementsTreeLoadS6xNodeAdd(niHeaderCateg, tnNode, s6xESig.SignatureCategory, s6xESig.SignatureCategory2, s6xESig.SignatureCategory3);
+                ShowElementsTreeNodeAdd(niHeaderCateg, tnNode, s6xESig.SignatureCategory, s6xESig.SignatureCategory2, s6xESig.SignatureCategory3);
 
                 tnNode = null;
             }
@@ -2552,9 +2906,16 @@ namespace SAD806x
             mainPanel.Visible = true;
         }
 
-        private void ShowElementsTreeLoadS6xCategsPreparation(ref SortedList slCategoriesTree, string sCateg1, string sCateg2, string sCateg3)
+        private void ShowElementsTreeCategsPreparation(ref SortedList slCategoriesTree, string sCateg1, string sCateg2, string sCateg3)
         {
             if (slCategoriesTree == null) slCategoriesTree = new SortedList();
+
+            int depthLevel = 0;
+            if (sharedCategsDepthMaxToolStripMenuItem.Checked) depthLevel = 3;
+            else if (sharedCategsDepthMedToolStripMenuItem.Checked) depthLevel = 2;
+            else if (sharedCategsDepthMinToolStripMenuItem.Checked) depthLevel = 1;
+
+            if (depthLevel < 1) return;
 
             if (sCateg1 == null || sCateg1 == string.Empty)
             {
@@ -2573,6 +2934,8 @@ namespace SAD806x
             navCateg1 = null;
             arrCategory1Tree = null;
 
+            if (depthLevel < 2) return;
+            
             if (sCateg2 == null || sCateg2 == string.Empty)
             {
                 slCategory1Tree = null;
@@ -2590,6 +2953,8 @@ namespace SAD806x
             SortedList slCategory2Tree = (SortedList)arrCategory2Tree[1];
             navCateg2 = null;
             arrCategory2Tree = null;
+
+            if (depthLevel < 3) return;
 
             if (sCateg3 == null || sCateg3 == string.Empty)
             {
@@ -2609,14 +2974,12 @@ namespace SAD806x
             arrCategory3Tree = null;
         }
 
-        private void ShowElementsTreeLoadS6xCategsCreation(S6xNavInfo niHeaderCateg, ComboBox categ1ComboBox, ComboBox categ2ComboBox, ComboBox categ3ComboBox, ref SortedList slCategoriesTree)
+        private void ShowElementsTreeCategsCreation(S6xNavInfo niHeaderCateg, ref SortedList slCategoriesTree)
         {
             niHeaderCateg.DirectNodes.Clear();
 
             // Categories Mngt
-            if (categ1ComboBox != null) s6xNavCategoriesReset(categ1ComboBox);
-            if (categ2ComboBox != null) s6xNavCategoriesReset(categ2ComboBox);
-            if (categ3ComboBox != null) s6xNavCategoriesReset(categ3ComboBox);
+            S6xNav.s6xNavCategoriesReset(niHeaderCateg.HeaderCategory, ref s6xNavCategories, ref sadBin, ref sadS6x);
 
             foreach (object[] arrCategory1Tree in slCategoriesTree.Values)
             {
@@ -2627,6 +2990,7 @@ namespace SAD806x
                 tnNode.Name = navCateg1.Key;
                 tnNode.Text = navCateg1.Name;
                 tnNode.Tag = navCateg1;
+                tnNode.StateImageKey = niHeaderCateg.Node.StateImageKey;
                 niHeaderCateg.DirectNodes.Add(tnNode);
                 S6xNavInfo niCateg1 = new S6xNavInfo(tnNode);
                 tnNode = null;
@@ -2640,6 +3004,7 @@ namespace SAD806x
                     tnNode.Name = navCateg2.Key;
                     tnNode.Text = navCateg2.Name;
                     tnNode.Tag = navCateg2;
+                    tnNode.StateImageKey = niCateg1.Node.StateImageKey;
                     niCateg1.DirectNodes.Add(tnNode);
                     S6xNavInfo niCateg2 = new S6xNavInfo(tnNode);
                     tnNode = null;
@@ -2652,6 +3017,7 @@ namespace SAD806x
                         tnNode.Name = navCateg3.Key;
                         tnNode.Text = navCateg3.Name;
                         tnNode.Tag = navCateg3;
+                        tnNode.StateImageKey = niCateg2.Node.StateImageKey;
                         niCateg2.DirectNodes.Add(tnNode);
                         tnNode = null;
                     }
@@ -2659,11 +3025,13 @@ namespace SAD806x
             }
         }
 
-        private void ShowElementsTreeLoadS6xNodeAdd(S6xNavInfo niHeaderCateg, TreeNode tnElement, string sCateg1, string sCateg2, string sCateg3)
+        private void ShowElementsTreeNodeAdd(S6xNavInfo niHeaderCateg, TreeNode tnElement, string sCateg1, string sCateg2, string sCateg3)
         {
             TreeNode tnCateg = null;
 
-            if (sCateg1 == null || sCateg1 == string.Empty)
+            S6xNavCategoryDepth categoryDepth = getS6xNavCategoryDepth();
+
+            if (sCateg1 == null || sCateg1 == string.Empty || categoryDepth == S6xNavCategoryDepth.DISABLED)
             {
                 if (!niHeaderCateg.DirectNodes.ContainsKey(tnElement.Name)) niHeaderCateg.DirectNodes.Add(tnElement);
                 return;
@@ -2691,7 +3059,7 @@ namespace SAD806x
                 return;
             }
 
-            if (sCateg2 == null || sCateg2 == string.Empty)
+            if (sCateg2 == null || sCateg2 == string.Empty || categoryDepth == S6xNavCategoryDepth.DISABLED || categoryDepth == S6xNavCategoryDepth.MINIMUM)
             {
                 if (!niCateg.DirectNodes.ContainsKey(tnElement.Name)) niCateg.DirectNodes.Add(tnElement);
                 return;
@@ -2719,12 +3087,13 @@ namespace SAD806x
                 return;
             }
 
-            if (sCateg3 == null || sCateg3 == string.Empty)
+            if (sCateg3 == null || sCateg3 == string.Empty || categoryDepth == S6xNavCategoryDepth.DISABLED || categoryDepth == S6xNavCategoryDepth.MINIMUM || categoryDepth == S6xNavCategoryDepth.MEDIUM)
             {
                 if (!niCateg2.DirectNodes.ContainsKey(tnElement.Name)) niCateg2.DirectNodes.Add(tnElement);
+                return;
             }
 
-            S6xNavCategory navCateg3 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, sCateg3);
+            S6xNavCategory navCateg3 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, sCateg3);
             if (navCateg3 == null)
             {
                 if (!niCateg2.DirectNodes.ContainsKey(tnElement.Name)) niCateg2.DirectNodes.Add(tnElement);
@@ -2745,7 +3114,7 @@ namespace SAD806x
                 return;
             }
 
-            if (!niCateg3.DirectNodes.ContainsKey(tnElement.Name)) niCateg2.DirectNodes.Add(tnElement);
+            if (!niCateg3.DirectNodes.ContainsKey(tnElement.Name)) niCateg3.DirectNodes.Add(tnElement);
         }
 
         private void ShowElementsTreeRefresh()
@@ -2799,86 +3168,6 @@ namespace SAD806x
                         if (tnDup.ForeColor != navInfo.HeaderCategoryNode.ForeColor) tnDup.ForeColor = navInfo.HeaderCategoryNode.ForeColor;
                     }
                 }
-            }
-        }
-
-        private void s6xNavCategoriesReset(ComboBox categComboBox)
-        {
-            if (s6xNavCategories == null) s6xNavCategories = new S6xNavCategories();
-
-            categComboBox.Items.Clear();
-
-            if (sadS6x != null)
-            {
-                if (categComboBox == signatureCategComboBox)
-                {
-                    s6xNavCategories.resetCategory(S6xNavHeaderCategory.SIGNATURES, S6xNavCategoryLevel.ONE);
-                    s6xNavCategories.resetCategory(S6xNavHeaderCategory.SIGNATURES, S6xNavCategoryLevel.TWO);
-                    s6xNavCategories.resetCategory(S6xNavHeaderCategory.SIGNATURES, S6xNavCategoryLevel.THREE);
-                    foreach (S6xSignature s6xSig in sadS6x.slSignatures.Values)
-                    {
-                        if (s6xSig.SignatureCategory == null || s6xSig.SignatureCategory == string.Empty) continue;
-                        s6xNavCategories.addCategory(S6xNavHeaderCategory.SIGNATURES, S6xNavCategoryLevel.ONE, s6xSig.SignatureCategory);
-                        if (s6xSig.SignatureCategory2 == null || s6xSig.SignatureCategory2 == string.Empty) continue;
-                        s6xNavCategories.addCategory(S6xNavHeaderCategory.SIGNATURES, S6xNavCategoryLevel.TWO, s6xSig.SignatureCategory2);
-                        if (s6xSig.SignatureCategory3 == null || s6xSig.SignatureCategory3 == string.Empty) continue;
-                        s6xNavCategories.addCategory(S6xNavHeaderCategory.SIGNATURES, S6xNavCategoryLevel.THREE, s6xSig.SignatureCategory3);
-                    }
-                }
-
-                if (categComboBox == elementSignatureCategComboBox)
-                {
-                    s6xNavCategories.resetCategory(S6xNavHeaderCategory.ELEMSSIGNATURES, S6xNavCategoryLevel.ONE);
-                    s6xNavCategories.resetCategory(S6xNavHeaderCategory.ELEMSSIGNATURES, S6xNavCategoryLevel.TWO);
-                    s6xNavCategories.resetCategory(S6xNavHeaderCategory.ELEMSSIGNATURES, S6xNavCategoryLevel.THREE);
-                    foreach (S6xElementSignature s6xESig in sadS6x.slElementsSignatures.Values)
-                    {
-                        if (s6xESig.SignatureCategory == null || s6xESig.SignatureCategory == string.Empty) continue;
-                        s6xNavCategories.addCategory(S6xNavHeaderCategory.ELEMSSIGNATURES, S6xNavCategoryLevel.ONE, s6xESig.SignatureCategory);
-                        if (s6xESig.SignatureCategory2 == null || s6xESig.SignatureCategory2 == string.Empty) continue;
-                        s6xNavCategories.addCategory(S6xNavHeaderCategory.ELEMSSIGNATURES, S6xNavCategoryLevel.TWO, s6xESig.SignatureCategory2);
-                        if (s6xESig.SignatureCategory3 == null || s6xESig.SignatureCategory3 == string.Empty) continue;
-                        s6xNavCategories.addCategory(S6xNavHeaderCategory.ELEMSSIGNATURES, S6xNavCategoryLevel.THREE, s6xESig.SignatureCategory3);
-                    }
-                }
-            }
-
-            s6xNavCategoriesLoad(categComboBox);
-        }
-
-        private void s6xNavCategoriesLoad(ComboBox categComboBox)
-        {
-            if (s6xNavCategories == null) s6xNavCategories = new S6xNavCategories();
-
-            categComboBox.Items.Clear();
-
-            categComboBox.Items.Add(new S6xNavCategory(string.Empty));
-
-            if (categComboBox == signatureCategComboBox)
-            {
-                foreach (S6xNavCategory navCateg in s6xNavCategories.getCategories(S6xNavHeaderCategory.SIGNATURES, S6xNavCategoryLevel.ONE, true).Values) categComboBox.Items.Add(navCateg);
-            }
-
-            if (categComboBox == elementSignatureCategComboBox)
-            {
-                foreach (S6xNavCategory navCateg in s6xNavCategories.getCategories(S6xNavHeaderCategory.ELEMSSIGNATURES, S6xNavCategoryLevel.ONE, true).Values) categComboBox.Items.Add(navCateg);
-            }
-        }
-
-        private void s6xNavCategoriesAdd(ref ComboBox categComboBox, string newCategory)
-        {
-            if (newCategory == null || newCategory == string.Empty) return;
-
-            if (categComboBox == signatureCategComboBox)
-            {
-                s6xNavCategories.addCategory(S6xNavHeaderCategory.SIGNATURES, S6xNavCategoryLevel.ONE, newCategory);
-                s6xNavCategoriesLoad(categComboBox);
-            }
-
-            if (categComboBox == elementSignatureCategComboBox)
-            {
-                s6xNavCategories.addCategory(S6xNavHeaderCategory.ELEMSSIGNATURES, S6xNavCategoryLevel.ONE, newCategory);
-                s6xNavCategoriesLoad(categComboBox);
             }
         }
 
@@ -3103,7 +3392,7 @@ namespace SAD806x
             {
                 lastElemS6xNavInfo = null;
                 nextElemS6xNavInfo = null;
-                showProperties();
+                showProperties(false);
             }
 
             if (navInfo.MainNode == null) return;
@@ -3120,7 +3409,7 @@ namespace SAD806x
 
             elemsTreeView.Tag = new S6xNavInfo(navInfo.HeaderCategoryNode);
             nextElemS6xNavInfo = navInfo;
-            showElem();
+            showElem(false);
         }
 
         private void elemsTreeView_BeforeLabelEdit(object sender, NodeLabelEditEventArgs e)
@@ -3284,8 +3573,48 @@ namespace SAD806x
                     break;
             }
 
-            showPropertiesTabPage(headerCategInfo.HeaderCategory);
+            newSharedDetails(headerCategInfo.HeaderCategory);
+            
+            showPropertiesTabPage(headerCategInfo.HeaderCategory, false);
             elemPanel.Visible = true;
+        }
+
+        private void newSharedDetails(S6xNavHeaderCategory headerCateg)
+        {
+            sharedDateCreatedDateTimePicker.Value = DateTime.Now;
+            sharedDateUpdatedDateTimePicker.Value = DateTime.Now;
+
+            if (headerCateg == S6xNavHeaderCategory.PROPERTIES)
+            {
+                sharedCategsLabel.Visible = false;
+                sharedCategComboBox.Visible = false;
+                sharedCateg2ComboBox.Visible = false;
+                sharedCateg3ComboBox.Visible = false;
+            }
+            else
+            {
+                sharedCategsLabel.Visible = true;
+                sharedCategComboBox.Visible = true;
+                sharedCateg2ComboBox.Visible = true;
+                sharedCateg3ComboBox.Visible = true;
+
+                S6xNav.s6xNavCategoriesLoad(headerCateg, sharedCategComboBox, S6xNavCategoryLevel.ONE, ref s6xNavCategories);
+                S6xNav.s6xNavCategoriesLoad(headerCateg, sharedCateg2ComboBox, S6xNavCategoryLevel.TWO, ref s6xNavCategories);
+                S6xNav.s6xNavCategoriesLoad(headerCateg, sharedCateg3ComboBox, S6xNavCategoryLevel.THREE, ref s6xNavCategories);
+
+                sharedCategComboBox.SelectedText = string.Empty;
+                sharedCateg2ComboBox.SelectedText = string.Empty;
+                sharedCateg3ComboBox.SelectedText = string.Empty;
+            }
+            
+            sharedIdentificationStatusTrackBar.Value = 0;
+
+            // Windows 10 1809 (10.0.17763) Issue
+            sharedIdentificationDetailsTextBox.Clear();
+            sharedIdentificationDetailsTextBox.Multiline = false;
+            sharedIdentificationDetailsTextBox.Multiline = true;
+
+            sharedIdentificationDetailsTextBox.Text = string.Empty;
         }
 
         private void skipOnItemToolStripMenuItem_Click(object sender, EventArgs e)
@@ -3387,7 +3716,7 @@ namespace SAD806x
 
             navInfo.Node.ForeColor = Color.Purple;
 
-            showElem();
+            showElem(false);
         }
 
         private void categSkipAllToolStripMenuItem_Click(object sender, EventArgs e)
@@ -3404,6 +3733,7 @@ namespace SAD806x
         {
             // 20200308 - PYM - Only managed for stored items now
             //                  To prevent exporting (TunerPro & co) autodetected elements, export before disassembly.
+            //                  No managemenet for field DateUpdated - It is not a real definition change
             
             S6xNavInfo navInfo = new S6xNavInfo(elemsTreeView.SelectedNode);
             if (!navInfo.isValid) return;
@@ -3585,7 +3915,7 @@ namespace SAD806x
 
             elemsTreeView.EndUpdate();
 
-            showElem();
+            showElem(false);
         }
 
         private void categCommentsOutputAllToolStripMenuItem_Click(object sender, EventArgs e)
@@ -3601,6 +3931,7 @@ namespace SAD806x
         private void setOutputCommentsAll(bool setOutput)
         {
             // 20200308 - PYM - Only managed for stored items
+            //                  No managemenet for field DateUpdated - It is not a real definition change
 
             S6xNavInfo navInfo = new S6xNavInfo(elemsTreeView.SelectedNode);
             if (!navInfo.isValid) return;
@@ -3746,7 +4077,7 @@ namespace SAD806x
 
             elemsTreeView.EndUpdate();
 
-            showElem();
+            showElem(false);
         }
 
         private void categCommentsInlineAllToolStripMenuItem_Click(object sender, EventArgs e)
@@ -3762,6 +4093,7 @@ namespace SAD806x
         private void setInlineCommentsAll(bool setInline)
         {
             // 20200308 - PYM - Only managed for stored items
+            //                  No managemenet for field DateUpdated - It is not a real definition change
 
             S6xNavInfo navInfo = new S6xNavInfo(elemsTreeView.SelectedNode);
             if (!navInfo.isValid) return;
@@ -3826,7 +4158,7 @@ namespace SAD806x
 
             elemsTreeView.EndUpdate();
 
-            showElem();
+            showElem(false);
         }
 
         private void displayToolStripMenuItem_Click(object sender, EventArgs e)
@@ -3843,7 +4175,7 @@ namespace SAD806x
             }
 
             nextElemS6xNavInfo = navInfo;
-            showElem();
+            showElem(false);
         }
         
         private void renameToolStripMenuItem_Click(object sender, EventArgs e)
@@ -3991,7 +4323,111 @@ namespace SAD806x
             elemTabControl.SelectedTab = elemOpsTabPage;
         }
 
-        private void showProperties()
+        private void showSharedDetails(S6xNavHeaderCategory headerCateg, object s6xObject)
+        {
+            if (s6xObject == null) return;
+
+            string nameOfDateCreated = "DateCreated";
+            string nameOfDateUpdated = "DateUpdated";
+            string nameOfCategory = "Category";
+            string nameOfCategory2 = "Category2";
+            string nameOfCategory3 = "Category3";
+            string nameOfIdentificationStatus = "IdentificationStatus";
+            string nameOfIdentificationDetails = "IdentificationDetails";
+
+            Type s6xType = s6xObject.GetType();
+
+            if (s6xType == typeof(S6xSignature) || s6xType == typeof(S6xElementSignature))
+            {
+                nameOfCategory = "SignatureCategory";
+                nameOfCategory2 = "SignatureCategory2";
+                nameOfCategory3 = "SignatureCategory3";
+            }
+
+            PropertyInfo piPI = null;
+            object oValue = null;
+
+            piPI = s6xType.GetProperty(nameOfDateCreated);
+            if (piPI != null) sharedDateCreatedDateTimePicker.Value = Tools.getValidDateTime(piPI.GetValue(s6xObject, null), sadS6x.Properties.DateCreated).ToLocalTime();
+            piPI = null;
+
+            piPI = s6xType.GetProperty(nameOfDateUpdated);
+            if (piPI != null) sharedDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(piPI.GetValue(s6xObject, null), sadS6x.Properties.DateUpdated).ToLocalTime();
+            piPI = null;
+
+            if (s6xType == typeof(S6xProperties))
+            {
+                sharedCategsLabel.Visible = false;
+                sharedCategComboBox.Visible = false;
+                sharedCateg2ComboBox.Visible = false;
+                sharedCateg3ComboBox.Visible = false;
+            }
+            else
+            {
+                sharedCategsLabel.Visible = true;
+                sharedCategComboBox.Visible = true;
+                sharedCateg2ComboBox.Visible = true;
+                sharedCateg3ComboBox.Visible = true;
+
+                S6xNav.s6xNavCategoriesLoad(headerCateg, sharedCategComboBox, S6xNavCategoryLevel.ONE, ref s6xNavCategories);
+                S6xNav.s6xNavCategoriesLoad(headerCateg, sharedCateg2ComboBox, S6xNavCategoryLevel.TWO, ref s6xNavCategories);
+                S6xNav.s6xNavCategoriesLoad(headerCateg, sharedCateg3ComboBox, S6xNavCategoryLevel.THREE, ref s6xNavCategories);
+
+                piPI = s6xType.GetProperty(nameOfCategory);
+                if (piPI != null)
+                {
+                    oValue = piPI.GetValue(s6xObject, null);
+                    if (oValue == null) sharedCategComboBox.Text = string.Empty;
+                    else sharedCategComboBox.Text = (string)oValue;
+                }
+                piPI = null;
+
+                piPI = s6xType.GetProperty(nameOfCategory2);
+                if (piPI != null)
+                {
+                    oValue = piPI.GetValue(s6xObject, null);
+                    if (oValue == null) sharedCateg2ComboBox.Text = string.Empty;
+                    else sharedCateg2ComboBox.Text = (string)oValue;
+                }
+                piPI = null;
+
+                piPI = s6xType.GetProperty(nameOfCategory3);
+                if (piPI != null)
+                {
+                    oValue = piPI.GetValue(s6xObject, null);
+                    if (oValue == null) sharedCateg3ComboBox.Text = string.Empty;
+                    else sharedCateg3ComboBox.Text = (string)oValue;
+                }
+                piPI = null;
+            }
+
+            piPI = s6xType.GetProperty(nameOfIdentificationStatus);
+            if (piPI != null)
+            {
+                oValue = piPI.GetValue(s6xObject, null);
+                if ((int)oValue < 0) sharedIdentificationStatusTrackBar.Value = 0;
+                else if ((int)oValue > 100) sharedIdentificationStatusTrackBar.Value = 100;
+                else sharedIdentificationStatusTrackBar.Value = (int)oValue;
+            }
+            piPI = null;
+
+            // Windows 10 1809 (10.0.17763) Issue
+            sharedIdentificationDetailsTextBox.Clear();
+            sharedIdentificationDetailsTextBox.Multiline = false;
+            sharedIdentificationDetailsTextBox.Multiline = true;
+
+            piPI = s6xType.GetProperty(nameOfIdentificationDetails);
+            if (piPI != null)
+            {
+                oValue = piPI.GetValue(s6xObject, null);
+                if (oValue == null) sharedIdentificationDetailsTextBox.Text = string.Empty;
+                else sharedIdentificationDetailsTextBox.Text = (string)oValue;
+                sharedIdentificationDetailsTextBox.Text = sharedIdentificationDetailsTextBox.Text.Replace("\r\n", "\n").Replace("\n\r", "\n").Replace("\n", "\r\n");
+            }
+            piPI = null;
+        }
+
+        private void showProperties(bool showDetails)
         {
             if (sadS6x == null) return;
 
@@ -4024,9 +4460,13 @@ namespace SAD806x
             s6xPropertiesCommentsTextBox.Text = sadS6x.Properties.Comments;
             s6xPropertiesCommentsTextBox.Text = s6xPropertiesCommentsTextBox.Text.Replace("\n", "\r\n");
             s6xPropertiesNoNumberingCheckBox.Checked = sadS6x.Properties.NoNumbering;
+            s6xPropertiesNoNumberingShortFormatCheckBox.Checked = sadS6x.Properties.NoNumberingShortFormat;
             s6xPropertiesRegListOutputCheckBox.Checked = sadS6x.Properties.RegListOutput;
             s6xPropertiesXdfBaseOffsetTextBox.Text = sadS6x.Properties.XdfBaseOffset;
             s6xPropertiesXdfBaseOffsetCheckBox.Checked = sadS6x.Properties.XdfBaseOffsetSubtract;
+            // 20210406 - PYM - 0x100 Register Shortcut & SFR Mngt
+            s6xPropertiesIgnore8065RegShortcut0x100.Checked = sadS6x.Properties.Ignore8065RegShortcut0x100;
+            s6xPropertiesIgnore8065RegShortcut0x100SFR.Checked = sadS6x.Properties.Ignore8065RegShortcut0x100SFR;
 
             // Windows 10 1809 (10.0.17763) Issue
             s6xPropertiesHeaderTextBox.Clear();
@@ -4038,9 +4478,11 @@ namespace SAD806x
 
             s6xPropertiesOutputHeaderCheckBox.Checked = sadS6x.Properties.OutputHeader;
 
+            showSharedDetails(s6xNavInfo.HeaderCategory, sadS6x.Properties);
+
             resetPropertiesModifiedStatus(s6xPropertiesTabPage);
 
-            showPropertiesTabPage(s6xNavInfo.HeaderCategory);
+            showPropertiesTabPage(s6xNavInfo.HeaderCategory, showDetails);
 
             lastElemS6xNavInfo = s6xNavInfo;
 
@@ -4049,7 +4491,7 @@ namespace SAD806x
             elemPanel.Visible = true;
         }
 
-        private void showElem()
+        private void showElem(bool showDetails)
         {
             if (nextElemS6xNavInfo == null) return;
             if (!nextElemS6xNavInfo.isValid) return;
@@ -4143,7 +4585,7 @@ namespace SAD806x
                         elemAddressTextBox.ForeColor = nextElemS6xNavInfo.Node.ForeColor;
                         showElemData();
                     }
-                    showElemProperties();
+                    showElemProperties(showDetails);
                     break;
                 case S6xNavHeaderCategory.STRUCTURES:
                     if (nextElemS6xNavInfo.isDuplicate)
@@ -4181,7 +4623,7 @@ namespace SAD806x
                         elemAddressTextBox.ForeColor = nextElemS6xNavInfo.Node.ForeColor;
                         showElemData();
                     }
-                    showElemProperties();
+                    showElemProperties(showDetails);
                     break;
                 case S6xNavHeaderCategory.ROUTINES:
                     if (sadS6x.slRoutines.ContainsKey(nextElemS6xNavInfo.Node.Name))
@@ -4205,7 +4647,7 @@ namespace SAD806x
                         elemAddressTextBox.ForeColor = nextElemS6xNavInfo.Node.ForeColor;
                     }
                     hideElemData();
-                    showElemProperties();
+                    showElemProperties(showDetails);
                     break;
                 case S6xNavHeaderCategory.OPERATIONS:
                     S6xOperation ope = (S6xOperation)sadS6x.slOperations[nextElemS6xNavInfo.Node.Name];
@@ -4226,7 +4668,7 @@ namespace SAD806x
                         elemAddressTextBox.ForeColor = nextElemS6xNavInfo.Node.ForeColor;
                     }
                     hideElemData();
-                    showElemProperties();
+                    showElemProperties(showDetails);
                     break;
                 case S6xNavHeaderCategory.REGISTERS:
                     S6xRegister reg = (S6xRegister)sadS6x.slRegisters[nextElemS6xNavInfo.Node.Name];
@@ -4237,7 +4679,7 @@ namespace SAD806x
                     reg = null;
 
                     hideElemData();
-                    showElemProperties();
+                    showElemProperties(showDetails);
 
                     break;
                 case S6xNavHeaderCategory.OTHER:
@@ -4259,7 +4701,7 @@ namespace SAD806x
                         elemAddressTextBox.ForeColor = nextElemS6xNavInfo.Node.ForeColor;
                     }
                     hideElemData();
-                    showElemProperties();
+                    showElemProperties(showDetails);
                     break;
                 case S6xNavHeaderCategory.SIGNATURES:
                     S6xSignature sig = (S6xSignature)sadS6x.slSignatures[nextElemS6xNavInfo.Node.Name];
@@ -4270,7 +4712,7 @@ namespace SAD806x
                     sig = null;
 
                     hideElemData();
-                    showElemProperties();
+                    showElemProperties(showDetails);
                     break;
                 case S6xNavHeaderCategory.ELEMSSIGNATURES:
                     S6xElementSignature eSig = (S6xElementSignature)sadS6x.slElementsSignatures[nextElemS6xNavInfo.Node.Name];
@@ -4281,7 +4723,7 @@ namespace SAD806x
                     eSig = null;
 
                     hideElemData();
-                    showElemProperties();
+                    showElemProperties(showDetails);
                     break;
             }
 
@@ -4295,178 +4737,6 @@ namespace SAD806x
             elemDataGridView.Visible = false;
         }
 
-        // To be able to show scaled data for tables
-        private string[] getTableElemDataScale(string scalerUniqueAddress, int stepNumber)
-        {
-            string[] scaleResult = null;
-            S6xFunction s6xScaler = null;
-
-            if (stepNumber <= 0) return new string[] {};
-            scaleResult = new string[stepNumber];
-
-            for (int iStep = 0; iStep < stepNumber; iStep++) scaleResult[iStep] = (iStep + 1).ToString();
-
-            if (scalerUniqueAddress != null && scalerUniqueAddress != string.Empty) s6xScaler = (S6xFunction)sadS6x.slFunctions[scalerUniqueAddress];
-            if (s6xScaler == null) s6xScaler = (S6xFunction)sadS6x.slDupFunctions[scalerUniqueAddress];
-            if (s6xScaler != null) if (s6xScaler.RowsNumber <= 0) s6xScaler = null;
-            if (s6xScaler == null) return scaleResult;
-
-            s6xScaler.AddressBinInt = Tools.binAddressCorrected(s6xScaler.BankNum, s6xScaler.AddressInt, ref sadBin, s6xScaler.AddressBinInt);
-                            
-            int iRowSize = 4;
-            if (s6xScaler.ByteInput) iRowSize--;
-            if (s6xScaler.ByteOutput) iRowSize--;
-
-            object[] arrRows = new object[s6xScaler.RowsNumber];
-            string[] arrBytes = sadBin.getBytesArray(s6xScaler.AddressBinInt, iRowSize * s6xScaler.RowsNumber);
-            bool failedInputScale = false;
-            bool failedOutputScale = false;
-            int iAddress = 0;
-            for (int iRow = 0; iRow < arrRows.Length; iRow++)
-            {
-                object[] arrRow = new object[2];
-                int iValue = 0;
-
-                if (s6xScaler.ByteInput)
-                {
-                    try { iValue = Tools.getByteInt(arrBytes[iAddress], s6xScaler.SignedInput); }
-                    catch { iValue = 0; }
-                    iAddress++;
-                }
-                else
-                {
-                    try { iValue = Tools.getWordInt(arrBytes[iAddress + 1] + arrBytes[iAddress], s6xScaler.SignedInput); }
-                    catch { iValue = 0; }
-                    iAddress += 2;
-                }
-                if (failedInputScale) arrRow[0] = iValue;
-                else
-                {
-                    try { arrRow[0] = Tools.ScaleValue(iValue, s6xScaler.InputScaleExpression, true); }
-                    catch
-                    {
-                        failedInputScale = true;
-                        arrRow[0] = iValue;
-                    }
-                }
-
-                if (s6xScaler.ByteOutput)
-                {
-                    try { iValue = Tools.getByteInt(arrBytes[iAddress], s6xScaler.SignedOutput); }
-                    catch { iValue = 0; }
-                    iAddress++;
-                }
-                else
-                {
-                    try { iValue = Tools.getWordInt(arrBytes[iAddress + 1] + arrBytes[iAddress], s6xScaler.SignedOutput); }
-                    catch { iValue = 0; }
-                    iAddress += 2;
-                }
-                if (failedOutputScale) arrRow[1] = iValue;
-                else
-                {
-                    try { arrRow[1] = Tools.ScaleValue(iValue, s6xScaler.OutputScaleExpression, true); }
-                    catch
-                    {
-                        failedOutputScale = true;
-                        arrRow[1] = iValue;
-                    }
-                }
-                arrRows[iRow] = arrRow;
-            }
-
-            if (failedOutputScale) return scaleResult;
-            double[] scaleValues = new double[stepNumber];
-
-            for (int iStep = 0; iStep < stepNumber; iStep++) 
-            {
-                scaleResult[iStep] = string.Empty;
-                scaleValues[iStep] = 0.0;
-            }
-            double dMaxIndex = 0.0;
-            double dMinIndex = double.MaxValue;
-            double dMaxValue = 0.0;
-            double dMinValue = 0.0;
-            for (int iRow = 0; iRow < arrRows.Length; iRow++)
-            {
-                double dSc  = (double)((object[])arrRows[iRow])[1];
-                if (dSc >= dMaxIndex)
-                {
-                    dMaxIndex = dSc;
-                    dMaxValue = (double)((object[])arrRows[iRow])[0];
-                }
-                if (dSc <= dMinIndex)
-                {
-                    dMinIndex = dSc;
-                    dMinValue = (double)((object[])arrRows[iRow])[0];
-                }
-                if (dSc == (int)dSc && dSc >= 0 && dSc < stepNumber)
-                {
-                    scaleValues[(int)dSc] = (double)((object[])arrRows[iRow])[0];
-                    scaleResult[(int)dSc] = string.Format("{0:G}", scaleValues[(int)dSc]);
-                }
-                if (dSc <= 0.0) break;
-            }
-            if (scaleResult[0] == string.Empty)
-            {
-                if (dMinIndex > (double)(0) && dMinIndex < (double)(0 + 1))
-                {
-                    scaleValues[0] = dMinValue;
-                    scaleResult[0] = string.Format("{0:G}", scaleValues[0]);
-                }
-            }
-            if (scaleResult[scaleResult.Length - 1] == string.Empty)
-            {
-                if (dMaxIndex > (double)(scaleResult.Length - 1 - 1) && dMinIndex < (double)(scaleResult.Length - 1 + 1))
-                {
-                    scaleValues[scaleResult.Length - 1] = dMaxValue;
-                    scaleResult[scaleResult.Length - 1] = string.Format("{0:G}", scaleValues[scaleResult.Length - 1]);
-                }
-                else if (dMaxIndex > 0.0 && dMaxIndex > dMinIndex)
-                {
-                    for (int iStep = (int)dMaxIndex; iStep < stepNumber; iStep++)
-                    {
-                        scaleValues[scaleResult.Length - 1] = dMaxValue;
-                        scaleResult[iStep] = string.Format("{0:G}", scaleValues[scaleResult.Length - 1]);
-                    }
-                }
-            }
-            if (scaleResult[0] == string.Empty || scaleResult[scaleResult.Length - 1] == string.Empty)
-            {
-                for (int iStep = 0; iStep < stepNumber; iStep++) scaleResult[iStep] = (iStep + 1).ToString();
-                return scaleResult;
-            }
-
-            int lastStepWithValue = -1;
-            for (int iStep = 0; iStep < stepNumber; iStep++)
-            {
-                if (scaleResult[iStep] == string.Empty) continue;
-                if (lastStepWithValue >= 0 && iStep - lastStepWithValue > 1)
-                {
-                    double stepGap = (scaleValues[iStep] - scaleValues[lastStepWithValue]) / (iStep - lastStepWithValue);
-                    for (int iStepUpdate = lastStepWithValue + 1; iStepUpdate < iStep; iStepUpdate++) scaleValues[iStepUpdate] = scaleValues[iStepUpdate - 1] + stepGap;
-                }
-                lastStepWithValue = iStep;
-            }
-
-            // Final Format
-            bool pureIntFormat = true;
-            bool lowNumberFormat = true;
-            for (int iStep = 0; iStep < stepNumber; iStep++)
-            {
-                if (scaleValues[iStep] != (int)iStep) pureIntFormat = false;
-                // Thinking about Transfer function on 5v12
-                if (scaleValues[iStep] > 6.0) lowNumberFormat = false;
-            }
-            string sFormat = "{0:0}";
-            if (pureIntFormat || !lowNumberFormat) sFormat = "{0:0}";
-            // New Scale Precision field
-            if (s6xScaler.InputScalePrecision >= 0 && s6xScaler.InputScalePrecision <= 8) sFormat = "{0:0." + new string('0', s6xScaler.InputScalePrecision) + "}";
-            for (int iStep = 0; iStep < stepNumber; iStep++) scaleResult[iStep] = string.Format(sFormat, scaleValues[iStep]);
-
-            return scaleResult;
-        }
-
         private void showElemData()
         {
             convertToolStripMenuItem.Tag = null;
@@ -4476,26 +4746,6 @@ namespace SAD806x
 
         private void showElemData(RepositoryConversionItem rcOutput, RepositoryConversionItem rcInput)
         {
-            S6xScalar s6xScalar = null;
-            S6xFunction s6xFunction = null;
-            S6xTable s6xTable = null;
-            S6xStructure s6xStruct = null;
-            DataTable dtTable = null;
-            Type dataType = null;
-            bool dataDecimal = false;
-            bool ignoreDefinedConversion = false;
-            bool dataReversed = false;
-            string sValue = string.Empty;
-            int iValue = 0;
-            int iAddress = 0;
-            string[] arrBytes = null;
-            string[] arrCols = null;
-            object[] arrRows = null;
-            object[] arrRowsHeaders = null;
-            object[] arrRow = null;
-            bool failedScale = false;
-            int iBfTop = -1;
-
             if (nextElemS6xNavInfo == null) return;
             if (!nextElemS6xNavInfo.isValid) return;
 
@@ -4503,497 +4753,31 @@ namespace SAD806x
 
             if (sadBin == null) return;
 
-            dataDecimal = decimalToolStripMenuItem.Checked;
-            if (dataDecimal) dataType = typeof(double);
-            else dataType = typeof(string);
-            ignoreDefinedConversion = decimalNotConvertedToolStripMenuItem.Checked;
-            dataReversed = reverseOrderToolStripMenuItem.Checked;
-
-            elemDataGridView.DataSource = null;
-
+            object s6xObject = null;
             switch (nextElemS6xNavInfo.HeaderCategory)
             {
                 case S6xNavHeaderCategory.SCALARS:
-                    if (nextElemS6xNavInfo.isDuplicate) s6xScalar = (S6xScalar)sadS6x.slDupScalars[nextElemS6xNavInfo.Node.Name];
-                    else s6xScalar = (S6xScalar)sadS6x.slScalars[nextElemS6xNavInfo.Node.Name];
-                    if (s6xScalar == null) return;
-
-                    elemDataGridView.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-
-                    s6xScalar.AddressBinInt = Tools.binAddressCorrected(s6xScalar.BankNum, s6xScalar.AddressInt, ref sadBin, s6xScalar.AddressBinInt);
-
-                    if (s6xScalar.isBitFlags)
-                    {
-                        dataType = typeof(string);
-                        arrCols = null;
-                        if (s6xScalar.BitFlags != null)
-                        {
-                            if (s6xScalar.BitFlags.Length > 0)
-                            {
-                                arrCols = new string[s6xScalar.BitFlags.Length + 1];
-                                for (int iCol = 1; iCol < arrCols.Length; iCol++) arrCols[iCol] = s6xScalar.BitFlags[arrCols.Length - iCol - 1].ShortLabel;
-                            }
-                        }
-                        // Default BitFlags
-                        if (arrCols == null)
-                        {
-                            iBfTop = 15;
-                            if (s6xScalar.Byte) iBfTop = 7;
-
-                            for (int iBf = iBfTop; iBf >= 0; iBf--)
-                            {
-                                arrCols = new string[iBfTop + 2];
-                                for (int iCol = 1; iCol < arrCols.Length; iCol++) arrCols[iCol] = "B" + iBf.ToString();
-                            }
-                        }
-                        // For better output
-                        if (arrCols != null) 
-                        {
-                            for (int iCol = 1; iCol < arrCols.Length; iCol++) arrCols[iCol] = OutputTools.GetSpacesCenteredString(arrCols[iCol], 20);
-                        }
-                    }
-                    else
-                    {
-                        arrCols = new string[1];
-                    }
-                    if (s6xScalar.Byte)
-                    {
-                        arrCols[0] = "Byte";
-                        arrBytes = sadBin.getBytesArray(s6xScalar.AddressBinInt, 1);
-                        try
-                        {
-                            sValue = arrBytes[0];
-                            iValue = Tools.getByteInt(sValue, s6xScalar.Signed);
-                        }
-                        catch
-                        {
-                            sValue = string.Empty;
-                            iValue = 0;
-                        }
-                    }
-                    else
-                    {
-                        arrCols[0] = "Word";
-                        arrBytes = sadBin.getBytesArray(s6xScalar.AddressBinInt, 2);
-                        try
-                        {
-                            sValue = Tools.LsbFirst(arrBytes);
-                            iValue = Tools.getWordInt(sValue, s6xScalar.Signed);
-                        }
-                        catch
-                        {
-                            sValue = string.Empty;
-                            iValue = 0;
-                        }
-                    }
-                    // For better output
-                    if (arrCols.Length == 1) arrCols[0] = OutputTools.GetSpacesCenteredString(arrCols[0], 100);
-                    else arrCols[0] = OutputTools.GetSpacesCenteredString(arrCols[0], 50);
-
-                    arrRow = new object[arrCols.Length];
-                    if (s6xScalar.isBitFlags)
-                    {
-                        BitArray arrBit = new BitArray(new int[] { iValue });
-                        for (int iCol = 1; iCol < arrRow.Length; iCol++)
-                        {
-                            if (arrBit[s6xScalar.BitFlags[arrRow.Length - iCol - 1].Position]) arrRow[iCol] = s6xScalar.BitFlags[arrRow.Length - iCol - 1].SetValue;
-                            else arrRow[iCol] = s6xScalar.BitFlags[arrRow.Length - iCol - 1].NotSetValue;
-                        }
-                    }
-                    if (dataDecimal)
-                    {
-                        if (failedScale) arrRow[0] = iValue;
-                        else
-                        {
-                            try
-                            {
-                                if (ignoreDefinedConversion)
-                                {
-                                    if (rcOutput == null) arrRow[0] = iValue;
-                                    else arrRow[0] = Tools.ScaleValue(iValue, rcOutput.InternalFormula, 0, true);
-                                }
-                                else
-                                {
-                                    if (rcOutput == null) arrRow[0] = Tools.ScaleValue(iValue, s6xScalar.ScaleExpression, s6xScalar.ScalePrecision, true);
-                                    else arrRow[0] = Tools.ScaleValue(iValue, rcOutput.InternalFormula.ToUpper().Replace("X", "(" + s6xScalar.ScaleExpression + ")"), s6xScalar.ScalePrecision, true);
-                                }
-                            }
-                            catch
-                            {
-                                failedScale = true;
-                                arrRow[0] = iValue;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        arrRow[0] = sValue.ToUpper();
-                    }
-
-                    arrRows = new object[] {arrRow};
-
+                    if (nextElemS6xNavInfo.isDuplicate) s6xObject = sadS6x.slDupScalars[nextElemS6xNavInfo.Node.Name];
+                    else s6xObject = sadS6x.slScalars[nextElemS6xNavInfo.Node.Name];
                     break;
                 case S6xNavHeaderCategory.FUNCTIONS:
-                    if (nextElemS6xNavInfo.isDuplicate) s6xFunction = (S6xFunction)sadS6x.slDupFunctions[nextElemS6xNavInfo.Node.Name];
-                    else s6xFunction = (S6xFunction)sadS6x.slFunctions[nextElemS6xNavInfo.Node.Name];
-                    if (s6xFunction == null) return;
-
-                    elemDataGridView.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
-
-                    s6xFunction.AddressBinInt = Tools.binAddressCorrected(s6xFunction.BankNum, s6xFunction.AddressInt, ref sadBin, s6xFunction.AddressBinInt);
-
-                    arrCols = new string[2];
-                    arrCols[0] = "Word Input";
-                    iValue = 2;
-                    if (s6xFunction.ByteInput)
-                    {
-                        arrCols[0] = "Byte Input";
-                        iValue--;
-                    }
-                    arrCols[1] = "Word Output";
-                    iValue += 2;
-                    if (s6xFunction.ByteOutput)
-                    {
-                        arrCols[1] = "Byte Output";
-                        iValue--;
-                    }
-                    arrCols[0] = OutputTools.GetSpacesCenteredString(arrCols[0], 50);   // For better output
-                    arrCols[1] = OutputTools.GetSpacesCenteredString(arrCols[1], 50);   // For better output
-
-                    if (s6xFunction.RowsNumber <= 0)
-                    {
-                        arrRows = new object[] {};
-                    }
-                    else
-                    {
-                        arrRows = new object[s6xFunction.RowsNumber];
-                        arrBytes = sadBin.getBytesArray(s6xFunction.AddressBinInt, iValue * arrRows.Length);
-                        iAddress = 0;
-                        for (int iRow = 0; iRow < arrRows.Length; iRow++)
-                        {
-                            arrRow = new object[arrCols.Length];
-                            for (int iCol = 0; iCol < arrRow.Length; iCol++)
-                            {
-                                if (iCol % 2 == 0)
-                                {
-                                    if (s6xFunction.ByteInput)
-                                    {
-                                        try
-                                        {
-                                            sValue = arrBytes[iAddress];
-                                            iValue = Tools.getByteInt(sValue, s6xFunction.SignedInput);
-                                        }
-                                        catch
-                                        {
-                                            sValue = string.Empty;
-                                            iValue = 0;
-                                        }
-                                        iAddress++;
-                                    }
-                                    else
-                                    {
-                                        try
-                                        {
-                                            sValue = arrBytes[iAddress + 1] + arrBytes[iAddress];
-                                            iValue = Tools.getWordInt(sValue, s6xFunction.SignedInput);
-                                        }
-                                        catch
-                                        {
-                                            sValue = string.Empty;
-                                            iValue = 0;
-                                        }
-                                        iAddress += 2;
-                                    }
-                                    if (dataDecimal)
-                                    {
-                                        if (failedScale) arrRow[iCol] = iValue;
-                                        else
-                                        {
-                                            try
-                                            {
-                                                if (ignoreDefinedConversion)
-                                                {
-                                                    if (rcInput == null) arrRow[iCol] = iValue;
-                                                    else arrRow[iCol] = Tools.ScaleValue(iValue, rcInput.InternalFormula, 0, true);
-                                                }
-                                                else
-                                                {
-                                                    if (rcInput == null) arrRow[iCol] = Tools.ScaleValue(iValue, s6xFunction.InputScaleExpression, s6xFunction.InputScalePrecision, true);
-                                                    else arrRow[iCol] = Tools.ScaleValue(iValue, rcInput.InternalFormula.ToUpper().Replace("X", "(" + s6xFunction.InputScaleExpression + ")"), s6xFunction.InputScalePrecision, true);
-                                                }
-                                            }
-                                            catch
-                                            {
-                                                failedScale = true;
-                                                arrRow[iCol] = iValue;
-                                            }
-                                        }
-                                    }
-                                    else arrRow[iCol] = sValue.ToUpper();
-                                }
-                                else
-                                {
-                                    if (s6xFunction.ByteOutput)
-                                    {
-                                        try
-                                        {
-                                            sValue = arrBytes[iAddress];
-                                            iValue = Tools.getByteInt(sValue, s6xFunction.SignedOutput);
-                                        }
-                                        catch
-                                        {
-                                            sValue = string.Empty;
-                                            iValue = 0;
-                                        }
-                                        iAddress++;
-                                    }
-                                    else
-                                    {
-                                        try
-                                        {
-                                            sValue = arrBytes[iAddress + 1] + arrBytes[iAddress];
-                                            iValue = Tools.getWordInt(sValue, s6xFunction.SignedOutput);
-                                        }
-                                        catch
-                                        {
-                                            sValue = string.Empty;
-                                            iValue = 0;
-                                        }
-                                        iAddress += 2;
-                                    }
-                                    if (dataDecimal)
-                                    {
-                                        if (failedScale) arrRow[iCol] = iValue;
-                                        else
-                                        {
-                                            try
-                                            {
-                                                if (ignoreDefinedConversion)
-                                                {
-                                                    if (rcOutput == null) arrRow[iCol] = iValue;
-                                                    else arrRow[iCol] = Tools.ScaleValue(iValue, rcOutput.InternalFormula, 0, true);
-                                                }
-                                                else
-                                                {
-                                                    if (rcOutput == null) arrRow[iCol] = Tools.ScaleValue(iValue, s6xFunction.OutputScaleExpression, s6xFunction.OutputScalePrecision, true);
-                                                    else arrRow[iCol] = Tools.ScaleValue(iValue, rcOutput.InternalFormula.ToUpper().Replace("X", "(" + s6xFunction.OutputScaleExpression + ")"), s6xFunction.OutputScalePrecision, true);
-                                                }
-                                            }
-                                            catch
-                                            {
-                                                failedScale = true;
-                                                arrRow[iCol] = iValue;
-                                            }
-                                        }
-                                    }
-                                    else arrRow[iCol] = sValue.ToUpper();
-                                }
-                            }
-                            arrRows[iRow] = arrRow;
-                        }
-                    }
+                    if (nextElemS6xNavInfo.isDuplicate) s6xObject = sadS6x.slDupFunctions[nextElemS6xNavInfo.Node.Name];
+                    else s6xObject = sadS6x.slFunctions[nextElemS6xNavInfo.Node.Name];
                     break;
                 case S6xNavHeaderCategory.TABLES:
-                    if (nextElemS6xNavInfo.isDuplicate) s6xTable = (S6xTable)sadS6x.slDupTables[nextElemS6xNavInfo.Node.Name];
-                    else s6xTable = (S6xTable)sadS6x.slTables[nextElemS6xNavInfo.Node.Name];
-                    if (s6xTable == null) return;
-                    if (s6xTable.ColsNumber <= 0) return;
-
-                    elemDataGridView.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
-
-                    s6xTable.AddressBinInt = Tools.binAddressCorrected(s6xTable.BankNum, s6xTable.AddressInt, ref sadBin, s6xTable.AddressBinInt);
-
-                    //arrCols = new string[s6xTable.ColsNumber];
-                    //for (int iCol = 0; iCol < arrCols.Length; iCol++) arrCols[iCol] = (iCol + 1).ToString();
-                    arrCols = getTableElemDataScale(s6xTable.ColsScalerAddress, s6xTable.ColsNumber);
-
-                    // For better output
-                    if (arrCols != null)
-                    {
-                        for (int iCol = 0; iCol < arrCols.Length; iCol++) arrCols[iCol] = OutputTools.GetSpacesCenteredString(arrCols[iCol], 10);
-                    }
-                    
-                    if (s6xTable.RowsNumber <= 0)
-                    {
-                        arrRows = new object[] {};
-                    }
-                    else
-                    {
-                        arrRows = new object[s6xTable.RowsNumber];
-                        arrRowsHeaders = getTableElemDataScale(s6xTable.RowsScalerAddress, s6xTable.RowsNumber);
-                        if (s6xTable.WordOutput) arrBytes = sadBin.getBytesArray(s6xTable.AddressBinInt, arrCols.Length * arrRows.Length * 2);
-                        else arrBytes = sadBin.getBytesArray(s6xTable.AddressBinInt, arrCols.Length * arrRows.Length);
-                        iAddress = 0;
-                        for (int iRow = 0; iRow < arrRows.Length; iRow++)
-                        {
-                            arrRow = new object[arrCols.Length];
-                            for (int iCol = 0; iCol < arrRow.Length; iCol++)
-                            {
-                                try
-                                {
-                                    if (s6xTable.WordOutput)
-                                    {
-                                        sValue = arrBytes[iAddress + 1] + arrBytes[iAddress];
-                                        iValue = Tools.getWordInt(sValue, s6xTable.SignedOutput);
-                                    }
-                                    else
-                                    {
-                                        sValue = arrBytes[iAddress];
-                                        iValue = Tools.getByteInt(sValue, s6xTable.SignedOutput);
-                                    }
-                                }
-                                catch
-                                {
-                                    sValue = string.Empty;
-                                    iValue = 0;
-                                }
-                                iAddress++;
-                                if (s6xTable.WordOutput) iAddress++;
-
-                                if (dataDecimal)
-                                {
-                                    if (failedScale) arrRow[iCol] = iValue;
-                                    else
-                                    {
-                                        try
-                                        {
-                                            if (ignoreDefinedConversion)
-                                            {
-                                                if (rcOutput == null) arrRow[iCol] = iValue;
-                                                else arrRow[iCol] = Tools.ScaleValue(iValue, rcOutput.InternalFormula, 0, true);
-                                            }
-                                            else
-                                            {
-                                                if (rcOutput == null) arrRow[iCol] = Tools.ScaleValue(iValue, s6xTable.CellsScaleExpression, s6xTable.CellsScalePrecision, true);
-                                                else arrRow[iCol] = Tools.ScaleValue(iValue, rcOutput.InternalFormula.ToUpper().Replace("X", "(" + s6xTable.CellsScaleExpression + ")"), s6xTable.CellsScalePrecision, true);
-                                            }
-                                        }
-                                        catch
-                                        {
-                                            failedScale = true;
-                                            arrRow[iCol] = iValue;
-                                        }
-                                    }
-                                }
-                                else arrRow[iCol] = sValue.ToUpper();
-                            }
-                            arrRows[iRow] = arrRow;
-                        }
-                    }
+                    if (nextElemS6xNavInfo.isDuplicate) s6xObject = sadS6x.slDupTables[nextElemS6xNavInfo.Node.Name];
+                    else s6xObject = sadS6x.slTables[nextElemS6xNavInfo.Node.Name];
                     break;
                 case S6xNavHeaderCategory.STRUCTURES:
-                    if (nextElemS6xNavInfo.isDuplicate) s6xStruct = (S6xStructure)sadS6x.slDupStructures[nextElemS6xNavInfo.Node.Name];
-                    else s6xStruct = (S6xStructure)sadS6x.slStructures[nextElemS6xNavInfo.Node.Name];
-                    if (s6xStruct == null) return;
-                    if (s6xStruct.Number <= 0) return;
-
-                    s6xStruct.Structure = new Structure(s6xStruct);
-                    if (!s6xStruct.Structure.isValid) return;
-                    if (s6xStruct.Structure.isEmpty) return;
-
-                    elemDataGridView.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
-
-                    s6xStruct.Structure.AddressBinInt = Tools.binAddressCorrected(s6xStruct.Structure.BankNum, s6xStruct.Structure.AddressInt, ref sadBin, s6xStruct.Structure.AddressBinInt);
-
-                    arrBytes = sadBin.getBytesArray(s6xStruct.Structure.AddressBinInt, s6xStruct.Structure.MaxSizeSingle * s6xStruct.Number);
-                    s6xStruct.Structure.Read(ref arrBytes, s6xStruct.Number);
-                    arrBytes = null;
-
-                    arrCols = new string[s6xStruct.Structure.MaxLineItemsNum];
-                    for (int iCol = 0; iCol < arrCols.Length; iCol++) arrCols[iCol] = (iCol + 1).ToString();
-
-                    // For better output
-                    for (int iCol = 0; iCol < arrCols.Length; iCol++) arrCols[iCol] = OutputTools.GetSpacesCenteredString(arrCols[iCol], 10);
-
-                    dataType = typeof(string);
-                    
-                    if (s6xStruct.Structure.Lines.Count <= 0)
-                    {
-                        arrRows = new object[] { };
-                    }
-                    else
-                    {
-                        arrRows = new object[s6xStruct.Structure.Lines.Count];
-                        arrRowsHeaders = new object[s6xStruct.Structure.Lines.Count];
-                        int iRow = 0;
-                        foreach (StructureLine structLine in s6xStruct.Structure.Lines)
-                        {
-                            arrRowsHeaders[iRow] = structLine.NumberInStructure.ToString();
-                            arrRow = new object[arrCols.Length];
-                            for (int iCol = 0; iCol < structLine.Items.Count; iCol++) arrRow[iCol] = ((StructureItem)structLine.Items[iCol]).Value(structLine.NumberInStructure);
-                            arrRows[iRow] = arrRow;
-                            iRow++;
-                        }
-                    }
-                    break;
-                default:
-                    return;
-            }
-
-            if (arrCols == null) return;
-
-            if (dataReversed)
-            {
-                object[] arrReversedRows = new object[arrRows.Length];
-                for (int iRow = 0; iRow < arrReversedRows.Length; iRow++) arrReversedRows[arrReversedRows.Length - 1 - iRow] = arrRows[iRow];
-                arrRows = arrReversedRows;
-                arrReversedRows = null;
-
-                if (arrRowsHeaders != null)
-                {
-                    arrReversedRows = new object[arrRowsHeaders.Length];
-                    for (int iRow = 0; iRow < arrReversedRows.Length; iRow++) arrReversedRows[arrReversedRows.Length - 1 - iRow] = arrRowsHeaders[iRow];
-                    arrRowsHeaders = arrReversedRows;
-                    arrReversedRows = null;
-                }
-            }
-
-            dtTable = new DataTable();
-            //foreach (string colLabel in arrCols) dtTable.Columns.Add(new DataColumn(colLabel, dataType));
-            for (int iCol = 0; iCol < arrCols.Length; iCol++)
-            {
-                DataColumn dcDC = new DataColumn(iCol.ToString(), dataType);
-                dcDC.Caption = arrCols[iCol];
-                dtTable.Columns.Add(dcDC);
-            }
-
-            foreach (object[] oRow in arrRows) dtTable.Rows.Add(oRow);
-            arrRows = null;
-
-            elemDataGridView.Tag = new object[] { arrCols, arrRowsHeaders };
-
-            // For Speed purpose
-            elemDataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
-            elemDataGridView.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
-            elemDataGridView.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.DisableResizing;
-
-            elemDataGridView.DataSource = dtTable;
-
-            // For Speed purpose
-            switch (nextElemS6xNavInfo.HeaderCategory)
-            {
-                case S6xNavHeaderCategory.SCALARS:
-                case S6xNavHeaderCategory.FUNCTIONS:
-                    elemDataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
-                    break;
-                case S6xNavHeaderCategory.TABLES:
-                case S6xNavHeaderCategory.STRUCTURES:
-                    //elemDataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-                    elemDataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+                    if (nextElemS6xNavInfo.isDuplicate) s6xObject = sadS6x.slDupStructures[nextElemS6xNavInfo.Node.Name];
+                    else s6xObject = sadS6x.slStructures[nextElemS6xNavInfo.Node.Name];
                     break;
             }
 
-            elemDataGridView.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
-            elemDataGridView.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.AutoSizeToAllHeaders;
+            if (sadBin == null) return;
+            if (s6xObject == null) return;
 
-            dtTable = null;
-            arrRowsHeaders = null;
-
-            elemDataGridView.Visible = true;
-
-            s6xScalar = null;
-            s6xFunction = null;
-            s6xTable = null;
+            ToolsElemData.showElemData(ref elemDataGridView, ref sadBin, s6xObject, decimalToolStripMenuItem.Checked, decimalNotConvertedToolStripMenuItem.Checked, reverseOrderToolStripMenuItem.Checked, rcOutput, rcInput);
         }
 
         // For Updating Columns and Rows Headers after Binding
@@ -5015,7 +4799,7 @@ namespace SAD806x
             arrRowsHeaders = null;
         }
 
-        private void showElemProperties()
+        private void showElemProperties(bool showDetails)
         {
             if (nextElemS6xNavInfo == null) return;
             if (!nextElemS6xNavInfo.isValid) return;
@@ -5024,7 +4808,7 @@ namespace SAD806x
 
             S6xNavHeaderCategory headerCateg = nextElemS6xNavInfo.HeaderCategory;
 
-            showPropertiesTabPage(headerCateg);
+            showPropertiesTabPage(headerCateg, showDetails);
 
             switch (headerCateg)
             {
@@ -5033,6 +4817,7 @@ namespace SAD806x
                     if (nextElemS6xNavInfo.isDuplicate) s6xTable = (S6xTable)sadS6x.slDupTables[nextElemS6xNavInfo.Node.Name];
                     else s6xTable = (S6xTable)sadS6x.slTables[nextElemS6xNavInfo.Node.Name];
                     showElemTableProperties(ref s6xTable);
+                    showSharedDetails(headerCateg, s6xTable);
                     s6xTable = null;
                     resetPropertiesModifiedStatus(elemTablePropertiesTabPage);
                     break;
@@ -5041,6 +4826,7 @@ namespace SAD806x
                     if (nextElemS6xNavInfo.isDuplicate) s6xFunction = (S6xFunction)sadS6x.slDupFunctions[nextElemS6xNavInfo.Node.Name];
                     else s6xFunction = (S6xFunction)sadS6x.slFunctions[nextElemS6xNavInfo.Node.Name];
                     showElemFunctionProperties(ref s6xFunction);
+                    showSharedDetails(headerCateg, s6xFunction);
                     s6xFunction = null;
                     resetPropertiesModifiedStatus(elemFunctionPropertiesTabPage);
                     break;
@@ -5049,6 +4835,7 @@ namespace SAD806x
                     if (nextElemS6xNavInfo.isDuplicate) s6xScalar = (S6xScalar)sadS6x.slDupScalars[nextElemS6xNavInfo.Node.Name];
                     else s6xScalar = (S6xScalar)sadS6x.slScalars[nextElemS6xNavInfo.Node.Name];
                     showElemScalarProperties(ref s6xScalar);
+                    showSharedDetails(headerCateg, s6xScalar);
                     s6xScalar = null;
                     resetPropertiesModifiedStatus(elemScalarPropertiesTabPage);
                     break;
@@ -5057,51 +4844,59 @@ namespace SAD806x
                     if (nextElemS6xNavInfo.isDuplicate) s6xStructure = (S6xStructure)sadS6x.slDupStructures[nextElemS6xNavInfo.Node.Name];
                     else s6xStructure = (S6xStructure)sadS6x.slStructures[nextElemS6xNavInfo.Node.Name];
                     showElemStructureProperties(ref s6xStructure);
+                    showSharedDetails(headerCateg, s6xStructure);
                     s6xStructure = null;
                     resetPropertiesModifiedStatus(elemStructurePropertiesTabPage);
                     break;
                 case S6xNavHeaderCategory.ROUTINES:
                     S6xRoutine s6xRoutine = (S6xRoutine)sadS6x.slRoutines[nextElemS6xNavInfo.Node.Name];
                     showElemRoutineProperties(ref s6xRoutine);
+                    showSharedDetails(headerCateg, s6xRoutine);
                     s6xRoutine = null;
                     resetPropertiesModifiedStatus(elemRoutineTabPage);
                     break;
                 case S6xNavHeaderCategory.OPERATIONS:
                     S6xOperation s6xOpe = (S6xOperation)sadS6x.slOperations[nextElemS6xNavInfo.Node.Name];
                     showElemOperationProperties(ref s6xOpe);
+                    showSharedDetails(headerCateg, s6xOpe);
                     s6xOpe = null;
                     resetPropertiesModifiedStatus(elemOpeTabPage);
                     break;
                 case S6xNavHeaderCategory.REGISTERS:
                     S6xRegister s6xReg = (S6xRegister)sadS6x.slRegisters[nextElemS6xNavInfo.Node.Name];
                     showElemRegisterProperties(ref s6xReg);
+                    showSharedDetails(headerCateg, s6xReg);
                     s6xReg = null;
                     resetPropertiesModifiedStatus(elemRegisterTabPage);
                     break;
                 case S6xNavHeaderCategory.OTHER:
                     S6xOtherAddress s6xOther = (S6xOtherAddress)sadS6x.slOtherAddresses[nextElemS6xNavInfo.Node.Name];
                     showElemOtherProperties(ref s6xOther);
+                    showSharedDetails(headerCateg, s6xOther);
                     s6xOther = null;
                     resetPropertiesModifiedStatus(elemOtherTabPage);
                     break;
                 case S6xNavHeaderCategory.SIGNATURES:
                     S6xSignature s6xSig = (S6xSignature)sadS6x.slSignatures[nextElemS6xNavInfo.Node.Name];
                     showElemSignatureProperties(ref s6xSig);
+                    showSharedDetails(headerCateg, s6xSig);
                     s6xSig = null;
                     resetPropertiesModifiedStatus(elemSignatureTabPage);
                     break;
                 case S6xNavHeaderCategory.ELEMSSIGNATURES:
                     S6xElementSignature s6xESig = (S6xElementSignature)sadS6x.slElementsSignatures[nextElemS6xNavInfo.Node.Name];
                     showElemElemSignatureProperties(ref s6xESig);
+                    showSharedDetails(headerCateg, s6xESig);
                     s6xESig = null;
                     resetPropertiesModifiedStatus(elemElemSignatureTabPage);
                     break;
             }
         }
 
-        private void showPropertiesTabPage(S6xNavHeaderCategory headerCateg)
+        private void showPropertiesTabPage(S6xNavHeaderCategory headerCateg, bool showDetails)
         {
             TabPage selectedTabPage = null;
+            TabPage detailsTabPage = sharedDetailsTabPage;
             TabPage infoTabPage = null;
             ArrayList removeTabPages = null;
 
@@ -5151,20 +4946,34 @@ namespace SAD806x
             removeTabPages = new ArrayList();
             foreach (TabPage tabPage in elemTabControl.TabPages)
             {
-                if (tabPage != selectedTabPage) removeTabPages.Add(tabPage);
+                if (selectedTabPage != null)
+                {
+                    if (tabPage == selectedTabPage) continue;
+                    if (tabPage == detailsTabPage) continue;
+                    if (tabPage == infoTabPage) continue;
+                }
+                removeTabPages.Add(tabPage);
             }
             foreach (TabPage tabPage in removeTabPages) elemTabControl.TabPages.Remove(tabPage);
             removeTabPages = null;
 
             if (selectedTabPage != null)
             {
-                if (!elemTabControl.TabPages.Contains(selectedTabPage)) elemTabControl.TabPages.Add(selectedTabPage);
+                if (!elemTabControl.TabPages.Contains(selectedTabPage))
+                {
+                    if (elemTabControl.TabPages.Count == 0) elemTabControl.TabPages.Add(selectedTabPage);
+                    else elemTabControl.TabPages.Insert(0, selectedTabPage);
+                }
+                if (detailsTabPage != null) if (!elemTabControl.TabPages.Contains(detailsTabPage)) elemTabControl.TabPages.Add(detailsTabPage);
+                if (infoTabPage != null) if (!elemTabControl.TabPages.Contains(infoTabPage)) elemTabControl.TabPages.Add(infoTabPage);
             }
-            if (infoTabPage != null) elemTabControl.TabPages.Add(infoTabPage);
 
-            elemTabControl.SelectedTab = selectedTabPage;
+            if (showDetails) elemTabControl.SelectedTab = detailsTabPage;
+            else elemTabControl.SelectedTab = selectedTabPage;
 
             selectedTabPage = null;
+            detailsTabPage = null;
+            infoTabPage = null;
         }
 
         private bool checkElemBankAddress(bool showMessage)
@@ -5247,6 +5056,14 @@ namespace SAD806x
             }
 
             return true;
+        }
+
+        private bool checkMinMax(string number)
+        {
+            if (number == Tools.getValidMinMax(number)) return true;
+
+            MessageBox.Show("Minimum or Maximum value \"" + number + "\" will not be seen as a valid expression.\r\nExpect format is '000000.0000'.", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
         }
 
         private bool checkColsRowsNumber(string number)
@@ -5425,8 +5242,13 @@ namespace SAD806x
             bool checkPassed = true;
 
             checkPassed = checkElemBankAddress(true);
-            
-            if (checkPassed) checkScaleExpression(scalarScaleTextBox.Text); //WARNING ONLY
+
+            if (checkPassed)
+            {
+                checkScaleExpression(scalarScaleTextBox.Text); //WARNING ONLY
+                checkMinMax(scalarMinTextBox.Text);  // WARNING ONLY
+                checkMinMax(scalarMaxTextBox.Text);  // WARNING ONLY
+            }
 
             return checkPassed;
         }
@@ -5445,6 +5267,10 @@ namespace SAD806x
             {
                 checkScaleExpression(functionScaleInputTextBox.Text);   // WARNING ONLY
                 checkScaleExpression(functionScaleOutputTextBox.Text);  // WARNING ONLY
+                checkMinMax(functionMinInputTextBox.Text);  // WARNING ONLY
+                checkMinMax(functionMaxInputTextBox.Text);  // WARNING ONLY
+                checkMinMax(functionMinOutputTextBox.Text);  // WARNING ONLY
+                checkMinMax(functionMaxOutputTextBox.Text);  // WARNING ONLY
             }
 
             return checkPassed;
@@ -5465,7 +5291,12 @@ namespace SAD806x
                 checkPassed = checkColsRowsNumber(tableRowsTextBox.Text);
                 if (!checkPassed) MessageBox.Show("Invalid Rows number.", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-            if (checkPassed) checkScaleExpression(tableScaleTextBox.Text);  // WARNING ONLY
+            if (checkPassed)
+            {
+                checkScaleExpression(tableScaleTextBox.Text);  // WARNING ONLY
+                checkMinMax(tableMinTextBox.Text);  // WARNING ONLY
+                checkMinMax(tableMaxTextBox.Text);  // WARNING ONLY
+            }
 
             return checkPassed;
         }
@@ -5647,6 +5478,11 @@ namespace SAD806x
             functionCommentsTextBox.Text = string.Empty;
             functionOutputCommentsCheckBox.Checked = false;
 
+            functionMinInputTextBox.Text = string.Empty;
+            functionMaxInputTextBox.Text = string.Empty;
+            functionMinOutputTextBox.Text = string.Empty;
+            functionMaxOutputTextBox.Text = string.Empty;
+
             elemInfoRichTextBox.Clear();
         }
 
@@ -5728,6 +5564,23 @@ namespace SAD806x
             regScaleTextBox.Text = "X";
             regScalePrecNumericUpDown.Value = SADDef.DefaultScalePrecision;
             regUnitsTextBox.Text = string.Empty;
+            foreach (string oItem in regSizeComboBox.Items)
+            {
+                if (oItem == string.Empty)
+                {
+                    regSizeComboBox.SelectedItem = oItem;
+                    break;
+                }
+            }
+            foreach (string oItem in regSignedComboBox.Items)
+            {
+                if (oItem == string.Empty)
+                {
+                    regSignedComboBox.SelectedItem = oItem;
+                    break;
+                }
+            }
+            
             regCommentsTextBox.Text = string.Empty;
 
             elemInfoRichTextBox.Clear();
@@ -5753,8 +5606,6 @@ namespace SAD806x
             signatureLabelTextBox.Text = elemLabelTextBox.Text;
             signatureCommentsTextBox.Text = string.Empty;
 
-            signatureCategComboBox.Text = string.Empty;
-
             signatureForcedCheckBox.Checked = false;
 
             signatureAdvCheckBox.Checked = false;
@@ -5767,8 +5618,6 @@ namespace SAD806x
             elementSignatureSkipCheckBox.Checked = false;
             elementSignatureLabelTextBox.Text = elemLabelTextBox.Text;
             elementSignatureCommentsTextBox.Text = string.Empty;
-
-            signatureCategComboBox.Text = string.Empty;
 
             elementSignatureForcedCheckBox.Checked = false;
 
@@ -5787,6 +5636,9 @@ namespace SAD806x
             scalarSkipCheckBox.Checked = s6xScalar.Skip;
             scalarLabelTextBox.Text = s6xScalar.Label;
             scalarSLabelTextBox.Text = s6xScalar.ShortLabel;
+
+            scalarMinTextBox.Text = s6xScalar.Min;
+            scalarMaxTextBox.Text = s6xScalar.Max;
 
             // Windows 10 1809 (10.0.17763) Issue
             scalarCommentsTextBox.Clear();
@@ -5818,6 +5670,11 @@ namespace SAD806x
             functionSkipCheckBox.Checked = s6xFunction.Skip;
             functionLabelTextBox.Text = s6xFunction.Label;
             functionSLabelTextBox.Text = s6xFunction.ShortLabel;
+
+            functionMinInputTextBox.Text = s6xFunction.InputMin;
+            functionMaxInputTextBox.Text = s6xFunction.InputMax;
+            functionMinOutputTextBox.Text = s6xFunction.OutputMin;
+            functionMaxOutputTextBox.Text = s6xFunction.OutputMax;
 
             // Windows 10 1809 (10.0.17763) Issue
             functionCommentsTextBox.Clear();
@@ -5998,7 +5855,10 @@ namespace SAD806x
             tableSkipCheckBox.Checked = s6xTable.Skip;
             tableLabelTextBox.Text = s6xTable.Label;
             tableSLabelTextBox.Text = s6xTable.ShortLabel;
-            
+
+            tableMinTextBox.Text = s6xTable.CellsMin;
+            tableMaxTextBox.Text = s6xTable.CellsMax;
+
             // Windows 10 1809 (10.0.17763) Issue
             tableCommentsTextBox.Clear();
             tableCommentsTextBox.Multiline = false;
@@ -6224,6 +6084,24 @@ namespace SAD806x
             regScaleTextBox.Text = reg.ScaleExpression;
             regScalePrecNumericUpDown.Value = reg.ScalePrecision;
             regUnitsTextBox.Text = reg.Units;
+            if (reg.SizeStatus == null) reg.SizeStatus = string.Empty;
+            foreach (object oItem in regSizeComboBox.Items)
+            {
+                if (((string)oItem).ToLower() == reg.SizeStatus.ToLower())
+                {
+                    regSizeComboBox.SelectedItem = oItem;
+                    break;
+                }
+            }
+            if (reg.SignedStatus == null) reg.SignedStatus = string.Empty;
+            foreach (object oItem in regSignedComboBox.Items)
+            {
+                if (((string)oItem).ToLower() == reg.SignedStatus.ToLower())
+                {
+                    regSignedComboBox.SelectedItem = oItem;
+                    break;
+                }
+            }
 
             // Windows 10 1809 (10.0.17763) Issue
             regCommentsTextBox.Clear();
@@ -6327,8 +6205,6 @@ namespace SAD806x
             signatureLabelTextBox.Text = sig.SignatureLabel;
             if (signatureLabelTextBox.Text == string.Empty) signatureLabelTextBox.Text = SADDef.LongSignaturePrefix + (sig.Label == null ? string.Empty : sig.Label);
 
-            signatureCategComboBox.Text = sig.SignatureCategory;
-
             // Windows 10 1809 (10.0.17763) Issue
             signatureCommentsTextBox.Clear();
             signatureCommentsTextBox.Multiline = false;
@@ -6367,8 +6243,6 @@ namespace SAD806x
             elementSignatureSkipCheckBox.Checked = eSig.Skip;
             elementSignatureLabelTextBox.Text = eSig.SignatureLabel;
 
-            elementSignatureCategComboBox.Text = eSig.SignatureCategory;
-
             // Windows 10 1809 (10.0.17763) Issue
             elementSignatureCommentsTextBox.Clear();
             elementSignatureCommentsTextBox.Multiline = false;
@@ -6399,6 +6273,83 @@ namespace SAD806x
             }
         }
 
+        private void updateSharedDetails(S6xNavHeaderCategory headerCateg, object s6xObject)
+        {
+            if (s6xObject == null) return;
+
+            string nameOfDateCreated = "DateCreated";
+            string nameOfDateUpdated = "DateUpdated";
+            string nameOfCategory = "Category";
+            string nameOfCategory2 = "Category2";
+            string nameOfCategory3 = "Category3";
+            string nameOfIdentificationStatus = "IdentificationStatus";
+            string nameOfIdentificationDetails = "IdentificationDetails";
+
+            // Global Categories header
+            S6xNavHeaderCategory replacedHeaderCateg = S6xNavHeaderCategory.UNDEFINED;
+
+            Type s6xType = s6xObject.GetType();
+
+            if (s6xType == typeof(S6xSignature) || s6xType == typeof(S6xElementSignature))
+            {
+                nameOfCategory = "SignatureCategory";
+                nameOfCategory2 = "SignatureCategory2";
+                nameOfCategory3 = "SignatureCategory3";
+                replacedHeaderCateg = headerCateg;
+            }
+
+            PropertyInfo piPI = null;
+
+            piPI = s6xType.GetProperty(nameOfIdentificationStatus);
+            if (piPI != null) piPI.SetValue(s6xObject, sharedIdentificationStatusTrackBar.Value, null);
+            piPI = null;
+
+            piPI = s6xType.GetProperty(nameOfIdentificationDetails);
+            if (piPI != null) piPI.SetValue(s6xObject, sharedIdentificationDetailsTextBox.Text, null);
+            piPI = null;
+
+            if (s6xType != typeof(S6xProperties))
+            {
+                piPI = s6xType.GetProperty(nameOfDateCreated);
+                if (piPI != null) piPI.SetValue(s6xObject, sharedDateCreatedDateTimePicker.Value.ToUniversalTime(), null);
+                piPI = null;
+
+                piPI = s6xType.GetProperty(nameOfDateUpdated);
+                if (piPI != null)
+                {
+                    sharedDateUpdatedDateTimePicker.Value = DateTime.Now;
+                    piPI.SetValue(s6xObject, sharedDateUpdatedDateTimePicker.Value.ToUniversalTime(), null);
+                }
+                piPI = null;
+
+                piPI = s6xType.GetProperty(nameOfCategory);
+                if (piPI != null)
+                {
+                    piPI.SetValue(s6xObject, sharedCategComboBox.Text, null);
+                    S6xNav.s6xNavCategoriesAdd(replacedHeaderCateg, headerCateg, ref sharedCategComboBox, S6xNavCategoryLevel.ONE, sharedCategComboBox.Text, ref s6xNavCategories);
+                }
+                piPI = null;
+
+                piPI = s6xType.GetProperty(nameOfCategory2);
+                if (piPI != null)
+                {
+                    piPI.SetValue(s6xObject, sharedCateg2ComboBox.Text, null);
+                    S6xNav.s6xNavCategoriesAdd(replacedHeaderCateg, headerCateg, ref sharedCateg2ComboBox, S6xNavCategoryLevel.TWO, sharedCateg2ComboBox.Text, ref s6xNavCategories);
+                }
+                piPI = null;
+
+                piPI = s6xType.GetProperty(nameOfCategory3);
+                if (piPI != null)
+                {
+                    piPI.SetValue(s6xObject, sharedCateg3ComboBox.Text, null);
+                    S6xNav.s6xNavCategoriesAdd(replacedHeaderCateg, headerCateg, ref sharedCateg3ComboBox, S6xNavCategoryLevel.THREE, sharedCateg3ComboBox.Text, ref s6xNavCategories);
+                }
+                piPI = null;
+            }
+
+            sadS6x.Properties.DateUpdated = DateTime.UtcNow;
+        }
+        
         private void updateProperties()
         {
             bool checkXdfAddressPassed = true;
@@ -6422,12 +6373,18 @@ namespace SAD806x
             sadS6x.Properties.Label = s6xPropertiesLabelTextBox.Text;
             sadS6x.Properties.Comments = s6xPropertiesCommentsTextBox.Text;
             sadS6x.Properties.NoNumbering = s6xPropertiesNoNumberingCheckBox.Checked;
+            sadS6x.Properties.NoNumberingShortFormat = s6xPropertiesNoNumberingShortFormatCheckBox.Checked;
             sadS6x.Properties.RegListOutput = s6xPropertiesRegListOutputCheckBox.Checked;
             sadS6x.Properties.XdfBaseOffset = s6xPropertiesXdfBaseOffsetTextBox.Text;
             sadS6x.Properties.XdfBaseOffsetSubtract = s6xPropertiesXdfBaseOffsetCheckBox.Checked;
             sadS6x.Properties.Header = s6xPropertiesHeaderTextBox.Text;
             sadS6x.Properties.OutputHeader = s6xPropertiesOutputHeaderCheckBox.Checked;
-            
+            // 20210406 - PYM - 0x100 Register Shortcut & SFR Mngt
+            sadS6x.Properties.Ignore8065RegShortcut0x100 = s6xPropertiesIgnore8065RegShortcut0x100.Checked;
+            sadS6x.Properties.Ignore8065RegShortcut0x100SFR = s6xPropertiesIgnore8065RegShortcut0x100SFR.Checked;
+
+            updateSharedDetails(S6xNavHeaderCategory.PROPERTIES, sadS6x.Properties);
+
             sadS6x.isSaved = false;
 
             resetPropertiesModifiedStatus(s6xPropertiesTabPage);
@@ -6588,6 +6545,8 @@ namespace SAD806x
                     s6xTable.CellsUnits = tableCellsUnitsTextBox.Text;
                     s6xTable.ColsUnits = tableColsUnitsTextBox.Text;
                     s6xTable.RowsUnits = tableRowsUnitsTextBox.Text;
+                    s6xTable.CellsMin = tableMinTextBox.Text;
+                    s6xTable.CellsMax = tableMaxTextBox.Text;
 
                     if (tableColsScalerButton.Tag == null) s6xTable.ColsScalerAddress = string.Empty;
                     else
@@ -6612,6 +6571,8 @@ namespace SAD806x
                     else if (sadBin.S6x.slFunctions.ContainsKey(s6xTable.RowsScalerAddress)) s6xTable.RowsScalerXdfUniqueId = ((S6xFunction)sadBin.S6x.slFunctions[s6xTable.RowsScalerAddress]).XdfUniqueId;
                     else if (sadBin.S6x.slDupFunctions.ContainsKey(s6xTable.RowsScalerAddress)) s6xTable.RowsScalerXdfUniqueId = ((S6xFunction)sadBin.S6x.slDupFunctions[s6xTable.RowsScalerAddress]).XdfUniqueId;
                     else s6xTable.RowsScalerXdfUniqueId = string.Empty;
+
+                    updateSharedDetails(S6xNavHeaderCategory.TABLES, s6xTable);
 
                     if (isAddressChange)
                     {
@@ -6646,9 +6607,11 @@ namespace SAD806x
                             tnNode = new TreeNode();
                             tnNode.Name = s6xTable.UniqueAddress;
                         }
+                        tnNode.Tag = new S6xNavCategory[] { s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, s6xTable.Category), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, s6xTable.Category2), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, s6xTable.Category3) };
                     }
                     tnNode.Text = s6xTable.Label;
                     tnNode.ToolTipText = s6xTable.Comments;
+                    tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xTable.IdentificationStatus);
 
                     s6xTable = null;
                     break;
@@ -6683,6 +6646,13 @@ namespace SAD806x
                     s6xFunction.InputUnits = functionUnitsInputTextBox.Text;
                     s6xFunction.OutputUnits = functionUnitsOutputTextBox.Text;
 
+                    s6xFunction.InputMin = functionMinInputTextBox.Text;
+                    s6xFunction.InputMax = functionMaxInputTextBox.Text;
+                    s6xFunction.OutputMin = functionMinOutputTextBox.Text;
+                    s6xFunction.OutputMax = functionMaxOutputTextBox.Text;
+
+                    updateSharedDetails(S6xNavHeaderCategory.FUNCTIONS, s6xFunction);
+
                     if (isAddressChange)
                     {
                         sadS6x.slFunctions.Remove(uniqueAddressOri);
@@ -6714,6 +6684,7 @@ namespace SAD806x
                         if (sadS6x.slFunctions.ContainsKey(s6xFunction.UniqueAddress)) sadS6x.slFunctions[s6xFunction.UniqueAddress] = s6xFunction;
                         else sadS6x.slFunctions.Add(s6xFunction.UniqueAddress, s6xFunction);
                     }
+
                     sadS6x.isSaved = false;
 
                     if (bDuplicate)
@@ -6728,9 +6699,11 @@ namespace SAD806x
                             tnNode = new TreeNode();
                             tnNode.Name = s6xFunction.UniqueAddress;
                         }
+                        tnNode.Tag = new S6xNavCategory[] { s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, s6xFunction.Category), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, s6xFunction.Category2), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, s6xFunction.Category3) };
                     }
                     tnNode.Text = s6xFunction.Label;
                     tnNode.ToolTipText = s6xFunction.Comments;
+                    tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xFunction.IdentificationStatus);
 
                     // Indicated an Update
                     //      Reset on Table Properties for scalers
@@ -6777,6 +6750,11 @@ namespace SAD806x
                     s6xScalar.ScalePrecision = (int)scalarScalePrecNumericUpDown.Value;
                     s6xScalar.Units = scalarUnitsTextBox.Text;
 
+                    s6xScalar.Min = scalarMinTextBox.Text;
+                    s6xScalar.Max = scalarMaxTextBox.Text;
+
+                    updateSharedDetails(S6xNavHeaderCategory.SCALARS, s6xScalar);
+
                     if (isAddressChange)
                     {
                         sadS6x.slScalars.Remove(uniqueAddressOri);
@@ -6796,6 +6774,7 @@ namespace SAD806x
                         if (sadS6x.slScalars.ContainsKey(s6xScalar.UniqueAddress)) sadS6x.slScalars[s6xScalar.UniqueAddress] = s6xScalar;
                         else sadS6x.slScalars.Add(s6xScalar.UniqueAddress, s6xScalar);
                     }
+
                     sadS6x.isSaved = false;
 
                     if (bDuplicate)
@@ -6810,9 +6789,11 @@ namespace SAD806x
                             tnNode = new TreeNode();
                             tnNode.Name = s6xScalar.UniqueAddress;
                         }
+                        tnNode.Tag = new S6xNavCategory[] { s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, s6xScalar.Category), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, s6xScalar.Category2), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, s6xScalar.Category3) };
                     }
                     tnNode.Text = s6xScalar.Label;
                     tnNode.ToolTipText = s6xScalar.Comments;
+                    tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xScalar.IdentificationStatus);
 
                     s6xScalar = null;
                     break;
@@ -6839,6 +6820,8 @@ namespace SAD806x
                     s6xStructure.StructDef = structureStructTextBox.Text;
 
                     s6xStructure.Structure = new Structure(s6xStructure);
+
+                    updateSharedDetails(S6xNavHeaderCategory.STRUCTURES, s6xStructure);
 
                     if (isAddressChange)
                     {
@@ -6872,9 +6855,11 @@ namespace SAD806x
                             tnNode = new TreeNode();
                             tnNode.Name = s6xStructure.UniqueAddress;
                         }
+                        tnNode.Tag = new S6xNavCategory[] { s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, s6xStructure.Category), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, s6xStructure.Category2), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, s6xStructure.Category3) };
                     }
                     tnNode.Text = s6xStructure.Label;
                     tnNode.ToolTipText = s6xStructure.Comments;
+                    tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xStructure.IdentificationStatus);
 
                     s6xStructure = null;
                     break;
@@ -6906,6 +6891,8 @@ namespace SAD806x
                     s6xRoutine.Comments = routineCommentsTextBox.Text;
                     s6xRoutine.OutputComments = routineOutputCommentsCheckBox.Checked;
 
+                    updateSharedDetails(S6xNavHeaderCategory.ROUTINES, s6xRoutine);
+
                     if (isAddressChange)
                     {
                         sadS6x.slRoutines.Remove(uniqueAddressOri);
@@ -6916,6 +6903,7 @@ namespace SAD806x
 
                     if (sadS6x.slRoutines.ContainsKey(s6xRoutine.UniqueAddress)) sadS6x.slRoutines[s6xRoutine.UniqueAddress] = s6xRoutine;
                     else sadS6x.slRoutines.Add(s6xRoutine.UniqueAddress, s6xRoutine);
+
                     sadS6x.isSaved = false;
 
                     tnNode = s6xNICateg.FindElement(s6xRoutine.UniqueAddress);
@@ -6924,8 +6912,10 @@ namespace SAD806x
                         tnNode = new TreeNode();
                         tnNode.Name = s6xRoutine.UniqueAddress;
                     }
+                    tnNode.Tag = new S6xNavCategory[] { s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, s6xRoutine.Category), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, s6xRoutine.Category2), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, s6xRoutine.Category3) };
                     tnNode.Text = s6xRoutine.Label;
                     tnNode.ToolTipText = s6xRoutine.Comments;
+                    tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xRoutine.IdentificationStatus);
 
                     s6xRoutine = null;
                     break;
@@ -6942,6 +6932,8 @@ namespace SAD806x
                     s6xOpe.InlineComments = opeInlineCommentsCheckBox.Checked;
                     s6xOpe.Skip = opeSkipCheckBox.Checked;
 
+                    updateSharedDetails(S6xNavHeaderCategory.OPERATIONS, s6xOpe);
+
                     if (isAddressChange)
                     {
                         sadS6x.slOperations.Remove(uniqueAddressOri);
@@ -6952,6 +6944,7 @@ namespace SAD806x
 
                     if (sadS6x.slOperations.ContainsKey(s6xOpe.UniqueAddress)) sadS6x.slOperations[s6xOpe.UniqueAddress] = s6xOpe;
                     else sadS6x.slOperations.Add(s6xOpe.UniqueAddress, s6xOpe);
+
                     sadS6x.isSaved = false;
 
                     tnNode = s6xNICateg.FindElement(s6xOpe.UniqueAddress);
@@ -6960,8 +6953,10 @@ namespace SAD806x
                         tnNode = new TreeNode();
                         tnNode.Name = s6xOpe.UniqueAddress;
                     }
+                    tnNode.Tag = new S6xNavCategory[] { s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, s6xOpe.Category), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, s6xOpe.Category2), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, s6xOpe.Category3) };
                     tnNode.Text = s6xOpe.Label;
                     tnNode.ToolTipText = s6xOpe.Comments;
+                    tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xOpe.IdentificationStatus);
 
                     s6xOpe = null;
                     break;
@@ -7007,9 +7002,13 @@ namespace SAD806x
                     s6xReg.ScaleExpression = regScaleTextBox.Text;
                     s6xReg.ScalePrecision = (int)regScalePrecNumericUpDown.Value;
                     s6xReg.Units = regUnitsTextBox.Text;
+                    s6xReg.SizeStatus = regSizeComboBox.SelectedItem.ToString();
+                    s6xReg.SignedStatus = regSignedComboBox.SelectedItem.ToString();
                     s6xReg.Comments = regCommentsTextBox.Text;
                     s6xReg.Store = true;
                     s6xReg.Skip = regSkipCheckBox.Checked;
+
+                    updateSharedDetails(S6xNavHeaderCategory.REGISTERS, s6xReg);
 
                     if (isAddressChange)
                     {
@@ -7021,6 +7020,7 @@ namespace SAD806x
 
                     if (sadS6x.slRegisters.ContainsKey(s6xReg.UniqueAddress)) sadS6x.slRegisters[s6xReg.UniqueAddress] = s6xReg;
                     else sadS6x.slRegisters.Add(s6xReg.UniqueAddress, s6xReg);
+
                     sadS6x.isSaved = false;
 
                     tnNode = s6xNICateg.FindElement(s6xReg.UniqueAddress);
@@ -7029,8 +7029,10 @@ namespace SAD806x
                         tnNode = new TreeNode();
                         tnNode.Name = s6xReg.UniqueAddress;
                     }
+                    tnNode.Tag = new S6xNavCategory[] { s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, s6xReg.Category), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, s6xReg.Category2), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, s6xReg.Category3) };
                     tnNode.Text = s6xReg.FullLabel;
                     tnNode.ToolTipText = s6xReg.FullComments;
+                    tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xReg.IdentificationStatus);
 
                     s6xReg = null;
                     break;
@@ -7047,6 +7049,8 @@ namespace SAD806x
                     s6xOther.InlineComments = otherInlineCommentsCheckBox.Checked;
                     s6xOther.Skip = otherSkipCheckBox.Checked;
 
+                    updateSharedDetails(S6xNavHeaderCategory.OTHER, s6xOther);
+
                     if (isAddressChange)
                     {
                         sadS6x.slOtherAddresses.Remove(uniqueAddressOri);
@@ -7057,6 +7061,7 @@ namespace SAD806x
 
                     if (sadS6x.slOtherAddresses.ContainsKey(s6xOther.UniqueAddress)) sadS6x.slOtherAddresses[s6xOther.UniqueAddress] = s6xOther;
                     else sadS6x.slOtherAddresses.Add(s6xOther.UniqueAddress, s6xOther);
+
                     sadS6x.isSaved = false;
 
                     tnNode = s6xNICateg.FindElement(s6xOther.UniqueAddress);
@@ -7065,8 +7070,10 @@ namespace SAD806x
                         tnNode = new TreeNode();
                         tnNode.Name = s6xOther.UniqueAddress;
                     }
+                    tnNode.Tag = new S6xNavCategory[] { s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, s6xOther.Category), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, s6xOther.Category2), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, s6xOther.Category3) };
                     tnNode.Text = s6xOther.Label;
                     tnNode.ToolTipText = s6xOther.Comments;
+                    tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xOther.IdentificationStatus);
 
                     s6xOther = null;
                     break;
@@ -7095,26 +7102,27 @@ namespace SAD806x
 
                     s6xSig.SignatureLabel = signatureLabelTextBox.Text;
                     s6xSig.SignatureComments = signatureCommentsTextBox.Text;
-                    s6xSig.SignatureCategory = signatureCategComboBox.Text;
                     s6xSig.Signature = signatureSigTextBox.Text;
                     s6xSig.Skip = signatureSkipCheckBox.Checked;
                     s6xSig.Forced = signatureForcedCheckBox.Checked;
 
+                    updateSharedDetails(S6xNavHeaderCategory.SIGNATURES, s6xSig);
+
                     if (sadS6x.slSignatures.ContainsKey(s6xSig.UniqueKey)) sadS6x.slSignatures[s6xSig.UniqueKey] = s6xSig;
                     else sadS6x.slSignatures.Add(s6xSig.UniqueKey, s6xSig);
-                    sadS6x.isSaved = false;
 
-                    s6xNavCategoriesAdd(ref signatureCategComboBox, s6xSig.SignatureCategory);
+                    sadS6x.isSaved = false;
 
                     tnNode = s6xNICateg.FindElement(uniqueAddressOri);
                     if (tnNode == null)
                     {
                         tnNode = new TreeNode();
                         tnNode.Name = s6xSig.UniqueKey;
-                        tnNode.Tag = new S6xNavCategory[] { s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, s6xSig.SignatureCategory), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, null), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, null) };
                     }
+                    tnNode.Tag = new S6xNavCategory[] { s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, s6xSig.SignatureCategory), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, s6xSig.SignatureCategory2), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, s6xSig.SignatureCategory3) };
                     tnNode.Text = s6xSig.SignatureLabel;
                     tnNode.ToolTipText = s6xSig.SignatureComments;
+                    tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xSig.IdentificationStatus);
 
                     s6xSig = null;
                     break;
@@ -7143,27 +7151,28 @@ namespace SAD806x
                     }
 
                     s6xESig.SignatureLabel = elementSignatureLabelTextBox.Text;
-                    s6xESig.SignatureCategory = elementSignatureCategComboBox.Text;
                     s6xESig.SignatureComments = elementSignatureCommentsTextBox.Text;
                     s6xESig.Signature = elementSignatureSigTextBox.Text;
                     s6xESig.Skip = elementSignatureSkipCheckBox.Checked;
                     s6xESig.Forced = elementSignatureForcedCheckBox.Checked;
 
+                    updateSharedDetails(S6xNavHeaderCategory.ELEMSSIGNATURES, s6xESig);
+
                     if (sadS6x.slElementsSignatures.ContainsKey(s6xESig.UniqueKey)) sadS6x.slElementsSignatures[s6xESig.UniqueKey] = s6xESig;
                     else sadS6x.slElementsSignatures.Add(s6xESig.UniqueKey, s6xESig);
-                    sadS6x.isSaved = false;
 
-                    s6xNavCategoriesAdd(ref elementSignatureCategComboBox, s6xESig.SignatureCategory);
+                    sadS6x.isSaved = false;
 
                     tnNode = s6xNICateg.FindElement(uniqueAddressOri);
                     if (tnNode == null)
                     {
                         tnNode = new TreeNode();
                         tnNode.Name = s6xESig.UniqueKey;
-                        tnNode.Tag = new S6xNavCategory[] { s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, s6xESig.SignatureCategory), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, null), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, null) };
                     }
+                    tnNode.Tag = new S6xNavCategory[] { s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, s6xESig.SignatureCategory), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, s6xESig.SignatureCategory2), s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, s6xESig.SignatureCategory3) };
                     tnNode.Text = s6xESig.SignatureLabel;
                     tnNode.ToolTipText = s6xESig.SignatureComments;
+                    tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xESig.IdentificationStatus);
 
                     s6xESig = null;
                     break;
@@ -7182,23 +7191,36 @@ namespace SAD806x
                 tnNode.ForeColor = Color.Purple;
                 if (!bDuplicate)
                 {
-                    if (s6xNICateg.FindElement(tnNode.Name) == null)
+                    S6xNavCategory navCateg1 = null;
+                    S6xNavCategory navCateg2 = null;
+                    S6xNavCategory navCateg3 = null;
+                    if (tnNode.Tag != null)
                     {
-                        S6xNavCategory navCateg1 = null;
-                        S6xNavCategory navCateg2 = null;
-                        S6xNavCategory navCateg3 = null;
-                        if (tnNode.Tag != null)
+                        if (tnNode.Tag.GetType() == typeof(S6xNavCategory[]))
                         {
-                            if (tnNode.Tag.GetType() == typeof(S6xNavCategory[]))
+                            S6xNavCategoryDepth categoryDepth = getS6xNavCategoryDepth();
+                            if (((S6xNavCategory[])tnNode.Tag).Length >= 1) navCateg1 = ((S6xNavCategory[])tnNode.Tag)[0];
+                            if (((S6xNavCategory[])tnNode.Tag).Length >= 2) navCateg2 = ((S6xNavCategory[])tnNode.Tag)[1];
+                            if (((S6xNavCategory[])tnNode.Tag).Length >= 3) navCateg3 = ((S6xNavCategory[])tnNode.Tag)[2];
+                            if (s6xNICateg.FindElement(tnNode.Name) == null)
+                            // Node has to be added
                             {
-                                if (((S6xNavCategory[])tnNode.Tag).Length >= 1) navCateg1 = ((S6xNavCategory[])tnNode.Tag)[0];
-                                if (((S6xNavCategory[])tnNode.Tag).Length >= 2) navCateg2 = ((S6xNavCategory[])tnNode.Tag)[1];
-                                if (((S6xNavCategory[])tnNode.Tag).Length >= 3) navCateg3 = ((S6xNavCategory[])tnNode.Tag)[2];
+                                s6xNICateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, false, categoryDepth);
+                                setElementsTreeCategLabel(s6xNICateg.HeaderCategory);
                             }
-                            tnNode.Tag = null;
+                            else
+                            // Node has to be moved
+                            {
+                                S6xNavInfo niNI = new S6xNavInfo(tnNode);
+                                if (niNI.Category != navCateg1 || niNI.Category2 != navCateg2 || niNI.Category3 != navCateg3)
+                                {
+                                    tnNode.Parent.Nodes.Remove(tnNode);
+                                    s6xNICateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, false, categoryDepth);
+                                }
+                                niNI = null;
+                            }
                         }
-                        s6xNICateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, false);
-                        setElementsTreeCategLabel(s6xNICateg.HeaderCategory);
+                        tnNode.Tag = null;
                     }
                 }
 
@@ -7208,7 +7230,7 @@ namespace SAD806x
                 //disassemblyToolStripMenuItem.Enabled = false;
                 //outputToolStripMenuItem.Enabled = false;
 
-                showElem();
+                showElem(elemTabControl.SelectedTab == sharedDetailsTabPage);
             }
 
             s6xNICateg = null;
@@ -7633,7 +7655,7 @@ namespace SAD806x
 
                 navInfo.Node.ForeColor = navInfo.Node.Parent.ForeColor;
 
-                showElem();
+                showElem(false);
             }
         }
 
@@ -7726,19 +7748,26 @@ namespace SAD806x
 
         private void elemCancelButton_Click(object sender, EventArgs e)
         {
+            if (elemTabControl.TabPages.Count == 0) return;
+
             if (elemsTreeView.Tag == null)
             {
                 if (elemTabControl.SelectedTab == s6xPropertiesTabPage)
                 {
                     dirtyProperties = false;
-                    showProperties();
+                    showProperties(false);
+                }
+                else if (elemTabControl.SelectedTab == sharedDetailsTabPage && elemTabControl.TabPages[0] == s6xPropertiesTabPage)
+                {
+                    dirtyProperties = false;
+                    showProperties(true);
                 }
                 return;
             }
 
             if (nextElemS6xNavInfo != null)
             {
-                showElemProperties();
+                showElemProperties(elemTabControl.SelectedTab == sharedDetailsTabPage);
             }
             else if (elemTabControl.SelectedTab != elemInfoTabPage && elemTabControl.SelectedTab != elemOpsTabPage)
             {
@@ -7979,6 +8008,7 @@ namespace SAD806x
             if (navInfo.MainNode == null) return;
 
             object xdfObject = null;
+            XdfHeaderCategory[] defaultElementHeaderCategories = null;
 
             switch (navInfo.HeaderCategory)
             {
@@ -8008,11 +8038,11 @@ namespace SAD806x
                                 case 1:
                                 case 2:
                                     // Ascii not Managed properly in Xdf    
-                                    if (resAdr.Type == ReservedAddressType.Ascii) xdfObject = new XdfTable(resAdr, sadS6x.Properties.XdfBaseOffsetInt);
-                                    else xdfObject = new XdfScalar(resAdr, sadS6x.Properties.XdfBaseOffsetInt);
+                                    if (resAdr.Type == ReservedAddressType.Ascii) xdfObject = new XdfTable(resAdr, sadS6x.Properties.XdfBaseOffsetInt, defaultElementHeaderCategories);
+                                    else xdfObject = new XdfScalar(resAdr, sadS6x.Properties.XdfBaseOffsetInt, defaultElementHeaderCategories);
                                     break;
                                 default:
-                                    xdfObject = new XdfTable(resAdr, sadS6x.Properties.XdfBaseOffsetInt);
+                                    xdfObject = new XdfTable(resAdr, sadS6x.Properties.XdfBaseOffsetInt, defaultElementHeaderCategories);
                                     break;
                             }
                         }
@@ -8049,7 +8079,8 @@ namespace SAD806x
                                 ((CalibrationElement)sadBin.Calibration.slCalibrationElements[s6xTable.UniqueAddress]).TableElem.S6xTable = s6xTable;
                             }
                         }
-                        xdfObject = new XdfTable(s6xTable, sadS6x.Properties.XdfBaseOffsetInt);
+                        defaultElementHeaderCategories = Tools.XDFDefaultElementHeaderCategories(new string[] { s6xTable.Category, s6xTable.Category2, s6xTable.Category3 });
+                        xdfObject = new XdfTable(s6xTable, sadS6x.Properties.XdfBaseOffsetInt, defaultElementHeaderCategories);
                     }
                     s6xTable = null;
                     break;
@@ -8059,7 +8090,8 @@ namespace SAD806x
                     else s6xFunction = (S6xFunction)sadS6x.slFunctions[navInfo.Node.Name];
                     if (s6xFunction.AddressBinInt >= sadS6x.Properties.XdfBaseOffsetInt)
                     {
-                        xdfObject = new XdfFunction(s6xFunction, sadS6x.Properties.XdfBaseOffsetInt);
+                        defaultElementHeaderCategories = Tools.XDFDefaultElementHeaderCategories(new string[] { s6xFunction.Category, s6xFunction.Category2, s6xFunction.Category3 });
+                        xdfObject = new XdfFunction(s6xFunction, sadS6x.Properties.XdfBaseOffsetInt, defaultElementHeaderCategories);
                     }
                     s6xFunction = null;
                     break;
@@ -8069,16 +8101,17 @@ namespace SAD806x
                     else s6xScalar = (S6xScalar)sadS6x.slScalars[navInfo.Node.Name];
                     if (s6xScalar.AddressBinInt >= sadS6x.Properties.XdfBaseOffsetInt)
                     {
+                        defaultElementHeaderCategories = Tools.XDFDefaultElementHeaderCategories(new string[] { s6xScalar.Category, s6xScalar.Category2, s6xScalar.Category3 });
                         if (s6xScalar.isBitFlags)
                         {
                             if (MessageBox.Show("Scalar contains Bit Flags. Bit Flags should be copied one by one.\r\nCopy Scalar to paste Xdf Scalar ?", Application.ProductName, MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                             {
-                                xdfObject = new XdfScalar(s6xScalar, sadS6x.Properties.XdfBaseOffsetInt);
+                                xdfObject = new XdfScalar(s6xScalar, sadS6x.Properties.XdfBaseOffsetInt, defaultElementHeaderCategories);
                             }
                         }
                         else
                         {
-                            xdfObject = new XdfScalar(s6xScalar, sadS6x.Properties.XdfBaseOffsetInt);
+                            xdfObject = new XdfScalar(s6xScalar, sadS6x.Properties.XdfBaseOffsetInt, defaultElementHeaderCategories);
                         }
                     }
                     s6xScalar = null;
@@ -8106,6 +8139,7 @@ namespace SAD806x
             int address = -1;
             int addressBin = -1;
             bool isCalElem = false;
+            XdfHeaderCategory[] defaultElementHeaderCategories = new XdfHeaderCategory[] {};
 
             if (sadBin == null) return null;
             if (sadBin.Calibration == null) return null;
@@ -8122,7 +8156,7 @@ namespace SAD806x
                 if (bankNum < 0) return null;
                 address = addressBin - sadBin.getBankBinAddress(bankNum);
                 isCalElem = (addressBin >= sadBin.Calibration.AddressBinInt && addressBin <= sadBin.Calibration.AddressBinEndInt);
-                return new S6xScalar((XdfScalar) xdfObject, bankNum, address, addressBin, isCalElem);
+                return new S6xScalar((XdfScalar) xdfObject, bankNum, address, addressBin, isCalElem, defaultElementHeaderCategories);
             }
 
             mStream.Position = 0;
@@ -8134,7 +8168,7 @@ namespace SAD806x
                 if (bankNum < 0) return null;
                 address = addressBin - sadBin.getBankBinAddress(bankNum);
                 isCalElem = (addressBin >= sadBin.Calibration.AddressBinInt && addressBin <= sadBin.Calibration.AddressBinEndInt);
-                return new S6xFunction((XdfFunction)xdfObject, bankNum, address, addressBin, isCalElem);
+                return new S6xFunction((XdfFunction)xdfObject, bankNum, address, addressBin, isCalElem, defaultElementHeaderCategories);
             }
 
             mStream.Position = 0;
@@ -8146,7 +8180,7 @@ namespace SAD806x
                 if (bankNum < 0) return null;
                 address = addressBin - sadBin.getBankBinAddress(bankNum);
                 isCalElem = (addressBin >= sadBin.Calibration.AddressBinInt && addressBin <= sadBin.Calibration.AddressBinEndInt);
-                return new S6xTable((XdfTable)xdfObject, bankNum, address, addressBin, isCalElem, ref sadS6x.slFunctions);
+                return new S6xTable((XdfTable)xdfObject, bankNum, address, addressBin, isCalElem, ref sadS6x.slFunctions, defaultElementHeaderCategories);
             }
 
             xdfObject = ToolsXml.Deserialize(ref mStream, typeof(XdfFlag));
@@ -8157,7 +8191,7 @@ namespace SAD806x
                 if (bankNum < 0) return null;
                 address = addressBin - sadBin.getBankBinAddress(bankNum);
                 isCalElem = (addressBin >= sadBin.Calibration.AddressBinInt && addressBin <= sadBin.Calibration.AddressBinEndInt);
-                return new S6xScalar((XdfFlag)xdfObject, bankNum, address, addressBin, isCalElem);
+                return new S6xScalar((XdfFlag)xdfObject, bankNum, address, addressBin, isCalElem, defaultElementHeaderCategories);
             }
 
             return null;
@@ -8214,7 +8248,7 @@ namespace SAD806x
 
             pasteElement(navInfo, originalTableScalersAddresses);
 
-            showElem();
+            showElem(false);
         }
 
         private void pasteOnItemToolStripMenuItem_Click(object sender, EventArgs e)
@@ -8243,6 +8277,7 @@ namespace SAD806x
             S6xNavCategory navCateg3 = null;
             S6xNavInfo niHeaderCateg = null;
             S6xNavInfo niSource = null;
+            S6xNavCategoryDepth categoryDepth = getS6xNavCategoryDepth();
 
             if (nTimes < 1) return;
             if (Clipboard.ContainsData(SADDef.S6xClipboardFormat)) s6xData = Clipboard.GetData(SADDef.S6xClipboardFormat);
@@ -8283,6 +8318,8 @@ namespace SAD806x
                         if (sadS6x.slRoutines.ContainsKey(newObject.UniqueAddress)) continue;
                         if (sadS6x.slOperations.ContainsKey(newObject.UniqueAddress)) continue;
 
+                        newObject.DateCreated = DateTime.UtcNow;
+                        newObject.DateUpdated = DateTime.UtcNow;
                         sadS6x.slScalars.Add(newObject.UniqueAddress, newObject);
                         sadS6x.isSaved = false;
 
@@ -8294,8 +8331,8 @@ namespace SAD806x
                         tnNode.ForeColor = Color.Purple;
                         tnNode.Text = newObject.Label;
                         tnNode.ToolTipText = newObject.Comments;
-                        // Adder directly to header, no Categ mngt
-                        niHeaderCateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, false);
+                        
+                        niHeaderCateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, false, categoryDepth);
                     }
                     setElementsTreeCategLabel(headerCateg);
                     break;
@@ -8422,6 +8459,7 @@ namespace SAD806x
                         ((S6xTable)s6xData).isCalibrationElement = sadBin.isCalibrationAddress(((S6xTable)s6xData).AddressBinInt);
                     }
                     ((S6xTable)s6xData).Store = true;
+                    ((S6xTable)s6xData).DateUpdated = DateTime.UtcNow;
                     uniqueAddress = ((S6xTable)s6xData).UniqueAddress;
                     label = ((S6xTable)s6xData).Label;
                     comments = ((S6xTable)s6xData).Comments;
@@ -8435,8 +8473,16 @@ namespace SAD806x
                     if (((S6xTable)s6xData).DuplicateNum > 0 && sadS6x.slTables.ContainsKey(uniqueAddress))
                     {
                         dupAddress = ((S6xTable)s6xData).DuplicateAddress;
-                        if (sadS6x.slDupTables.ContainsKey(dupAddress)) sadS6x.slDupTables[dupAddress] = s6xData;
-                        else sadS6x.slDupTables.Add(dupAddress, s6xData);
+                        if (sadS6x.slDupTables.ContainsKey(dupAddress))
+                        {
+                            ((S6xTable)s6xData).DateCreated = ((S6xTable)sadS6x.slDupTables[dupAddress]).DateCreated;
+                            sadS6x.slDupTables[dupAddress] = s6xData;
+                        }
+                        else
+                        {
+                            ((S6xTable)s6xData).DateCreated = DateTime.UtcNow;
+                            sadS6x.slDupTables.Add(dupAddress, s6xData);
+                        }
                     }
                     else
                     {
@@ -8447,9 +8493,21 @@ namespace SAD806x
                             shortLabel = ((S6xTable)sadS6x.slTables[uniqueAddress]).ShortLabel;
                             if (shortLabel != null && shortLabel != string.Empty) ((S6xTable)s6xData).ShortLabel = shortLabel;
 
+                            ((S6xTable)s6xData).DateCreated = ((S6xTable)sadS6x.slTables[uniqueAddress]).DateCreated;
                             sadS6x.slTables[uniqueAddress] = s6xData;
                         }
-                        else sadS6x.slTables.Add(uniqueAddress, s6xData);
+                        else
+                        {
+                            ((S6xTable)s6xData).DateCreated = DateTime.UtcNow;
+                            sadS6x.slTables.Add(uniqueAddress, s6xData);
+                        }
+                    }
+
+                    if (isS6xClipBoard && !isXdfData)
+                    {
+                        if (((S6xTable)s6xData).Category != null && ((S6xTable)s6xData).Category != string.Empty) navCateg1 = new S6xNavCategory(((S6xTable)s6xData).Category);
+                        if (((S6xTable)s6xData).Category2 != null && ((S6xTable)s6xData).Category2 != string.Empty) navCateg2 = new S6xNavCategory(((S6xTable)s6xData).Category2);
+                        if (((S6xTable)s6xData).Category3 != null && ((S6xTable)s6xData).Category3 != string.Empty) navCateg3 = new S6xNavCategory(((S6xTable)s6xData).Category3);
                     }
                     break;
                 case S6xNavHeaderCategory.FUNCTIONS:
@@ -8504,14 +8562,23 @@ namespace SAD806x
                         ((S6xFunction)s6xData).isCalibrationElement = sadBin.isCalibrationAddress(((S6xFunction)s6xData).AddressBinInt);
                     }
                     ((S6xFunction)s6xData).Store = true;
+                    ((S6xFunction)s6xData).DateUpdated = DateTime.UtcNow;
                     uniqueAddress = ((S6xFunction)s6xData).UniqueAddress;
                     label = ((S6xFunction)s6xData).Label;
                     comments = ((S6xFunction)s6xData).Comments;
                     if (((S6xFunction)s6xData).DuplicateNum > 0 && sadS6x.slFunctions.ContainsKey(uniqueAddress))
                     {
                         dupAddress = ((S6xFunction)s6xData).DuplicateAddress;
-                        if (sadS6x.slDupFunctions.ContainsKey(dupAddress)) sadS6x.slDupFunctions[dupAddress] = s6xData;
-                        else sadS6x.slDupFunctions.Add(dupAddress, s6xData);
+                        if (sadS6x.slDupFunctions.ContainsKey(dupAddress))
+                        {
+                            ((S6xFunction)s6xData).DateCreated = ((S6xFunction)sadS6x.slDupFunctions[dupAddress]).DateCreated;
+                            sadS6x.slDupFunctions[dupAddress] = s6xData;
+                        }
+                        else
+                        {
+                            ((S6xFunction)s6xData).DateCreated = DateTime.UtcNow;
+                            sadS6x.slDupFunctions.Add(dupAddress, s6xData);
+                        }
                     }
                     else
                     {
@@ -8522,13 +8589,25 @@ namespace SAD806x
                             shortLabel = ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).ShortLabel;
                             if (shortLabel != null && shortLabel != string.Empty) ((S6xFunction)s6xData).ShortLabel = shortLabel;
 
+                            ((S6xFunction)s6xData).DateCreated = ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).DateCreated;
                             sadS6x.slFunctions[uniqueAddress] = s6xData;
                         }
-                        else sadS6x.slFunctions.Add(uniqueAddress, s6xData);
+                        else
+                        {
+                            ((S6xFunction)s6xData).DateCreated = DateTime.UtcNow;
+                            sadS6x.slFunctions.Add(uniqueAddress, s6xData);
+                        }
                     }
 
                     // For Scalers Refresh
                     elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS)].Tag = true;
+
+                    if (isS6xClipBoard && !isXdfData)
+                    {
+                        if (((S6xFunction)s6xData).Category != null && ((S6xFunction)s6xData).Category != string.Empty) navCateg1 = new S6xNavCategory(((S6xFunction)s6xData).Category);
+                        if (((S6xFunction)s6xData).Category2 != null && ((S6xFunction)s6xData).Category2 != string.Empty) navCateg2 = new S6xNavCategory(((S6xFunction)s6xData).Category2);
+                        if (((S6xFunction)s6xData).Category3 != null && ((S6xFunction)s6xData).Category3 != string.Empty) navCateg3 = new S6xNavCategory(((S6xFunction)s6xData).Category3);
+                    }
                     break;
                 case S6xNavHeaderCategory.SCALARS:
                     if (isXdfData && overNavInfo == null)
@@ -8582,6 +8661,7 @@ namespace SAD806x
                         ((S6xScalar)s6xData).isCalibrationElement = sadBin.isCalibrationAddress(((S6xScalar)s6xData).AddressBinInt);
                     }
                     ((S6xScalar)s6xData).Store = true;
+                    ((S6xScalar)s6xData).DateUpdated = DateTime.UtcNow;
                     uniqueAddress = ((S6xScalar)s6xData).UniqueAddress;
                     if (((S6xScalar)s6xData).DuplicateNum > 0 && sadS6x.slScalars.ContainsKey(uniqueAddress))
                     {
@@ -8591,21 +8671,22 @@ namespace SAD806x
                             if (((S6xScalar)s6xData).isBitFlags)
                             // Flag Paste, no Update on Label and Comments, Flag is added
                             {
-                                label = ((S6xScalar)sadS6x.slDupScalars[uniqueAddress]).Label;
-                                comments = ((S6xScalar)sadS6x.slDupScalars[uniqueAddress]).Comments;
+                                label = ((S6xScalar)sadS6x.slDupScalars[dupAddress]).Label;
+                                comments = ((S6xScalar)sadS6x.slDupScalars[dupAddress]).Comments;
                                 if (((S6xScalar)s6xData).BitFlags != null)
                                 {
-                                    foreach (S6xBitFlag bF in ((S6xScalar)s6xData).BitFlags) ((S6xScalar)sadS6x.slDupScalars[uniqueAddress]).AddBitFlag(bF);
+                                    foreach (S6xBitFlag bF in ((S6xScalar)s6xData).BitFlags) ((S6xScalar)sadS6x.slDupScalars[dupAddress]).AddBitFlag(bF);
                                 }
                             }
                             else
                             {
-                                if (((S6xScalar)sadS6x.slDupScalars[uniqueAddress]).isBitFlags)
+                                if (((S6xScalar)sadS6x.slDupScalars[dupAddress]).isBitFlags)
                                 // Prevent loss of existing BitFlags
                                 {
-                                    ((S6xScalar)s6xData).BitFlags = ((S6xScalar)sadS6x.slDupScalars[uniqueAddress]).BitFlags;
+                                    ((S6xScalar)s6xData).BitFlags = ((S6xScalar)sadS6x.slDupScalars[dupAddress]).BitFlags;
                                 }
-                                sadS6x.slDupScalars[uniqueAddress] = s6xData;
+                                ((S6xScalar)s6xData).DateCreated = ((S6xScalar)sadS6x.slDupScalars[dupAddress]).DateCreated;
+                                sadS6x.slDupScalars[dupAddress] = s6xData;
                                 label = ((S6xScalar)s6xData).Label;
                                 comments = ((S6xScalar)s6xData).Comments;
                             }
@@ -8614,6 +8695,7 @@ namespace SAD806x
                         {
                             label = ((S6xScalar)s6xData).Label;
                             comments = ((S6xScalar)s6xData).Comments;
+                            ((S6xScalar)s6xData).DateCreated = DateTime.UtcNow;
                             sadS6x.slDupScalars.Add(dupAddress, s6xData);
                         }
                     }
@@ -8642,6 +8724,7 @@ namespace SAD806x
                                 {
                                     ((S6xScalar)s6xData).BitFlags = ((S6xScalar)sadS6x.slScalars[uniqueAddress]).BitFlags;
                                 }
+                                ((S6xScalar)s6xData).DateCreated = ((S6xScalar)sadS6x.slScalars[uniqueAddress]).DateCreated;
                                 sadS6x.slScalars[uniqueAddress] = s6xData;
                                 label = ((S6xScalar)s6xData).Label;
                                 comments = ((S6xScalar)s6xData).Comments;
@@ -8651,8 +8734,16 @@ namespace SAD806x
                         {
                             label = ((S6xScalar)s6xData).Label;
                             comments = ((S6xScalar)s6xData).Comments;
+                            ((S6xScalar)s6xData).DateCreated = DateTime.UtcNow;
                             sadS6x.slScalars.Add(uniqueAddress, s6xData);
                         }
+                    }
+
+                    if (isS6xClipBoard && !isXdfData)
+                    {
+                        if (((S6xScalar)s6xData).Category != null && ((S6xScalar)s6xData).Category != string.Empty) navCateg1 = new S6xNavCategory(((S6xScalar)s6xData).Category);
+                        if (((S6xScalar)s6xData).Category2 != null && ((S6xScalar)s6xData).Category2 != string.Empty) navCateg2 = new S6xNavCategory(((S6xScalar)s6xData).Category2);
+                        if (((S6xScalar)s6xData).Category3 != null && ((S6xScalar)s6xData).Category3 != string.Empty) navCateg3 = new S6xNavCategory(((S6xScalar)s6xData).Category3);
                     }
                     break;
                 case S6xNavHeaderCategory.STRUCTURES:
@@ -8674,22 +8765,46 @@ namespace SAD806x
                         s6xStruct.isCalibrationElement = sadBin.isCalibrationAddress(s6xStruct.AddressBinInt);
                     }
                     s6xStruct.Store = true;
+                    s6xStruct.DateUpdated = DateTime.UtcNow;
                     uniqueAddress = s6xStruct.UniqueAddress;
                     label = s6xStruct.Label;
                     comments = s6xStruct.Comments;
                     if (s6xStruct.DuplicateNum > 0 && sadS6x.slStructures.ContainsKey(uniqueAddress))
                     {
                         dupAddress = s6xStruct.DuplicateAddress;
-                        if (sadS6x.slDupStructures.ContainsKey(dupAddress)) sadS6x.slDupStructures[dupAddress] = s6xStruct;
-                        else sadS6x.slDupStructures.Add(dupAddress, s6xStruct);
+                        if (sadS6x.slDupStructures.ContainsKey(dupAddress))
+                        {
+                            s6xStruct.DateCreated = ((S6xStructure)sadS6x.slDupStructures[dupAddress]).DateCreated;
+                            sadS6x.slDupStructures[dupAddress] = s6xStruct;
+                        }
+                        else
+                        {
+                            s6xStruct.DateCreated = DateTime.UtcNow; 
+                            sadS6x.slDupStructures.Add(dupAddress, s6xStruct);
+                        }
                     }
                     else
                     {
                         s6xStruct.DuplicateNum = 0;
-                        if (sadS6x.slStructures.ContainsKey(uniqueAddress)) sadS6x.slStructures[uniqueAddress] = s6xStruct;
-                        else sadS6x.slStructures.Add(uniqueAddress, s6xStruct);
+                        if (sadS6x.slStructures.ContainsKey(uniqueAddress))
+                        {
+                            s6xStruct.DateCreated = ((S6xStructure)sadS6x.slStructures[uniqueAddress]).DateCreated;
+                            sadS6x.slStructures[uniqueAddress] = s6xStruct;
+                        }
+                        else
+                        {
+                            s6xStruct.DateCreated = DateTime.UtcNow; 
+                            sadS6x.slStructures.Add(uniqueAddress, s6xStruct);
+                        }
                     }
                     s6xStruct = null;
+
+                    if (isS6xClipBoard && !isXdfData)
+                    {
+                        if (((S6xStructureClipBoard)s6xData).Category != null && ((S6xStructureClipBoard)s6xData).Category != string.Empty) navCateg1 = new S6xNavCategory(((S6xStructureClipBoard)s6xData).Category);
+                        if (((S6xStructureClipBoard)s6xData).Category2 != null && ((S6xStructureClipBoard)s6xData).Category2 != string.Empty) navCateg2 = new S6xNavCategory(((S6xStructureClipBoard)s6xData).Category2);
+                        if (((S6xStructureClipBoard)s6xData).Category3 != null && ((S6xStructureClipBoard)s6xData).Category3 != string.Empty) navCateg3 = new S6xNavCategory(((S6xStructureClipBoard)s6xData).Category3);
+                    }
                     break;
                 case S6xNavHeaderCategory.ROUTINES:
                     if (overBankNum != -1 && overAddress != -1)
@@ -8703,11 +8818,27 @@ namespace SAD806x
                         while (elemsTreeView.Nodes[S6xNav.getHeaderCategName(headerCateg)].Nodes.ContainsKey(((S6xRoutine)s6xData).UniqueAddress)) ((S6xRoutine)s6xData).AddressInt++;
                     }
                     ((S6xRoutine)s6xData).Store = true;
+                    ((S6xRoutine)s6xData).DateUpdated = DateTime.UtcNow;
                     uniqueAddress = ((S6xRoutine)s6xData).UniqueAddress;
                     label = ((S6xRoutine)s6xData).Label;
                     comments = ((S6xRoutine)s6xData).Comments;
-                    if (sadS6x.slRoutines.ContainsKey(uniqueAddress)) sadS6x.slRoutines[uniqueAddress] = s6xData;
-                    else sadS6x.slRoutines.Add(uniqueAddress, s6xData);
+                    if (sadS6x.slRoutines.ContainsKey(uniqueAddress))
+                    {
+                        ((S6xRoutine)s6xData).DateCreated = ((S6xRoutine)sadS6x.slRoutines[uniqueAddress]).DateCreated;
+                        sadS6x.slRoutines[uniqueAddress] = s6xData;
+                    }
+                    else
+                    {
+                        ((S6xRoutine)s6xData).DateCreated = DateTime.UtcNow;
+                        sadS6x.slRoutines.Add(uniqueAddress, s6xData);
+                    }
+
+                    if (isS6xClipBoard && !isXdfData)
+                    {
+                        if (((S6xRoutine)s6xData).Category != null && ((S6xRoutine)s6xData).Category != string.Empty) navCateg1 = new S6xNavCategory(((S6xRoutine)s6xData).Category);
+                        if (((S6xRoutine)s6xData).Category2 != null && ((S6xRoutine)s6xData).Category2 != string.Empty) navCateg2 = new S6xNavCategory(((S6xRoutine)s6xData).Category2);
+                        if (((S6xRoutine)s6xData).Category3 != null && ((S6xRoutine)s6xData).Category3 != string.Empty) navCateg3 = new S6xNavCategory(((S6xRoutine)s6xData).Category3);
+                    }
                     break;
                 case S6xNavHeaderCategory.OPERATIONS:
                     if (overBankNum != -1 && overAddress != -1)
@@ -8720,11 +8851,27 @@ namespace SAD806x
                         ((S6xOperation)s6xData).AddressInt = 0 - SADDef.EecBankStartAddress;
                         while (elemsTreeView.Nodes[S6xNav.getHeaderCategName(headerCateg)].Nodes.ContainsKey(((S6xOperation)s6xData).UniqueAddress)) ((S6xOperation)s6xData).AddressInt++;
                     }
+                    ((S6xOperation)s6xData).DateUpdated = DateTime.UtcNow;
                     uniqueAddress = ((S6xOperation)s6xData).UniqueAddress;
                     label = ((S6xOperation)s6xData).Label;
                     comments = ((S6xOperation)s6xData).Comments;
-                    if (sadS6x.slOperations.ContainsKey(uniqueAddress)) sadS6x.slOperations[uniqueAddress] = s6xData;
-                    else sadS6x.slOperations.Add(uniqueAddress, s6xData);
+                    if (sadS6x.slOperations.ContainsKey(uniqueAddress))
+                    {
+                        ((S6xOperation)s6xData).DateCreated = ((S6xOperation)sadS6x.slOperations[uniqueAddress]).DateCreated;
+                        sadS6x.slOperations[uniqueAddress] = s6xData;
+                    }
+                    else
+                    {
+                        ((S6xOperation)s6xData).DateCreated = DateTime.UtcNow;
+                        sadS6x.slOperations.Add(uniqueAddress, s6xData);
+                    }
+
+                    if (isS6xClipBoard && !isXdfData)
+                    {
+                        if (((S6xOperation)s6xData).Category != null && ((S6xOperation)s6xData).Category != string.Empty) navCateg1 = new S6xNavCategory(((S6xOperation)s6xData).Category);
+                        if (((S6xOperation)s6xData).Category2 != null && ((S6xOperation)s6xData).Category2 != string.Empty) navCateg2 = new S6xNavCategory(((S6xOperation)s6xData).Category2);
+                        if (((S6xOperation)s6xData).Category3 != null && ((S6xOperation)s6xData).Category3 != string.Empty) navCateg3 = new S6xNavCategory(((S6xOperation)s6xData).Category3);
+                    }
                     break;
                 case S6xNavHeaderCategory.REGISTERS:
                     if (overAddress != -1)
@@ -8739,11 +8886,27 @@ namespace SAD806x
                         while (elemsTreeView.Nodes[S6xNav.getHeaderCategName(headerCateg)].Nodes.ContainsKey(((S6xRegister)s6xData).UniqueAddress)) ((S6xRegister)s6xData).AddressInt--;
                     }
                     ((S6xRegister)s6xData).Store = true;
+                    ((S6xRegister)s6xData).DateUpdated = DateTime.UtcNow;
                     uniqueAddress = ((S6xRegister)s6xData).UniqueAddress;
                     label = ((S6xRegister)s6xData).Label;
                     comments = ((S6xRegister)s6xData).Comments;
-                    if (sadS6x.slRegisters.ContainsKey(uniqueAddress)) sadS6x.slRegisters[uniqueAddress] = s6xData;
-                    else sadS6x.slRegisters.Add(uniqueAddress, s6xData);
+                    if (sadS6x.slRegisters.ContainsKey(uniqueAddress))
+                    {
+                        ((S6xRegister)s6xData).DateCreated = ((S6xRegister)sadS6x.slRegisters[uniqueAddress]).DateCreated;
+                        sadS6x.slRegisters[uniqueAddress] = s6xData;
+                    }
+                    else
+                    {
+                        ((S6xRegister)s6xData).DateCreated = DateTime.UtcNow;
+                        sadS6x.slRegisters.Add(uniqueAddress, s6xData);
+                    }
+
+                    if (isS6xClipBoard && !isXdfData)
+                    {
+                        if (((S6xRegister)s6xData).Category != null && ((S6xRegister)s6xData).Category != string.Empty) navCateg1 = new S6xNavCategory(((S6xRegister)s6xData).Category);
+                        if (((S6xRegister)s6xData).Category2 != null && ((S6xRegister)s6xData).Category2 != string.Empty) navCateg2 = new S6xNavCategory(((S6xRegister)s6xData).Category2);
+                        if (((S6xRegister)s6xData).Category3 != null && ((S6xRegister)s6xData).Category3 != string.Empty) navCateg3 = new S6xNavCategory(((S6xRegister)s6xData).Category3);
+                    }
                     break;
                 case S6xNavHeaderCategory.OTHER:
                     if (overBankNum != -1 && overAddress != -1)
@@ -8756,21 +8919,38 @@ namespace SAD806x
                         ((S6xOtherAddress)s6xData).AddressInt = 0 - SADDef.EecBankStartAddress;
                         while (elemsTreeView.Nodes[S6xNav.getHeaderCategName(headerCateg)].Nodes.ContainsKey(((S6xOtherAddress)s6xData).UniqueAddress)) ((S6xOtherAddress)s6xData).AddressInt++;
                     }
+                    ((S6xOtherAddress)s6xData).DateUpdated = DateTime.UtcNow;
                     uniqueAddress = ((S6xOtherAddress)s6xData).UniqueAddress;
                     label = ((S6xOtherAddress)s6xData).UniqueAddressHex;
                     comments = ((S6xOtherAddress)s6xData).Comments;
                     if (sadS6x.slOtherAddresses.ContainsKey(uniqueAddress)) sadS6x.slOtherAddresses[uniqueAddress] = s6xData;
                     else sadS6x.slOtherAddresses.Add(uniqueAddress, s6xData);
+
+                    if (isS6xClipBoard && !isXdfData)
+                    {
+                        if (((S6xOtherAddress)s6xData).Category != null && ((S6xOtherAddress)s6xData).Category != string.Empty) navCateg1 = new S6xNavCategory(((S6xOtherAddress)s6xData).Category);
+                        if (((S6xOtherAddress)s6xData).Category2 != null && ((S6xOtherAddress)s6xData).Category2 != string.Empty) navCateg2 = new S6xNavCategory(((S6xOtherAddress)s6xData).Category2);
+                        if (((S6xOtherAddress)s6xData).Category3 != null && ((S6xOtherAddress)s6xData).Category3 != string.Empty) navCateg3 = new S6xNavCategory(((S6xOtherAddress)s6xData).Category3);
+                    }
                     break;
                 case S6xNavHeaderCategory.SIGNATURES:
                     if (overUniqueAddress != string.Empty) ((S6xSignature)s6xData).UniqueKey = overUniqueAddress;
                     else ((S6xSignature)s6xData).UniqueKey = sadS6x.getNewSignatureUniqueKey();
                     ((S6xSignature)s6xData).Forced = false;
+                    ((S6xSignature)s6xData).DateUpdated = DateTime.UtcNow;
                     uniqueAddress = ((S6xSignature)s6xData).UniqueKey;
                     label = ((S6xSignature)s6xData).SignatureLabel;
                     comments = ((S6xSignature)s6xData).SignatureComments;
-                    if (sadS6x.slSignatures.ContainsKey(uniqueAddress)) sadS6x.slSignatures[uniqueAddress] = s6xData;
-                    else sadS6x.slSignatures.Add(uniqueAddress, s6xData);
+                    if (sadS6x.slSignatures.ContainsKey(uniqueAddress))
+                    {
+                        ((S6xSignature)s6xData).DateCreated = ((S6xSignature)sadS6x.slSignatures[uniqueAddress]).DateCreated;
+                        sadS6x.slSignatures[uniqueAddress] = s6xData;
+                    }
+                    else
+                    {
+                        ((S6xSignature)s6xData).DateCreated = DateTime.UtcNow;
+                        sadS6x.slSignatures.Add(uniqueAddress, s6xData);
+                    }
 
                     if (isS6xClipBoard && !isXdfData)
                     {
@@ -8783,11 +8963,20 @@ namespace SAD806x
                     if (overUniqueAddress != string.Empty) ((S6xElementSignature)s6xData).UniqueKey = overUniqueAddress;
                     else ((S6xElementSignature)s6xData).UniqueKey = sadS6x.getNewElementSignatureUniqueKey();
                     ((S6xElementSignature)s6xData).Forced = false;
+                    ((S6xElementSignature)s6xData).DateUpdated = DateTime.UtcNow;
                     uniqueAddress = ((S6xElementSignature)s6xData).UniqueKey;
                     label = ((S6xElementSignature)s6xData).SignatureLabel;
                     comments = ((S6xElementSignature)s6xData).SignatureComments;
-                    if (sadS6x.slElementsSignatures.ContainsKey(uniqueAddress)) sadS6x.slElementsSignatures[uniqueAddress] = s6xData;
-                    else sadS6x.slElementsSignatures.Add(uniqueAddress, s6xData);
+                    if (sadS6x.slElementsSignatures.ContainsKey(uniqueAddress))
+                    {
+                        ((S6xElementSignature)s6xData).DateCreated = ((S6xElementSignature)sadS6x.slElementsSignatures[uniqueAddress]).DateCreated;
+                        sadS6x.slElementsSignatures[uniqueAddress] = s6xData;
+                    }
+                    else
+                    {
+                        ((S6xElementSignature)s6xData).DateCreated = DateTime.UtcNow;
+                        sadS6x.slElementsSignatures.Add(uniqueAddress, s6xData);
+                    }
 
                     if (isS6xClipBoard && !isXdfData)
                     {
@@ -8836,16 +9025,25 @@ namespace SAD806x
                         navCateg2 = overNavInfo.Category2;
                         navCateg3 = overNavInfo.Category3;
                     }
-                    niHeaderCateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, dupAddress != string.Empty);
-                    navCateg1 = null;
-                    navCateg3 = null;
-                    navCateg3 = null;
+                    niHeaderCateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, dupAddress != string.Empty, getS6xNavCategoryDepth());
                     setElementsTreeCategLabel(headerCateg);
                 }
                 else
                 {
                     tnNode.ForeColor = Color.Purple;
+                    // Check if Node has moved
+                    S6xNavInfo niNI = new S6xNavInfo(tnNode);
+                    if (niNI.Category != navCateg1 || niNI.Category2 != navCateg2 || niNI.Category3 != navCateg3)
+                    {
+                        tnNode.Parent.Nodes.Remove(tnNode);
+                        niHeaderCateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, dupAddress != string.Empty, getS6xNavCategoryDepth());
+                    }
+                    niNI = null;
                 }
+                // To force refresh of categories in related combo boxes
+                sharedCategComboBox.Tag = null;
+                sharedCateg2ComboBox.Tag = null;
+                sharedCateg3ComboBox.Tag = null;
 
                 elemsTreeView.SelectedNode = tnNode;
                 tnNode = null;
@@ -8889,7 +9087,9 @@ namespace SAD806x
                     S6xTable dupTable = null;
                     if (duplicateAddress == string.Empty) dupTable = ((S6xTable)sadS6x.slTables[uniqueAddress]).Clone();
                     else dupTable = ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Clone();
-                    dupTable.DuplicateNum = 1; 
+                    dupTable.DuplicateNum = 1;
+                    dupTable.DateCreated = Tools.getValidDateTime(dupTable.DateCreated, DateTime.UtcNow);
+                    dupTable.DateUpdated = DateTime.UtcNow;
                     while (sadS6x.slDupTables.ContainsKey(dupTable.DuplicateAddress)) dupTable.DuplicateNum++;
                     sadS6x.slDupTables.Add(dupTable.DuplicateAddress, dupTable);
                     tnDup.Name = dupTable.DuplicateAddress;
@@ -8902,6 +9102,8 @@ namespace SAD806x
                     if (duplicateAddress == string.Empty) dupFunction = ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Clone();
                     else dupFunction = ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Clone();
                     dupFunction.DuplicateNum = 1;
+                    dupFunction.DateCreated = Tools.getValidDateTime(dupFunction.DateCreated, DateTime.UtcNow);
+                    dupFunction.DateUpdated = DateTime.UtcNow;
                     while (sadS6x.slDupFunctions.ContainsKey(dupFunction.DuplicateAddress)) dupFunction.DuplicateNum++;
                     sadS6x.slDupFunctions.Add(dupFunction.DuplicateAddress, dupFunction);
                     tnDup.Name = dupFunction.DuplicateAddress;
@@ -8914,6 +9116,8 @@ namespace SAD806x
                     if (duplicateAddress == string.Empty) dupScalar = ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Clone();
                     else dupScalar = ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Clone();
                     dupScalar.DuplicateNum = 1;
+                    dupScalar.DateCreated = Tools.getValidDateTime(dupScalar.DateCreated, DateTime.UtcNow);
+                    dupScalar.DateUpdated = DateTime.UtcNow;
                     while (sadS6x.slDupScalars.ContainsKey(dupScalar.DuplicateAddress)) dupScalar.DuplicateNum++;
                     sadS6x.slDupScalars.Add(dupScalar.DuplicateAddress, dupScalar);
                     tnDup.Name = dupScalar.DuplicateAddress;
@@ -8926,6 +9130,8 @@ namespace SAD806x
                     if (duplicateAddress == string.Empty) dupStructure = ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Clone();
                     else dupStructure = ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Clone();
                     dupStructure.DuplicateNum = 1;
+                    dupStructure.DateCreated = Tools.getValidDateTime(dupStructure.DateCreated, DateTime.UtcNow);
+                    dupStructure.DateUpdated = DateTime.UtcNow;
                     while (sadS6x.slDupStructures.ContainsKey(dupStructure.DuplicateAddress)) dupStructure.DuplicateNum++;
                     sadS6x.slDupStructures.Add(dupStructure.DuplicateAddress, dupStructure);
                     tnDup.Name = dupStructure.DuplicateAddress;
@@ -8968,7 +9174,9 @@ namespace SAD806x
                     S6xTable dupTable = ((S6xTable)sadS6x.slDupTables[navInfo.DuplicateNode.Name]);
                     dupNum = dupTable.DuplicateNum;
                     dupTable.DuplicateNum = mainTable.DuplicateNum;
+                    dupTable.DateUpdated = DateTime.UtcNow;
                     mainTable.DuplicateNum = dupNum;
+                    mainTable.DateUpdated = DateTime.UtcNow;
 
                     sadS6x.slTables[navInfo.MainNode.Name] = dupTable;
                     sadS6x.slDupTables[navInfo.DuplicateNode.Name] = mainTable;
@@ -8998,7 +9206,9 @@ namespace SAD806x
                     
                     dupNum = dupFunction.DuplicateNum;
                     dupFunction.DuplicateNum = mainFunction.DuplicateNum;
+                    dupFunction.DateUpdated = DateTime.UtcNow;
                     mainFunction.DuplicateNum = dupNum;
+                    mainFunction.DateUpdated = DateTime.UtcNow;
 
                     sadS6x.slFunctions[navInfo.MainNode.Name] = dupFunction;
                     sadS6x.slDupFunctions[navInfo.DuplicateNode.Name] = mainFunction;
@@ -9011,7 +9221,9 @@ namespace SAD806x
                     S6xScalar dupScalar = ((S6xScalar)sadS6x.slDupScalars[navInfo.DuplicateNode.Name]);
                     dupNum = dupScalar.DuplicateNum;
                     dupScalar.DuplicateNum = mainScalar.DuplicateNum;
+                    dupScalar.DateUpdated = DateTime.UtcNow;
                     mainScalar.DuplicateNum = dupNum;
+                    mainScalar.DateUpdated = DateTime.UtcNow;
 
                     sadS6x.slScalars[navInfo.MainNode.Name] = dupScalar;
                     sadS6x.slDupScalars[navInfo.DuplicateNode.Name] = mainScalar;
@@ -9024,7 +9236,9 @@ namespace SAD806x
                     S6xStructure dupStructure = ((S6xStructure)sadS6x.slDupStructures[navInfo.DuplicateNode.Name]);
                     dupNum = dupStructure.DuplicateNum;
                     dupStructure.DuplicateNum = mainStructure.DuplicateNum;
+                    dupStructure.DateUpdated = DateTime.UtcNow;
                     mainStructure.DuplicateNum = dupNum;
+                    mainStructure.DateUpdated = DateTime.UtcNow;
 
                     sadS6x.slStructures[navInfo.MainNode.Name] = dupStructure;
                     sadS6x.slDupStructures[navInfo.DuplicateNode.Name] = mainStructure;
@@ -9058,7 +9272,11 @@ namespace SAD806x
             SADS6x sigS6x = null;
             S6xNavInfo niHeaderCateg = null;
             TreeNode tnNode = null;
-            
+            S6xNavInfo niNI = null;
+            S6xNavCategory navCateg1 = null;
+            S6xNavCategory navCateg2 = null;
+            S6xNavCategory navCateg3 = null;
+
             if (openFileDialogS6x.ShowDialog() != DialogResult.OK) return;
             if (!File.Exists(openFileDialogS6x.FileName)) return;
 
@@ -9077,12 +9295,16 @@ namespace SAD806x
                     foreach (S6xSignature impSignature in sigS6x.slSignatures.Values)
                     {
                         S6xSignature clone = impSignature.Clone();
+                        clone.DateCreated = DateTime.UtcNow;
+                        clone.DateUpdated = DateTime.UtcNow;
                         clone.UniqueKey = string.Empty;
                         foreach (S6xSignature s6xSignature in sadS6x.slSignatures.Values)
                         {
                             if (s6xSignature.ShortLabel == clone.ShortLabel)
                             {
                                 clone.UniqueKey = s6xSignature.UniqueKey;
+                                clone.DateCreated = s6xSignature.DateCreated;
+                                clone.DateUpdated = DateTime.UtcNow;
                                 break;
                             }
                         }
@@ -9090,7 +9312,6 @@ namespace SAD806x
                         {
                             clone.UniqueKey = sadS6x.getNewSignatureUniqueKey();
                             sadS6x.slSignatures.Add(clone.UniqueKey, clone);
-
                         }
                         else
                         {
@@ -9104,14 +9325,33 @@ namespace SAD806x
                             tnNode = new TreeNode();
                             tnNode.Name = clone.UniqueKey;
 
-                            niHeaderCateg.AddNode(tnNode, new S6xNavCategory(clone.SignatureCategory), new S6xNavCategory(clone.SignatureCategory2), new S6xNavCategory(clone.SignatureCategory3), false);
+                            niHeaderCateg.AddNode(tnNode, new S6xNavCategory(clone.SignatureCategory), new S6xNavCategory(clone.SignatureCategory2), new S6xNavCategory(clone.SignatureCategory3), false, getS6xNavCategoryDepth());
                             setElementsTreeCategLabel(niHeaderCateg.HeaderCategory);
+                        }
+                        else
+                        {
+                            // Check if Node has moved
+                            niNI = new S6xNavInfo(tnNode);
+                            navCateg1 = s6xNavCategories.getCategory(niNI.HeaderCategory, S6xNavCategoryLevel.ONE, true, clone.SignatureCategory);
+                            navCateg2 = s6xNavCategories.getCategory(niNI.HeaderCategory, S6xNavCategoryLevel.TWO, true, clone.SignatureCategory2);
+                            navCateg3 = s6xNavCategories.getCategory(niNI.HeaderCategory, S6xNavCategoryLevel.THREE, true, clone.SignatureCategory3);
+                            if (niNI.Category != navCateg1 || niNI.Category2 != navCateg2 || niNI.Category3 != navCateg3)
+                            {
+                                tnNode.Parent.Nodes.Remove(tnNode);
+                                niHeaderCateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, false, getS6xNavCategoryDepth());
+                            }
+                            niNI = null;
                         }
                         tnNode.Text = clone.Label;
                         tnNode.ToolTipText = clone.Comments;
 
                         tnNode.ContextMenuStrip = elemsContextMenuStrip;
                         tnNode.ForeColor = Color.Purple;
+
+                        // To force refresh of categories in related combo boxes
+                        sharedCategComboBox.Tag = null;
+                        sharedCateg2ComboBox.Tag = null;
+                        sharedCateg3ComboBox.Tag = null;
                     }
                 }
                 if (sigS6x.slElementsSignatures != null)
@@ -9122,11 +9362,15 @@ namespace SAD806x
                     {
                         S6xElementSignature clone = impSignature.Clone();
                         clone.UniqueKey = string.Empty;
+                        clone.DateCreated = DateTime.UtcNow;
+                        clone.DateUpdated = DateTime.UtcNow;
                         foreach (S6xElementSignature s6xESignature in sadS6x.slElementsSignatures.Values)
                         {
                             if (s6xESignature.SignatureKey == clone.SignatureKey)
                             {
                                 clone.UniqueKey = s6xESignature.UniqueKey;
+                                clone.DateCreated = s6xESignature.DateCreated;
+                                clone.DateUpdated = DateTime.UtcNow;
                                 break;
                             }
                         }
@@ -9148,14 +9392,33 @@ namespace SAD806x
                             tnNode = new TreeNode();
                             tnNode.Name = clone.UniqueKey;
 
-                            niHeaderCateg.AddNode(tnNode, new S6xNavCategory(clone.SignatureCategory), new S6xNavCategory(clone.SignatureCategory2), new S6xNavCategory(clone.SignatureCategory3), false);
+                            niHeaderCateg.AddNode(tnNode, new S6xNavCategory(clone.SignatureCategory), new S6xNavCategory(clone.SignatureCategory2), new S6xNavCategory(clone.SignatureCategory3), false, getS6xNavCategoryDepth());
                             setElementsTreeCategLabel(niHeaderCateg.HeaderCategory);
+                        }
+                        else
+                        {
+                            // Check if Node has moved
+                            niNI = new S6xNavInfo(tnNode);
+                            navCateg1 = s6xNavCategories.getCategory(niNI.HeaderCategory, S6xNavCategoryLevel.ONE, true, clone.SignatureCategory);
+                            navCateg2 = s6xNavCategories.getCategory(niNI.HeaderCategory, S6xNavCategoryLevel.TWO, true, clone.SignatureCategory2);
+                            navCateg3 = s6xNavCategories.getCategory(niNI.HeaderCategory, S6xNavCategoryLevel.THREE, true, clone.SignatureCategory3);
+                            if (niNI.Category != navCateg1 || niNI.Category2 != navCateg2 || niNI.Category3 != navCateg3)
+                            {
+                                tnNode.Parent.Nodes.Remove(tnNode);
+                                niHeaderCateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, false, getS6xNavCategoryDepth());
+                            }
+                            niNI = null;
                         }
                         tnNode.Text = clone.SignatureLabel;
                         tnNode.ToolTipText = clone.SignatureComments;
 
                         tnNode.ContextMenuStrip = elemsContextMenuStrip;
                         tnNode.ForeColor = Color.Purple;
+
+                        // To force refresh of categories in related combo boxes
+                        sharedCategComboBox.Tag = null;
+                        sharedCateg2ComboBox.Tag = null;
+                        sharedCateg3ComboBox.Tag = null;
                     }
                 }
 
@@ -9290,6 +9553,8 @@ namespace SAD806x
                         //  2 : Node Text
                         //  3 : Node ToolTipText
 
+                        S6xNavCategoryDepth categoryDepth = getS6xNavCategoryDepth();
+
                         // Updates First for Threading Purposes
                         foreach (string[] newTreeNodeInfos in alNewTreeNodesInfos)
                         {
@@ -9317,7 +9582,7 @@ namespace SAD806x
                             tnNode.ToolTipText = newTreeNodeInfos[3];
                             tnNode.ContextMenuStrip = elemsContextMenuStrip;
                             tnNode.ForeColor = Color.Red;
-                            niHeaderCateg.AddNode(tnNode, null, null, null, false);
+                            niHeaderCateg.AddNode(tnNode, null, null, null, false, categoryDepth);
                         }
                     }
                     catch (Exception ex)
@@ -9526,6 +9791,8 @@ namespace SAD806x
                         //  2 : Node Text
                         //  3 : Node ToolTipText
 
+                        S6xNavCategoryDepth categoryDepth = getS6xNavCategoryDepth();
+
                         // Updates First for Threading Purposes
                         foreach (string[] newTreeNodeInfos in alNewTreeNodesInfos)
                         {
@@ -9553,7 +9820,7 @@ namespace SAD806x
                             tnNode.ToolTipText = newTreeNodeInfos[3];
                             tnNode.ContextMenuStrip = elemsContextMenuStrip;
                             tnNode.ForeColor = Color.Red;
-                            niHeaderCateg.AddNode(tnNode, null, null, null, false);
+                            niHeaderCateg.AddNode(tnNode, null, null, null, false, categoryDepth);
                         }
                     }
                     catch (Exception ex)
@@ -9639,17 +9906,764 @@ namespace SAD806x
             }
         }
 
-        private void importXdfFileToolStripMenuItem_Click(object sender, EventArgs e)
+        private void importXlsFileToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            importXdfFile(string.Empty);
+            importXlsFile(string.Empty);
         }
 
-        private void importXdfFile(string xFilePath)
+        private void importXlsFile(string xlsFilePath)
         {
             if (sadBin == null) return;
 
             if (!confirmDirtyProperies()) return;
             if (!confirmProcessRunning()) return;
+
+            if (!confirmXdfXlsOffset()) return;
+
+            if (xlsFilePath == string.Empty)
+            {
+                if (openFileDialogXls.ShowDialog() != DialogResult.OK) return;
+                if (!File.Exists(openFileDialogXls.FileName)) return;
+                xlsFilePath = openFileDialogXls.FileName;
+            }
+            else
+            {
+                if (!File.Exists(xlsFilePath)) return;
+            }
+
+            bool forceXlsAlt = false;
+            string statusXls = ToolsXls.CheckXls(xlsFilePath, forceXlsAlt);
+            string statusXlsxForced = string.Empty;
+            if (statusXls != "OK")
+            {
+                forceXlsAlt = true;
+                statusXlsxForced = ToolsXls.CheckXls(xlsFilePath, forceXlsAlt);
+            }
+            if (statusXls != "OK" && statusXlsxForced != "OK")
+            {
+                MessageBox.Show("Impossible to open the selected file.\r\nThe related software is not properly installed or the file is corrupted.\r\nPlease look at the error message.\r\n\r\n" + statusXls, Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            processPreviousCursor = Cursor;
+            Cursor = System.Windows.Forms.Cursors.WaitCursor;
+
+            ArrayList alReservedAddresses = new ArrayList();
+            foreach (TreeNode tnNode in elemsTreeView.Nodes["RESERVED"].Nodes) alReservedAddresses.Add(tnNode.Name);
+
+            // To prevent opening an old information
+            sadBin.Errors = null;
+
+            sadProcessManager = new SADProcessManager();
+            sadProcessManager.Parameters = new object[] { xlsFilePath, forceXlsAlt, alReservedAddresses };
+
+            toolStripProgressBarMain.Value = 0;
+
+            processType = ProcessType.ProcessManager;
+            processRunning = true;
+            processUpdateTimer.Enabled = true;
+
+            processThread = new Thread(importXlsFileStartProcess);
+            processThread.Start();
+        }
+
+        private void importXlsFileStartProcess()
+        {
+            ArrayList alReservedAddresses = null;
+
+            if (sadProcessManager == null) sadProcessManager = new SADProcessManager();
+
+            string filePath = string.Empty;
+            bool forceXlsAlt = false;
+
+            try
+            {
+                if (sadBin == null) throw new Exception();
+
+                filePath = (string)sadProcessManager.Parameters[0];
+                forceXlsAlt = (bool)sadProcessManager.Parameters[1];
+                alReservedAddresses = (ArrayList)sadProcessManager.Parameters[2];
+
+                if (filePath == null || filePath == string.Empty) throw new Exception();
+                if (alReservedAddresses == null) throw new Exception();
+            }
+            catch
+            {
+                sadProcessManager.SetProcessFailed("Invalid process start.");
+                return;
+            }
+
+            sadProcessManager.SetProcessStarted("Import is starting.");
+
+            sadProcessManager.ProcessProgressLabel = "Import initialized.\r\nReading file.";
+            sadProcessManager.ProcessProgressStatus = 10;
+
+            XlsFile xlsFile = new XlsFile();
+            xlsFile.Load(filePath, forceXlsAlt);
+            if (!xlsFile.Valid)
+            {
+                sadProcessManager.SetProcessFailed("Xls import has failed.\r\nPlease check file.");
+                return;
+            }
+
+            sadProcessManager.ProcessProgressLabel = "Import initialized.\r\nFile loaded.\r\nDifferences analysis.";
+            sadProcessManager.ProcessProgressStatus = 30;
+
+            object[] arrSyncRes = sadS6x.readFromFileObject(ref xlsFile, ref sadBin, ref alReservedAddresses);
+            xlsFile = null;
+
+            alReservedAddresses = null;
+
+            sadProcessManager.ProcessProgressLabel = "Import initialized.\r\nFile Analysed.\r\nGenerating updates.";
+            sadProcessManager.ProcessProgressStatus = 70;
+
+            ArrayList alNewTreeNodesInfos = new ArrayList();
+            ArrayList alNewDupTreeNodesInfos = new ArrayList();
+
+            string[] arrSyncResAddresses = null;
+
+            // S6x Creations
+            //  First Creations
+            arrSyncResAddresses = (string[])arrSyncRes[1];
+            foreach (string uniqueAddress in arrSyncResAddresses)
+            {
+                if (sadS6x.slTables.ContainsKey(uniqueAddress))
+                {
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), uniqueAddress, ((S6xTable)sadS6x.slTables[uniqueAddress]).Label, ((S6xTable)sadS6x.slTables[uniqueAddress]).Comments, ((S6xTable)sadS6x.slTables[uniqueAddress]).Category, ((S6xTable)sadS6x.slTables[uniqueAddress]).Category2, ((S6xTable)sadS6x.slTables[uniqueAddress]).Category3 });
+                }
+                else if (sadS6x.slFunctions.ContainsKey(uniqueAddress))
+                {
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), uniqueAddress, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Label, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Comments, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Category, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Category2, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Category3 });
+                }
+                else if (sadS6x.slScalars.ContainsKey(uniqueAddress))
+                {
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), uniqueAddress, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Label, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Comments, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Category, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Category2, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Category3 });
+                }
+                else if (sadS6x.slStructures.ContainsKey(uniqueAddress))
+                {
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), uniqueAddress, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Label, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Comments, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Category, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Category2, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Category3 });
+                }
+                else if (sadS6x.slRegisters.ContainsKey(uniqueAddress))
+                {
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.REGISTERS), uniqueAddress, ((S6xRegister)sadS6x.slRegisters[uniqueAddress]).Label, ((S6xRegister)sadS6x.slRegisters[uniqueAddress]).Comments, ((S6xRegister)sadS6x.slRegisters[uniqueAddress]).Category, ((S6xRegister)sadS6x.slRegisters[uniqueAddress]).Category2, ((S6xRegister)sadS6x.slRegisters[uniqueAddress]).Category3 });
+                }
+            }
+            arrSyncResAddresses = null;
+
+            //  Then Duplicates Creations
+            arrSyncResAddresses = (string[])arrSyncRes[6];
+            foreach (string duplicateAddress in arrSyncResAddresses)
+            {
+                if (sadS6x.slDupTables.ContainsKey(duplicateAddress))
+                {
+                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), duplicateAddress, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).UniqueAddress, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Label, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Comments, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Category, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Category2, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Category3 });
+                }
+                else if (sadS6x.slDupFunctions.ContainsKey(duplicateAddress))
+                {
+                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), duplicateAddress, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).UniqueAddress, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Label, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Comments, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Category, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Category2, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Category3 });
+                }
+                else if (sadS6x.slDupScalars.ContainsKey(duplicateAddress))
+                {
+                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), duplicateAddress, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).UniqueAddress, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Label, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Comments, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Category, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Category2, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Category3 });
+                }
+                else if (sadS6x.slDupStructures.ContainsKey(duplicateAddress))
+                {
+                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), duplicateAddress, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).UniqueAddress, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Label, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Comments, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Category, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Category2, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Category3 });
+                }
+            }
+            arrSyncResAddresses = null;
+
+            // S6x Updates
+            arrSyncResAddresses = (string[])arrSyncRes[0];
+            foreach (string uniqueAddress in arrSyncResAddresses)
+            {
+                if (sadS6x.slTables.ContainsKey(uniqueAddress))
+                {
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), uniqueAddress, ((S6xTable)sadS6x.slTables[uniqueAddress]).Label, ((S6xTable)sadS6x.slTables[uniqueAddress]).Comments, ((S6xTable)sadS6x.slTables[uniqueAddress]).Category, ((S6xTable)sadS6x.slTables[uniqueAddress]).Category2, ((S6xTable)sadS6x.slTables[uniqueAddress]).Category3 });
+                }
+                else if (sadS6x.slFunctions.ContainsKey(uniqueAddress))
+                {
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), uniqueAddress, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Label, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Comments, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Category, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Category2, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Category3 });
+                }
+                else if (sadS6x.slScalars.ContainsKey(uniqueAddress))
+                {
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), uniqueAddress, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Label, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Comments, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Category, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Category2, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Category3 });
+                }
+                else if (sadS6x.slStructures.ContainsKey(uniqueAddress))
+                {
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), uniqueAddress, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Label, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Comments, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Category, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Category2, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Category3 });
+                }
+                else if (sadS6x.slRegisters.ContainsKey(uniqueAddress))
+                {
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.REGISTERS), uniqueAddress, ((S6xRegister)sadS6x.slRegisters[uniqueAddress]).Label, ((S6xRegister)sadS6x.slRegisters[uniqueAddress]).Comments, ((S6xRegister)sadS6x.slRegisters[uniqueAddress]).Category, ((S6xRegister)sadS6x.slRegisters[uniqueAddress]).Category2, ((S6xRegister)sadS6x.slRegisters[uniqueAddress]).Category3 });
+                }
+            }
+            arrSyncResAddresses = null;
+
+            //  Duplicates Updates
+            arrSyncResAddresses = (string[])arrSyncRes[5];
+            foreach (string duplicateAddress in arrSyncResAddresses)
+            {
+                if (sadS6x.slDupTables.ContainsKey(duplicateAddress))
+                {
+                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), duplicateAddress, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).UniqueAddress, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Label, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Comments, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Category, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Category2, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Category3 });
+                }
+                else if (sadS6x.slDupFunctions.ContainsKey(duplicateAddress))
+                {
+                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), duplicateAddress, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).UniqueAddress, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Label, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Comments, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Category, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Category2, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Category3 });
+                }
+                else if (sadS6x.slDupScalars.ContainsKey(duplicateAddress))
+                {
+                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), duplicateAddress, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).UniqueAddress, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Label, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Comments, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Category, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Category2, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Category3 });
+                }
+                else if (sadS6x.slDupStructures.ContainsKey(duplicateAddress))
+                {
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), duplicateAddress, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).UniqueAddress, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Label, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Comments, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Category, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Category2, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Category3 });
+                }
+            }
+            arrSyncResAddresses = null;
+
+            string conflictsMessage = string.Empty;
+
+            arrSyncResAddresses = (string[])arrSyncRes[3];
+            foreach (string uniqueAddress in arrSyncResAddresses)
+            {
+                if (sadS6x.slTables.ContainsKey(uniqueAddress)) conflictsMessage += "\r\nTable \"" + ((S6xTable)sadS6x.slTables[uniqueAddress]).Label + "\"";
+                if (sadS6x.slFunctions.ContainsKey(uniqueAddress)) conflictsMessage += "\r\nFunction \"" + ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Label + "\"";
+                if (sadS6x.slScalars.ContainsKey(uniqueAddress)) conflictsMessage += "\r\nScalar \"" + ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Label + "\"";
+                if (sadS6x.slStructures.ContainsKey(uniqueAddress)) conflictsMessage += "\r\nStructure \"" + ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Label + "\"";
+                if (sadS6x.slRegisters.ContainsKey(uniqueAddress)) conflictsMessage += "\r\nRegister \"" + ((S6xRegister)sadS6x.slRegisters[uniqueAddress]).Label + "\"";
+            }
+            arrSyncResAddresses = null;
+
+            if (conflictsMessage != string.Empty) sadProcessManager.ProcessMessages.Add("Following items are in conflict, different external type is not imported :\r\n" + conflictsMessage);
+
+            if (((string[])arrSyncRes[4]).Length > 0) sadProcessManager.ProcessMessages.Add("Some elements are reserved addresses and can not be updated or are generated at binary load and should be updated manually.\r\n\r\nThey have been ignored.");
+
+            arrSyncRes = null;
+
+            sadProcessManager.PostProcessAction = "importXlsFilePostProcess";
+            sadProcessManager.PostProcessParameters = new object[] { alNewTreeNodesInfos, alNewDupTreeNodesInfos };
+
+            sadProcessManager.ProcessProgressLabel = "Import initialized.\r\nFile Analysed.\r\nApplying updates.";
+            sadProcessManager.ProcessProgressStatus = 99;       // To switch to 100 after notification update
+        }
+
+        private void importXlsFilePostProcess()
+        {
+            if (sadProcessManager == null) return;
+
+            ArrayList alNewTreeNodesInfos = null;
+            ArrayList alNewDupTreeNodesInfos = null;
+
+            try
+            {
+                alNewTreeNodesInfos = (ArrayList)((object[])sadProcessManager.PostProcessParameters)[0];
+                alNewDupTreeNodesInfos = (ArrayList)((object[])sadProcessManager.PostProcessParameters)[1];
+
+                if (alNewTreeNodesInfos == null) throw new Exception();
+                if (alNewDupTreeNodesInfos == null) throw new Exception();
+            }
+            catch
+            {
+                sadProcessManager.ProcessErrors.Add("Invalid post process start.");
+                sadProcessManager.SetProcessFailed("Import has failed.");
+                GC.Collect();
+                return;
+            }
+
+            elemsTreeView.BeginUpdate();
+
+            S6xNav.s6xNavCategoriesReset(S6xNavHeaderCategory.STRUCTURES, ref s6xNavCategories, ref sadBin, ref sadS6x);
+            S6xNav.s6xNavCategoriesReset(S6xNavHeaderCategory.TABLES, ref s6xNavCategories, ref sadBin, ref sadS6x);
+            S6xNav.s6xNavCategoriesReset(S6xNavHeaderCategory.FUNCTIONS, ref s6xNavCategories, ref sadBin, ref sadS6x);
+            S6xNav.s6xNavCategoriesReset(S6xNavHeaderCategory.SCALARS, ref s6xNavCategories, ref sadBin, ref sadS6x);
+            S6xNav.s6xNavCategoriesReset(S6xNavHeaderCategory.REGISTERS, ref s6xNavCategories, ref sadBin, ref sadS6x);
+
+            // To force refresh of categories in related combo boxes
+            sharedCategComboBox.Tag = null;
+            sharedCateg2ComboBox.Tag = null;
+            sharedCateg3ComboBox.Tag = null;
+
+            S6xNavCategoryDepth categoryDepth = getS6xNavCategoryDepth();
+
+            // Updates First for Threading Purposes
+            foreach (string[] newTreeNodeInfos in alNewTreeNodesInfos)
+            {
+                S6xNavInfo niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[newTreeNodeInfos[0]]);
+                if (!niHeaderCateg.isValid) continue;
+                TreeNode tnNode = niHeaderCateg.FindElement(newTreeNodeInfos[1]);
+                if (tnNode == null) continue;
+
+                if (tnNode.Text != newTreeNodeInfos[2] || tnNode.ToolTipText != newTreeNodeInfos[3]) // For Performance purposes
+                {
+                    tnNode.Text = newTreeNodeInfos[2];
+                    tnNode.ToolTipText = newTreeNodeInfos[3];
+                    tnNode.ForeColor = Color.Purple;
+                }
+                // Check if Node has moved
+                S6xNavInfo niNI = new S6xNavInfo(tnNode);
+                S6xNavCategory navCateg1 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, newTreeNodeInfos[4]);
+                S6xNavCategory navCateg2 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, newTreeNodeInfos[5]);
+                S6xNavCategory navCateg3 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, newTreeNodeInfos[6]);
+                if (niNI.Category != navCateg1 || niNI.Category2 != navCateg2 || niNI.Category3 != navCateg3)
+                {
+                    tnNode.Parent.Nodes.Remove(tnNode);
+                    niHeaderCateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, false, categoryDepth);
+                }
+                niNI = null;
+                newTreeNodeInfos[0] = null; // To be ignored at creation level
+            }
+            // Creations
+            foreach (string[] newTreeNodeInfos in alNewTreeNodesInfos)
+            {
+                if (newTreeNodeInfos[0] == null) continue;
+                S6xNavInfo niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[newTreeNodeInfos[0]]);
+                if (!niHeaderCateg.isValid) continue;
+                if (niHeaderCateg.FindElement(newTreeNodeInfos[1]) != null) continue;
+                TreeNode tnNode = new TreeNode();
+                tnNode.Name = newTreeNodeInfos[1];
+                tnNode.Text = newTreeNodeInfos[2];
+                tnNode.ToolTipText = newTreeNodeInfos[3];
+                tnNode.ContextMenuStrip = elemsContextMenuStrip;
+                tnNode.ForeColor = Color.Red;
+                S6xNavCategory navCateg1 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, newTreeNodeInfos[4]);
+                S6xNavCategory navCateg2 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, newTreeNodeInfos[5]);
+                S6xNavCategory navCateg3 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, newTreeNodeInfos[6]);
+                niHeaderCateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, false, categoryDepth);
+            }
+            alNewTreeNodesInfos = null;
+            //  Duplicates Updates
+            foreach (string[] newDupTreeNodeInfos in alNewDupTreeNodesInfos)
+            {
+                S6xNavInfo niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[newDupTreeNodeInfos[0]]);
+                if (!niHeaderCateg.isValid) continue;
+                TreeNode tnNode = niHeaderCateg.FindElementDuplicate(newDupTreeNodeInfos[2], newDupTreeNodeInfos[1]);
+                if (tnNode == null) continue;
+                if (tnNode.Text != newDupTreeNodeInfos[3] || tnNode.ToolTipText != newDupTreeNodeInfos[4]) // For Performance purposes
+                {
+                    tnNode.Text = newDupTreeNodeInfos[3];
+                    tnNode.ToolTipText = newDupTreeNodeInfos[4];
+                    tnNode.ForeColor = Color.Purple;
+                }
+                // Check if Node has moved
+                S6xNavInfo niNI = new S6xNavInfo(tnNode);
+                S6xNavCategory navCateg1 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, newDupTreeNodeInfos[5]);
+                S6xNavCategory navCateg2 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, newDupTreeNodeInfos[6]);
+                S6xNavCategory navCateg3 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, newDupTreeNodeInfos[7]);
+                if (niNI.Category != navCateg1 || niNI.Category2 != navCateg2 || niNI.Category3 != navCateg3)
+                {
+                    tnNode.Parent.Nodes.Remove(tnNode);
+                    niHeaderCateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, true, categoryDepth);
+                }
+                niNI = null;
+                newDupTreeNodeInfos[0] = null; // To be ignored at creation level
+            }
+            //  Duplicates Creations
+            foreach (string[] newDupTreeNodeInfos in alNewDupTreeNodesInfos)
+            {
+                if (newDupTreeNodeInfos[0] == null) continue;
+                S6xNavInfo niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[newDupTreeNodeInfos[0]]);
+                if (!niHeaderCateg.isValid) continue;
+                S6xNavInfo niMainElement = new S6xNavInfo(niHeaderCateg.FindElement(newDupTreeNodeInfos[2]));
+                if (!niHeaderCateg.isValid) continue;
+                if (niMainElement.FindElement(newDupTreeNodeInfos[1]) != null) continue;
+                TreeNode tnNode = new TreeNode();
+                tnNode.Name = newDupTreeNodeInfos[1];
+                tnNode.Text = newDupTreeNodeInfos[3];
+                tnNode.ToolTipText = newDupTreeNodeInfos[4];
+                tnNode.ContextMenuStrip = elemsContextMenuStrip;
+                tnNode.ForeColor = Color.Red;
+                S6xNavCategory navCateg1 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, newDupTreeNodeInfos[5]);
+                S6xNavCategory navCateg2 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, newDupTreeNodeInfos[6]);
+                S6xNavCategory navCateg3 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, newDupTreeNodeInfos[7]);
+                niHeaderCateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, true, categoryDepth);
+            }
+            alNewDupTreeNodesInfos = null;
+
+            setElementsTreeCategLabel(S6xNavHeaderCategory.TABLES);
+            setElementsTreeCategLabel(S6xNavHeaderCategory.FUNCTIONS);
+            setElementsTreeCategLabel(S6xNavHeaderCategory.SCALARS);
+            setElementsTreeCategLabel(S6xNavHeaderCategory.STRUCTURES);
+            setElementsTreeCategLabel(S6xNavHeaderCategory.REGISTERS);
+
+            elemsTreeView.EndUpdate();
+
+            outputToolStripMenuItem.Enabled = false;
+
+            if (sadProcessManager.ProcessErrors.Count == 0) sadProcessManager.SetProcessFinished("Import is done.");
+            else sadProcessManager.SetProcessFinished("Import has finished with errors.");
+
+            GC.Collect();
+        }
+
+        private void exportXlsFileToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (sadBin == null) return;
+
+            if (!confirmDirtyProperies()) return;
+            if (!confirmProcessRunning()) return;
+
+            if (!confirmXdfXlsOffset()) return;
+
+            if (saveFileDialogXlsx.ShowDialog() != DialogResult.OK) return;
+
+            string xlsFilePath = saveFileDialogXlsx.FileName;
+            bool forceXlsAlt = false;
+            if (File.Exists(xlsFilePath))
+            {
+                string statusXls = ToolsXls.CheckXls(xlsFilePath, forceXlsAlt);
+                string statusXlsxForced = string.Empty;
+                if (statusXls != "OK")
+                {
+                    forceXlsAlt = true;
+                    statusXlsxForced = ToolsXls.CheckXls(xlsFilePath, forceXlsAlt);
+                }
+                if (statusXls != "OK" && statusXlsxForced != "OK")
+                {
+                    MessageBox.Show("Impossible to use the selected file.\r\nThe related software is not properly installed or the file is corrupted.\r\nPlease look at the error message.\r\n\r\n" + statusXls, Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+            }
+
+            processPreviousCursor = Cursor;
+            Cursor = System.Windows.Forms.Cursors.WaitCursor;
+
+            // To prevent opening an old information
+            sadBin.Errors = null;
+
+            sadProcessManager = new SADProcessManager();
+            sadProcessManager.Parameters = new object[] { xlsFilePath, forceXlsAlt };
+
+            toolStripProgressBarMain.Value = 0;
+
+            processType = ProcessType.ProcessManager;
+            processRunning = true;
+            processUpdateTimer.Enabled = true;
+
+            processThread = new Thread(exportXlsFileStartProcess);
+            processThread.Start();
+        }
+
+        private void exportXlsFileStartProcess()
+        {
+            if (sadProcessManager == null) sadProcessManager = new SADProcessManager();
+
+            string filePath = string.Empty;
+            bool forceXlsAlt = false;
+
+            try
+            {
+                if (sadBin == null) throw new Exception();
+
+                filePath = (string)sadProcessManager.Parameters[0];
+                forceXlsAlt = (bool)sadProcessManager.Parameters[1];
+
+                if (filePath == null || filePath == string.Empty) throw new Exception();
+            }
+            catch
+            {
+                sadProcessManager.SetProcessFailed("Invalid process start.");
+                return;
+            }
+
+            XlsFile xlsFile = null;
+            object[] arrSyncRes = null;
+
+            sadProcessManager.SetProcessStarted("Export is starting.");
+
+            if (File.Exists(filePath))
+            {
+                sadProcessManager.ProcessProgressLabel = "Export initialized.\r\nReading file.";
+                sadProcessManager.ProcessProgressStatus = 10;
+
+                xlsFile = new XlsFile();
+                xlsFile.Load(filePath, forceXlsAlt);
+                if (!xlsFile.Valid)
+                {
+                    sadProcessManager.SetProcessFailed("Xls matching has failed.\r\nPlease check destination file.");
+                    return;
+                }
+
+                // Xlsx only Original file autmatic Backup, for Xls, nothing is overwritten
+                if (Path.GetExtension(filePath).ToUpper() == ".XLSX")
+                {
+                    try
+                    {
+                        File.Copy(filePath, filePath + DateTime.Now.ToString(".yyyyMMdd.HHmmss.") + "bak", true);
+                    }
+                    catch
+                    {
+                        xlsFile = null;
+                        sadProcessManager.SetProcessFailed("Xls backup has failed.\r\nNo other action will be managed.");
+                        return;
+                    }
+                }
+
+                sadProcessManager.ProcessProgressLabel = "Export initialized.\r\nFile loaded.\r\nDifferences analysis.";
+                sadProcessManager.ProcessProgressStatus = 30;
+
+                arrSyncRes = sadS6x.writeToFileObject(ref xlsFile, ref sadBin);
+            }
+            else
+            {
+                sadProcessManager.ProcessProgressLabel = "Export initialized.\r\nCreating file.";
+                sadProcessManager.ProcessProgressStatus = 10;
+
+                xlsFile = new XlsFile();
+                xlsFile.Create(filePath, ref sadBin);
+
+                sadProcessManager.ProcessProgressLabel = "Export initialized.\r\nFile created.\r\nOutput preparation.";
+                sadProcessManager.ProcessProgressStatus = 30;
+
+                sadS6x.writeToFileObject(ref xlsFile, ref sadBin);
+                arrSyncRes = new object[] { new string[] { }, new string[] { }, new string[] { }, new string[] { }, new string[] { }, new string[] { }, new string[] { } };
+            }
+
+            sadProcessManager.ProcessProgressLabel = "Export initialized.\r\nOutput prepared.\r\nWriting file.";
+            sadProcessManager.ProcessProgressStatus = 70;
+
+            string saveFilePath = xlsFile.FilePath;
+            if (Path.GetExtension(saveFilePath).ToUpper() != ".XLSX") saveFilePath = Path.ChangeExtension(saveFilePath, ".xlsx");
+
+            List<string> lstErrors = new List<string>();
+            if (!xlsFile.Save(saveFilePath, ref lstErrors))
+            {
+                sadProcessManager.SetProcessFailed("Xls file update has failed.");
+                xlsFile = null;
+                return;
+            }
+            xlsFile = null;
+
+            if (lstErrors.Count > 0) sadProcessManager.ProcessErrors.AddRange(lstErrors);
+            lstErrors = null;
+
+            sadProcessManager.PostProcessAction = "exportXlsFilePostProcess";
+            sadProcessManager.PostProcessParameters = new object[] { arrSyncRes };
+
+            sadProcessManager.ProcessProgressLabel = "Export initialized.\r\nOutput done.\r\nApplying updates.";
+            sadProcessManager.ProcessProgressStatus = 99;       // To switch to 100 after notification update
+        }
+
+        private void exportXlsFilePostProcess()
+        {
+            if (sadProcessManager == null) return;
+
+            object[] arrSyncRes = null;
+
+            try
+            {
+                arrSyncRes = (object[])((object[])sadProcessManager.PostProcessParameters)[0];
+
+                if (arrSyncRes == null) throw new Exception();
+            }
+            catch
+            {
+                sadProcessManager.ProcessErrors.Add("Invalid post process start.");
+                sadProcessManager.SetProcessFailed("Export has failed.");
+                GC.Collect();
+                return;
+            }
+
+            elemsTreeView.BeginUpdate();
+
+            string[] arrSyncResAddresses = null;
+
+            // S6x Updates to be applied to Tree View - No Creation
+            arrSyncResAddresses = (string[])arrSyncRes[0];
+            foreach (string uniqueAddress in arrSyncResAddresses)
+            {
+                S6xNavInfo niHeaderCateg = null;
+                TreeNode tnNode = null;
+                if (sadS6x.slTables.ContainsKey(uniqueAddress))
+                {
+                    niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES)]);
+                    if (!niHeaderCateg.isValid) continue;
+                    tnNode = niHeaderCateg.FindElement(uniqueAddress);
+                    if (tnNode == null) continue;
+                    tnNode.Text = ((S6xTable)sadS6x.slTables[uniqueAddress]).Label;
+                    tnNode.ToolTipText = ((S6xTable)sadS6x.slTables[uniqueAddress]).Comments;
+                    tnNode.ForeColor = Color.Purple;
+                }
+                else if (sadS6x.slFunctions.ContainsKey(uniqueAddress))
+                {
+                    niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS)]);
+                    if (!niHeaderCateg.isValid) continue;
+                    tnNode = niHeaderCateg.FindElement(uniqueAddress);
+                    if (tnNode == null) continue;
+                    tnNode.Text = ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Label;
+                    tnNode.ToolTipText = ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Comments;
+                    tnNode.ForeColor = Color.Purple;
+                }
+                else if (sadS6x.slScalars.ContainsKey(uniqueAddress))
+                {
+                    niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS)]);
+                    if (!niHeaderCateg.isValid) continue;
+                    tnNode = niHeaderCateg.FindElement(uniqueAddress);
+                    if (tnNode == null) continue;
+                    tnNode.Text = ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Label;
+                    tnNode.ToolTipText = ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Comments;
+                    tnNode.ForeColor = Color.Purple;
+                }
+                else if (sadS6x.slStructures.ContainsKey(uniqueAddress))
+                {
+                    niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES)]);
+                    if (!niHeaderCateg.isValid) continue;
+                    tnNode = niHeaderCateg.FindElement(uniqueAddress);
+                    if (tnNode == null) continue;
+                    tnNode.Text = ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Label;
+                    tnNode.ToolTipText = ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Comments;
+                    tnNode.ForeColor = Color.Purple;
+                }
+                else if (sadS6x.slRegisters.ContainsKey(uniqueAddress))
+                {
+                    niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.REGISTERS)]);
+                    if (!niHeaderCateg.isValid) continue;
+                    tnNode = niHeaderCateg.FindElement(uniqueAddress);
+                    if (tnNode == null) continue;
+                    tnNode.Text = ((S6xStructure)sadS6x.slRegisters[uniqueAddress]).Label;
+                    tnNode.ToolTipText = ((S6xStructure)sadS6x.slRegisters[uniqueAddress]).Comments;
+                    tnNode.ForeColor = Color.Purple;
+                }
+            }
+            arrSyncResAddresses = null;
+
+            // Same thing for duplicates
+            arrSyncResAddresses = (string[])arrSyncRes[5];
+            foreach (string duplicateAddress in arrSyncResAddresses)
+            {
+                S6xNavInfo niHeaderCateg = null;
+                TreeNode tnNode = null;
+                if (sadS6x.slDupTables.ContainsKey(duplicateAddress))
+                {
+                    niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES)]);
+                    if (!niHeaderCateg.isValid) continue;
+                    S6xTable s6xObject = (S6xTable)sadS6x.slDupTables[duplicateAddress];
+                    tnNode = niHeaderCateg.FindElementDuplicate(s6xObject.UniqueAddress, duplicateAddress);
+                    if (tnNode == null) continue;
+                    tnNode.Text = s6xObject.Label;
+                    tnNode.ToolTipText = s6xObject.Comments;
+                    tnNode.ForeColor = Color.Purple;
+                }
+                else if (sadS6x.slDupFunctions.ContainsKey(duplicateAddress))
+                {
+                    niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS)]);
+                    if (!niHeaderCateg.isValid) continue;
+                    S6xFunction s6xObject = (S6xFunction)sadS6x.slDupFunctions[duplicateAddress];
+                    tnNode = niHeaderCateg.FindElementDuplicate(s6xObject.UniqueAddress, duplicateAddress);
+                    if (tnNode == null) continue;
+                    tnNode.Text = s6xObject.Label;
+                    tnNode.ToolTipText = s6xObject.Comments;
+                    tnNode.ForeColor = Color.Purple;
+                }
+                else if (sadS6x.slDupScalars.ContainsKey(duplicateAddress))
+                {
+                    niHeaderCateg = new S6xNavInfo(elemsTreeView.Nodes[S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS)]);
+                    if (!niHeaderCateg.isValid) continue;
+                    S6xScalar s6xObject = (S6xScalar)sadS6x.slDupScalars[duplicateAddress];
+                    tnNode = niHeaderCateg.FindElementDuplicate(s6xObject.UniqueAddress, duplicateAddress);
+                    if (tnNode == null) continue;
+                    tnNode.Text = s6xObject.Label;
+                    tnNode.ToolTipText = s6xObject.Comments;
+                    tnNode.ForeColor = Color.Purple;
+                }
+            }
+            arrSyncResAddresses = null;
+
+            elemsTreeView.EndUpdate();
+
+            arrSyncRes = null;
+
+            if (sadProcessManager.ProcessErrors.Count == 0) sadProcessManager.SetProcessFinished("Export is done.");
+            else sadProcessManager.SetProcessFinished("Export has finished with errors.");
+
+            GC.Collect();
+        }
+
+        // 20210114 - PYM - XDF/XLS Offset check to prevent issues
+        //  When changing binary, essentially on banks order, XDF offset can become obsolete
+        //  User is now warned with automatic possibility to use recommanded Offset
+        private bool confirmXdfXlsOffset()
+        {
+            if (sadBin == null) return false;
+
+            int recommendedOffset = SADDef.EecBankStartAddress;
+            bool recommandedOffsetSubtract = true;
+            if (sadBin.isValid)
+            {
+                if (sadBin.Calibration.BankAddressBinInt >= SADDef.EecBankStartAddress)
+                {
+                    recommendedOffset = sadBin.Calibration.BankAddressBinInt - SADDef.EecBankStartAddress;
+                    recommandedOffsetSubtract = false;
+                }
+                else
+                {
+                    recommendedOffset = sadBin.Calibration.BankAddressBinInt + SADDef.EecBankStartAddress;
+                    recommandedOffsetSubtract = true;
+                }
+            }
+
+            int givenOffset = SADDef.EecBankStartAddress;
+            bool givenOffsetSubtract = true;
+            if (sadS6x.Properties.XdfBaseOffset != null || sadS6x.Properties.XdfBaseOffset != string.Empty)
+            {
+                try
+                {
+                    givenOffset = Convert.ToInt32(sadS6x.Properties.XdfBaseOffset, 16);
+                    givenOffsetSubtract = sadS6x.Properties.XdfBaseOffsetSubtract;
+                }
+                catch { }
+            }
+
+            if (givenOffset != recommendedOffset || givenOffsetSubtract != recommandedOffsetSubtract)
+            {
+                string sMessage = "Defined XDF/XLS Offset does not match recommended one.\r\n";
+                sMessage += "Recommanded offset is for starting on Bank 1.\r\n";
+                sMessage += "It is :\r\n\t0x" + string.Format("{0:x1}", recommendedOffset) + " " + (recommandedOffsetSubtract ? "subtracted" : "added") + ".\r\n";
+                sMessage += "Defined one is :\r\n\t0x" + string.Format("{0:x1}", givenOffset) + " " + (givenOffsetSubtract ? "subtracted" : "added") + ".\r\n";
+                sMessage += "\r\nUpdate properties with recommanded offset before processing ?";
+                DialogResult dResult = MessageBox.Show(sMessage, Application.ProductName, MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                if (dResult == DialogResult.Yes)
+                {
+                    sadS6x.Properties.XdfBaseOffset = string.Format("{0:x1}", recommendedOffset);
+                    sadS6x.Properties.XdfBaseOffsetSubtract = recommandedOffsetSubtract;
+                    sadS6x.isSaved = false;
+
+                    s6xPropertiesXdfBaseOffsetTextBox.Text = sadS6x.Properties.XdfBaseOffset;
+                    s6xPropertiesXdfBaseOffsetCheckBox.Checked = sadS6x.Properties.XdfBaseOffsetSubtract;
+                }
+                else if (dResult == DialogResult.No)
+                {
+                    // No Change
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private void importXdfFileToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            importXdfFile(string.Empty, false);
+        }
+
+        private void importXdfCategsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            importXdfFile(string.Empty, true);
+        }
+
+        private void importXdfFile(string xFilePath, bool categsOnly)
+        {
+            if (sadBin == null) return;
+
+            if (!confirmDirtyProperies()) return;
+            if (!confirmProcessRunning()) return;
+
+            // 20210114 - PYM - Offset check to prevent issues
+            if (!confirmXdfXlsOffset()) return;
 
             if (xFilePath == string.Empty)
             {
@@ -9672,7 +10686,7 @@ namespace SAD806x
             sadBin.Errors = null;
 
             sadProcessManager = new SADProcessManager();
-            sadProcessManager.Parameters = new object[] { xFilePath, alReservedAddresses };
+            sadProcessManager.Parameters = new object[] { xFilePath, alReservedAddresses, categsOnly };
 
             toolStripProgressBarMain.Value = 0;
 
@@ -9691,6 +10705,7 @@ namespace SAD806x
             if (sadProcessManager == null) sadProcessManager = new SADProcessManager();
 
             string filePath = string.Empty;
+            bool categsOnly = false;
 
             try
             {
@@ -9698,6 +10713,7 @@ namespace SAD806x
 
                 filePath = (string)sadProcessManager.Parameters[0];
                 alReservedAddresses = (ArrayList)sadProcessManager.Parameters[1];
+                categsOnly = (bool)sadProcessManager.Parameters[2];
 
                 if (filePath == null || filePath == string.Empty) throw new Exception();
                 if (alReservedAddresses == null) throw new Exception();
@@ -9713,7 +10729,7 @@ namespace SAD806x
             sadProcessManager.ProcessProgressLabel = "Import initialized.\r\nReading file.";
             sadProcessManager.ProcessProgressStatus = 10;
 
-            XdfFile xdfFile = xdfFile = (XdfFile)ToolsXml.DeserializeFile(filePath, typeof(XdfFile));
+            XdfFile xdfFile = (XdfFile)ToolsXml.DeserializeFile(filePath, typeof(XdfFile));
             if (xdfFile == null)
             {
                 sadProcessManager.SetProcessFailed("Xdf import has failed.\r\nPlease check it is not encrypted.");
@@ -9723,7 +10739,7 @@ namespace SAD806x
             sadProcessManager.ProcessProgressLabel = "Import initialized.\r\nFile loaded.\r\nDifferences analysis.";
             sadProcessManager.ProcessProgressStatus = 30;
             
-            object[] arrSyncRes = sadS6x.readFromFileObject(ref xdfFile, ref sadBin, ref alReservedAddresses);
+            object[] arrSyncRes = sadS6x.readFromFileObject(ref xdfFile, ref sadBin, ref alReservedAddresses, categsOnly);
             xdfFile = null;
 
             alReservedAddresses = null;
@@ -9743,19 +10759,19 @@ namespace SAD806x
             {
                 if (sadS6x.slTables.ContainsKey(uniqueAddress))
                 {
-                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), uniqueAddress, ((S6xTable)sadS6x.slTables[uniqueAddress]).Label, ((S6xTable)sadS6x.slTables[uniqueAddress]).Comments });
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), uniqueAddress, ((S6xTable)sadS6x.slTables[uniqueAddress]).Label, ((S6xTable)sadS6x.slTables[uniqueAddress]).Comments, ((S6xTable)sadS6x.slTables[uniqueAddress]).Category, ((S6xTable)sadS6x.slTables[uniqueAddress]).Category2, ((S6xTable)sadS6x.slTables[uniqueAddress]).Category3 });
                 }
                 else if (sadS6x.slFunctions.ContainsKey(uniqueAddress))
                 {
-                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), uniqueAddress, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Label, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Comments });
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), uniqueAddress, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Label, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Comments, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Category, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Category2, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Category3 });
                 }
                 else if (sadS6x.slScalars.ContainsKey(uniqueAddress))
                 {
-                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), uniqueAddress, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Label, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Comments });
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), uniqueAddress, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Label, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Comments, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Category, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Category2, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Category3 });
                 }
                 else if (sadS6x.slStructures.ContainsKey(uniqueAddress))
                 {
-                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), uniqueAddress, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Label, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Comments });
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), uniqueAddress, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Label, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Comments, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Category, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Category2, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Category3 });
                 }
             }
             arrSyncResAddresses = null;
@@ -9766,15 +10782,19 @@ namespace SAD806x
             {
                 if (sadS6x.slDupTables.ContainsKey(duplicateAddress))
                 {
-                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), duplicateAddress, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).UniqueAddress, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Label, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Comments });
+                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), duplicateAddress, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).UniqueAddress, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Label, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Comments, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Category, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Category2, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Category3 });
                 }
                 else if (sadS6x.slDupFunctions.ContainsKey(duplicateAddress))
                 {
-                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), duplicateAddress, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).UniqueAddress, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Label, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Comments });
+                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), duplicateAddress, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).UniqueAddress, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Label, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Comments, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Category, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Category2, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Category3 });
                 }
                 else if (sadS6x.slDupScalars.ContainsKey(duplicateAddress))
                 {
-                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), duplicateAddress, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).UniqueAddress, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Label, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Comments });
+                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), duplicateAddress, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).UniqueAddress, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Label, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Comments, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Category, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Category2, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Category3 });
+                }
+                else if (sadS6x.slDupStructures.ContainsKey(duplicateAddress))
+                {
+                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), duplicateAddress, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).UniqueAddress, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Label, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Comments, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Category, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Category2, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Category3 });
                 }
             }
             arrSyncResAddresses = null;
@@ -9785,19 +10805,19 @@ namespace SAD806x
             {
                 if (sadS6x.slTables.ContainsKey(uniqueAddress))
                 {
-                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), uniqueAddress, ((S6xTable)sadS6x.slTables[uniqueAddress]).Label, ((S6xTable)sadS6x.slTables[uniqueAddress]).Comments });
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), uniqueAddress, ((S6xTable)sadS6x.slTables[uniqueAddress]).Label, ((S6xTable)sadS6x.slTables[uniqueAddress]).Comments, ((S6xTable)sadS6x.slTables[uniqueAddress]).Category, ((S6xTable)sadS6x.slTables[uniqueAddress]).Category2, ((S6xTable)sadS6x.slTables[uniqueAddress]).Category3 });
                 }
                 else if (sadS6x.slFunctions.ContainsKey(uniqueAddress))
                 {
-                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), uniqueAddress, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Label, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Comments });
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), uniqueAddress, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Label, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Comments, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Category, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Category2, ((S6xFunction)sadS6x.slFunctions[uniqueAddress]).Category3 });
                 }
                 else if (sadS6x.slScalars.ContainsKey(uniqueAddress))
                 {
-                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), uniqueAddress, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Label, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Comments });
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), uniqueAddress, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Label, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Comments, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Category, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Category2, ((S6xScalar)sadS6x.slScalars[uniqueAddress]).Category3 });
                 }
                 else if (sadS6x.slStructures.ContainsKey(uniqueAddress))
                 {
-                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), uniqueAddress, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Label, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Comments });
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), uniqueAddress, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Label, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Comments, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Category, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Category2, ((S6xStructure)sadS6x.slStructures[uniqueAddress]).Category3 });
                 }
             }
             arrSyncResAddresses = null;
@@ -9808,15 +10828,19 @@ namespace SAD806x
             {
                 if (sadS6x.slDupTables.ContainsKey(duplicateAddress))
                 {
-                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), duplicateAddress, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).UniqueAddress, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Label, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Comments });
+                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), duplicateAddress, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).UniqueAddress, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Label, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Comments, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Category, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Category2, ((S6xTable)sadS6x.slDupTables[duplicateAddress]).Category3 });
                 }
                 else if (sadS6x.slDupFunctions.ContainsKey(duplicateAddress))
                 {
-                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), duplicateAddress, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).UniqueAddress, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Label, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Comments });
+                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), duplicateAddress, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).UniqueAddress, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Label, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Comments, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Category, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Category2, ((S6xFunction)sadS6x.slDupFunctions[duplicateAddress]).Category3 });
                 }
                 else if (sadS6x.slDupScalars.ContainsKey(duplicateAddress))
                 {
-                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), duplicateAddress, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).UniqueAddress, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Label, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Comments });
+                    alNewDupTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), duplicateAddress, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).UniqueAddress, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Label, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Comments, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Category, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Category2, ((S6xScalar)sadS6x.slDupScalars[duplicateAddress]).Category3 });
+                }
+                else if (sadS6x.slDupStructures.ContainsKey(duplicateAddress))
+                {
+                    alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), duplicateAddress, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).UniqueAddress, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Label, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Comments, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Category, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Category2, ((S6xStructure)sadS6x.slDupStructures[duplicateAddress]).Category3 });
                 }
             }
             arrSyncResAddresses = null;
@@ -9871,6 +10895,18 @@ namespace SAD806x
 
             elemsTreeView.BeginUpdate();
 
+            S6xNav.s6xNavCategoriesReset(S6xNavHeaderCategory.STRUCTURES, ref s6xNavCategories, ref sadBin, ref sadS6x);
+            S6xNav.s6xNavCategoriesReset(S6xNavHeaderCategory.TABLES, ref s6xNavCategories, ref sadBin, ref sadS6x);
+            S6xNav.s6xNavCategoriesReset(S6xNavHeaderCategory.FUNCTIONS, ref s6xNavCategories, ref sadBin, ref sadS6x);
+            S6xNav.s6xNavCategoriesReset(S6xNavHeaderCategory.SCALARS, ref s6xNavCategories, ref sadBin, ref sadS6x);
+
+            // To force refresh of categories in related combo boxes
+            sharedCategComboBox.Tag = null;
+            sharedCateg2ComboBox.Tag = null;
+            sharedCateg3ComboBox.Tag = null;
+
+            S6xNavCategoryDepth categoryDepth = getS6xNavCategoryDepth();
+
             // Updates First for Threading Purposes
             foreach (string[] newTreeNodeInfos in alNewTreeNodesInfos)
             {
@@ -9878,12 +10914,24 @@ namespace SAD806x
                 if (!niHeaderCateg.isValid) continue;
                 TreeNode tnNode = niHeaderCateg.FindElement(newTreeNodeInfos[1]);
                 if (tnNode == null) continue;
+
                 if (tnNode.Text != newTreeNodeInfos[2] || tnNode.ToolTipText != newTreeNodeInfos[3]) // For Performance purposes
                 {
                     tnNode.Text = newTreeNodeInfos[2];
                     tnNode.ToolTipText = newTreeNodeInfos[3];
                     tnNode.ForeColor = Color.Purple;
                 }
+                // Check if Node has moved
+                S6xNavInfo niNI = new S6xNavInfo(tnNode);
+                S6xNavCategory navCateg1 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, newTreeNodeInfos[4]);
+                S6xNavCategory navCateg2 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, newTreeNodeInfos[5]);
+                S6xNavCategory navCateg3 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, newTreeNodeInfos[6]);
+                if (niNI.Category != navCateg1 || niNI.Category2 != navCateg2 || niNI.Category3 != navCateg3)
+                {
+                    tnNode.Parent.Nodes.Remove(tnNode);
+                    niHeaderCateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, false, categoryDepth);
+                }
+                niNI = null;
                 newTreeNodeInfos[0] = null; // To be ignored at creation level
             }
             // Creations
@@ -9899,7 +10947,10 @@ namespace SAD806x
                 tnNode.ToolTipText = newTreeNodeInfos[3];
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
                 tnNode.ForeColor = Color.Red;
-                niHeaderCateg.AddNode(tnNode, null, null, null, false);
+                S6xNavCategory navCateg1 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, newTreeNodeInfos[4]);
+                S6xNavCategory navCateg2 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, newTreeNodeInfos[5]);
+                S6xNavCategory navCateg3 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, newTreeNodeInfos[6]);
+                niHeaderCateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, false, categoryDepth);
             }
             alNewTreeNodesInfos = null;
             //  Duplicates Updates
@@ -9915,6 +10966,17 @@ namespace SAD806x
                     tnNode.ToolTipText = newDupTreeNodeInfos[4];
                     tnNode.ForeColor = Color.Purple;
                 }
+                // Check if Node has moved
+                S6xNavInfo niNI = new S6xNavInfo(tnNode);
+                S6xNavCategory navCateg1 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, newDupTreeNodeInfos[5]);
+                S6xNavCategory navCateg2 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, newDupTreeNodeInfos[6]);
+                S6xNavCategory navCateg3 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, newDupTreeNodeInfos[7]);
+                if (niNI.Category != navCateg1 || niNI.Category2 != navCateg2 || niNI.Category3 != navCateg3)
+                {
+                    tnNode.Parent.Nodes.Remove(tnNode);
+                    niHeaderCateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, true, categoryDepth);
+                }
+                niNI = null;
                 newDupTreeNodeInfos[0] = null; // To be ignored at creation level
             }
             //  Duplicates Creations
@@ -9932,7 +10994,10 @@ namespace SAD806x
                 tnNode.ToolTipText = newDupTreeNodeInfos[4];
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
                 tnNode.ForeColor = Color.Red;
-                niMainElement.AddNode(tnNode, null, null, null, true);
+                S6xNavCategory navCateg1 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, newDupTreeNodeInfos[5]);
+                S6xNavCategory navCateg2 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, newDupTreeNodeInfos[6]);
+                S6xNavCategory navCateg3 = s6xNavCategories.getCategory(niHeaderCateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, newDupTreeNodeInfos[7]);
+                niHeaderCateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, true, categoryDepth);
             }
             alNewDupTreeNodesInfos = null;
 
@@ -10041,6 +11106,9 @@ namespace SAD806x
             if (!confirmDirtyProperies()) return;
             if (!confirmProcessRunning()) return;
 
+            // 20210114 - PYM - Offset check to prevent issues
+            if (!confirmXdfXlsOffset()) return;
+
             if (saveFileDialogXdf.ShowDialog() != DialogResult.OK) return;
 
             processPreviousCursor = Cursor;
@@ -10088,6 +11156,10 @@ namespace SAD806x
 
             sadProcessManager.SetProcessStarted("Export is starting.");
 
+            SettingsLst tpSettings = (SettingsLst)ToolsXml.DeserializeFile(Application.StartupPath + "\\" + SADDef.settingsTunerProImpExpFileName, typeof(SettingsLst));
+            if (tpSettings == null) tpSettings = new SettingsLst();
+            ToolsSettings.Update(ref tpSettings, "TUNERPROIMPEXP");
+
             if (File.Exists(filePath))
             {
                 sadProcessManager.ProcessProgressLabel = "Export initialized.\r\nReading file.";
@@ -10115,7 +11187,7 @@ namespace SAD806x
                 sadProcessManager.ProcessProgressLabel = "Export initialized.\r\nFile loaded.\r\nDifferences analysis.";
                 sadProcessManager.ProcessProgressStatus = 30;
 
-                arrSyncRes = sadS6x.writeToFileObject(ref xdfFile, ref sadBin);
+                arrSyncRes = sadS6x.writeToFileObject(ref xdfFile, ref sadBin, ref tpSettings);
             }
             else
             {
@@ -10126,8 +11198,8 @@ namespace SAD806x
 
                 sadProcessManager.ProcessProgressLabel = "Export initialized.\r\nFile created.\r\nOutput preparation.";
                 sadProcessManager.ProcessProgressStatus = 30;
-                
-                sadS6x.writeToFileObject(ref xdfFile, ref sadBin);
+
+                sadS6x.writeToFileObject(ref xdfFile, ref sadBin, ref tpSettings);
                 arrSyncRes = new object[] { new string[] { }, new string[] { }, new string[] { }, new string[] { }, new string[] { }, new string[] { }, new string[] { } };
             }
 
@@ -10338,26 +11410,29 @@ namespace SAD806x
 
             tempRoutine.Label = routineLabelTextBox.Text;
 
-            RoutineForm routineForm = new RoutineForm(ref sadS6x, ref tempRoutine);
-            routineForm.ShowDialog();
+            RoutineForm routineForm = new RoutineForm(ref sadS6x, ref tempRoutine, ref elemsTreeViewStateImageList, ref s6xNavCategories);
+            bool updatedRoutine = routineForm.ShowDialog() == DialogResult.OK;
             routineForm = null;
 
-            tempRoutine.ByteArgumentsNum = 0;
-            if (tempRoutine.InputArguments != null)
+            if (updatedRoutine)
             {
-                foreach (S6xRoutineInputArgument arg in tempRoutine.InputArguments)
+                tempRoutine.ByteArgumentsNum = 0;
+                if (tempRoutine.InputArguments != null)
                 {
-                    tempRoutine.ByteArgumentsNum++;
-                    if (arg.Word) tempRoutine.ByteArgumentsNum++;
+                    foreach (S6xRoutineInputArgument arg in tempRoutine.InputArguments)
+                    {
+                        tempRoutine.ByteArgumentsNum++;
+                        if (arg.Word) tempRoutine.ByteArgumentsNum++;
+                    }
                 }
-            }
-            routineArgsNumTextBox.Text = tempRoutine.ByteArgumentsNum.ToString();
-            signatureAdvCheckBox.Checked = tempRoutine.isAdvanced;
-            
-            // To be reused on Update
-            routineAdvButton.Tag = tempRoutine;
+                routineArgsNumTextBox.Text = tempRoutine.ByteArgumentsNum.ToString();
+                signatureAdvCheckBox.Checked = tempRoutine.isAdvanced;
 
-            elemProperties_Modified(routineAdvButton, new EventArgs());
+                // To be reused on Update
+                routineAdvButton.Tag = tempRoutine;
+
+                elemProperties_Modified(routineAdvButton, new EventArgs());
+            }
 
             tempRoutine = null;
         }
@@ -10385,17 +11460,20 @@ namespace SAD806x
             tempSig.Label = signatureLabelTextBox.Text;
             tempSig.Signature = signatureSigTextBox.Text;
 
-            SigForm sigForm = new SigForm(ref sadS6x, ref tempSig);
-            sigForm.ShowDialog();
+            SigForm sigForm = new SigForm(ref sadS6x, ref tempSig, ref elemsTreeViewStateImageList, ref s6xNavCategories);
+            bool updatedSignature = sigForm.ShowDialog() == DialogResult.OK;
             sigForm = null;
 
-            signatureSigTextBox.Text = tempSig.Signature;
-            signatureAdvCheckBox.Checked = tempSig.isAdvanced;
-            
-            // To be reused on Update
-            signatureAdvButton.Tag = tempSig;
+            if (updatedSignature)
+            {
+                signatureSigTextBox.Text = tempSig.Signature;
+                signatureAdvCheckBox.Checked = tempSig.isAdvanced;
 
-            elemProperties_Modified(signatureAdvButton, new EventArgs());
+                // To be reused on Update
+                signatureAdvButton.Tag = tempSig;
+
+                elemProperties_Modified(signatureAdvButton, new EventArgs());
+            }
 
             tempSig = null;
         }
@@ -10436,21 +11514,23 @@ namespace SAD806x
             tempESig.SignatureLabel = elementSignatureLabelTextBox.Text;
             tempESig.Signature = elementSignatureSigTextBox.Text;
 
-            ElemSigForm eSigForm = new ElemSigForm(ref sadS6x, ref tempESig);
-            eSigForm.ShowDialog();
+            ElemSigForm eSigForm = new ElemSigForm(ref sadS6x, ref tempESig, ref elemsTreeViewStateImageList, ref s6xNavCategories);
+            bool updatedSignature = eSigForm.ShowDialog() == DialogResult.OK;
             eSigForm = null;
 
-            elementSignatureSigTextBox.Text = tempESig.Signature;
-            if (tempESig.Scalar != null) elementSignatureTypeComboBox.SelectedIndex = 0;
-            else if (tempESig.Function != null) elementSignatureTypeComboBox.SelectedIndex = 1;
-            else if (tempESig.Table != null) elementSignatureTypeComboBox.SelectedIndex = 2;
-            else if (tempESig.Structure != null) elementSignatureTypeComboBox.SelectedIndex = 3;
+            if (updatedSignature)
+            {
+                elementSignatureSigTextBox.Text = tempESig.Signature;
+                if (tempESig.Scalar != null) elementSignatureTypeComboBox.SelectedIndex = 0;
+                else if (tempESig.Function != null) elementSignatureTypeComboBox.SelectedIndex = 1;
+                else if (tempESig.Table != null) elementSignatureTypeComboBox.SelectedIndex = 2;
+                else if (tempESig.Structure != null) elementSignatureTypeComboBox.SelectedIndex = 3;
 
-            // To be reused on Update
-            elementSignatureElemButton.Tag = tempESig;
+                // To be reused on Update
+                elementSignatureElemButton.Tag = tempESig;
 
-            elemProperties_Modified(elementSignatureElemButton, new EventArgs());
-
+                elemProperties_Modified(elementSignatureElemButton, new EventArgs());
+            }
             tempESig = null;
         }
 
@@ -10477,16 +11557,19 @@ namespace SAD806x
             tempScalar.Label = scalarLabelTextBox.Text;
             tempScalar.Byte = scalarByteCheckBox.Checked;
 
-            BitFlagsForm bitFlagsForm = new BitFlagsForm(ref sadS6x, ref tempScalar);
-            bitFlagsForm.ShowDialog();
+            BitFlagsForm bitFlagsForm = new BitFlagsForm(ref sadS6x, ref tempScalar, ref elemsTreeViewStateImageList, ref s6xNavCategories);
+            bool updatedBitFlags = bitFlagsForm.ShowDialog() == DialogResult.OK;
             bitFlagsForm = null;
 
-            scalarBitFlagsCheckBox.Checked = tempScalar.isBitFlags;
+            if (updatedBitFlags)
+            {
+                scalarBitFlagsCheckBox.Checked = tempScalar.isBitFlags;
 
-            // To be reused on Update
-            scalarBitFlagsButton.Tag = tempScalar;
+                // To be reused on Update
+                scalarBitFlagsButton.Tag = tempScalar;
 
-            elemProperties_Modified(scalarBitFlagsButton, new EventArgs());
+                elemProperties_Modified(scalarBitFlagsButton, new EventArgs());
+            }
 
             tempScalar = null;
         }
@@ -10513,16 +11596,19 @@ namespace SAD806x
 
             tempReg.Label = regLabelTextBox.Text;
 
-            BitFlagsForm bitFlagsForm = new BitFlagsForm(ref sadS6x, ref tempReg);
-            bitFlagsForm.ShowDialog();
+            BitFlagsForm bitFlagsForm = new BitFlagsForm(ref sadS6x, ref tempReg, ref elemsTreeViewStateImageList, ref s6xNavCategories);
+            bool updatedBitFlags = bitFlagsForm.ShowDialog() == DialogResult.OK;
             bitFlagsForm = null;
 
-            regBitFlagsCheckBox.Checked = tempReg.isBitFlags;
+            if (updatedBitFlags)
+            {
+                regBitFlagsCheckBox.Checked = tempReg.isBitFlags;
 
-            // To be reused on Update
-            regBitFlagsButton.Tag = tempReg;
+                // To be reused on Update
+                regBitFlagsButton.Tag = tempReg;
 
-            elemProperties_Modified(regBitFlagsButton, new EventArgs());
+                elemProperties_Modified(regBitFlagsButton, new EventArgs());
+            }
 
             tempReg = null;
         }
@@ -10553,7 +11639,7 @@ namespace SAD806x
 
             if (compareForm == null)
             {
-                compareForm = new CompareForm(ref sadBin, ref sadS6x, ref elemsTreeView, ref elemsContextMenuStrip, true, true);
+                compareForm = new CompareForm(ref sadBin, ref sadS6x, ref elemsTreeView, ref elemsContextMenuStrip, ref elemContextMenuStrip, true, true);
                 compareForm.FormClosed += new FormClosedEventHandler(compareForm_FormClosed);
             }
             compareForm.Show();
@@ -10570,7 +11656,7 @@ namespace SAD806x
 
             if (compareForm == null)
             {
-                compareForm = new CompareForm(ref sadBin, ref sadS6x, ref elemsTreeView, ref elemsContextMenuStrip, true, false);
+                compareForm = new CompareForm(ref sadBin, ref sadS6x, ref elemsTreeView, ref elemsContextMenuStrip, ref elemContextMenuStrip, true, false);
                 compareForm.FormClosed += new FormClosedEventHandler(compareForm_FormClosed);
             }
             compareForm.Show();
@@ -10587,7 +11673,7 @@ namespace SAD806x
 
             if (compareForm == null)
             {
-                compareForm = new CompareForm(ref sadBin, ref sadS6x, ref elemsTreeView, ref elemsContextMenuStrip, false, false);
+                compareForm = new CompareForm(ref sadBin, ref sadS6x, ref elemsTreeView, ref elemsContextMenuStrip, ref elemContextMenuStrip, false, false);
                 compareForm.FormClosed += new FormClosedEventHandler(compareForm_FormClosed);
             }
             compareForm.Show();
@@ -11067,6 +12153,31 @@ namespace SAD806x
             initRepositoryConversion();
         }
 
+        private void sharedCategsDepthToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ToolStripMenuItem tsmiSelected = null;
+            if (sharedCategsDepthMaxToolStripMenuItem.Checked) tsmiSelected = sharedCategsDepthMaxToolStripMenuItem;
+            else if (sharedCategsDepthMedToolStripMenuItem.Checked) tsmiSelected = sharedCategsDepthMedToolStripMenuItem;
+            else if (sharedCategsDepthMinToolStripMenuItem.Checked) tsmiSelected = sharedCategsDepthMinToolStripMenuItem;
+            else if (sharedCategsDepthNoneToolStripMenuItem.Checked) tsmiSelected = sharedCategsDepthNoneToolStripMenuItem;
+
+            if ((ToolStripMenuItem)sender == tsmiSelected) return;
+
+            tsmiSelected.Checked = false;
+            tsmiSelected = null;
+
+            ((ToolStripMenuItem)sender).Checked = true;
+
+            ShowElementsTreeLoadS6x();
+        }
+
+        private void sharedIdentificationStatusTrackBar_ValueChanged(object sender, EventArgs e)
+        {
+            int iStatus = sharedIdentificationStatusTrackBar.Value;
+
+            sharedIdentificationLabel.Text = string.Format("{0} ({1:d2}%)", sharedIdentificationLabel.Tag, iStatus);
+        }
+
         private void tableScalerButton_Click(object sender, EventArgs e)
         {
             scalerContextMenuStrip.Tag = sender;
@@ -11408,6 +12519,11 @@ namespace SAD806x
             new SettingsForm("TunerPro Import/Export Settings", Application.StartupPath + "\\" + SADDef.settingsTunerProImpExpFileName, "TUNERPROIMPEXP").ShowDialog();
         }
 
+        private void settingsEABEToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            new SettingsForm("EEC Analyser/Binary Editor Import/Export Settings", Application.StartupPath + "\\" + SADDef.settingsTunerProImpExpFileName, "EABEIMPEXP").ShowDialog();
+        }
+
         private void settings806xUniDbToolStripMenuItem_Click(object sender, EventArgs e)
         {
             new SettingsForm("806x universal database Settings", Application.StartupPath + "\\" + SADDef.settings806xUniDbImpExpFileName, "806XUNIDBIMPEXP").ShowDialog();
@@ -11431,6 +12547,7 @@ namespace SAD806x
                     if (newComments != s6xObject.Comments)
                     {
                         s6xObject.Comments = newComments;
+                        s6xObject.DateUpdated = DateTime.UtcNow;
                         sadS6x.isSaved = false;
 
                         if (!niHeaderCateg.isValid) continue;
@@ -11449,6 +12566,7 @@ namespace SAD806x
                     if (newComments != s6xObject.Comments)
                     {
                         s6xObject.Comments = newComments;
+                        s6xObject.DateUpdated = DateTime.UtcNow;
                         sadS6x.isSaved = false;
 
                         if (!niHeaderCateg.isValid) continue;
@@ -11474,6 +12592,7 @@ namespace SAD806x
                     if (newComments != s6xObject.Comments)
                     {
                         s6xObject.Comments = newComments;
+                        s6xObject.DateUpdated = DateTime.UtcNow;
                         sadS6x.isSaved = false;
 
                         if (!niHeaderCateg.isValid) continue;
@@ -11492,6 +12611,7 @@ namespace SAD806x
                     if (newComments != s6xObject.Comments)
                     {
                         s6xObject.Comments = newComments;
+                        s6xObject.DateUpdated = DateTime.UtcNow;
                         sadS6x.isSaved = false;
 
                         if (!niHeaderCateg.isValid) continue;
@@ -11517,6 +12637,7 @@ namespace SAD806x
                     if (newComments != s6xObject.Comments)
                     {
                         s6xObject.Comments = newComments;
+                        s6xObject.DateUpdated = DateTime.UtcNow;
                         sadS6x.isSaved = false;
 
                         if (!niHeaderCateg.isValid) continue;
@@ -11535,6 +12656,7 @@ namespace SAD806x
                     if (newComments != s6xObject.Comments)
                     {
                         s6xObject.Comments = newComments;
+                        s6xObject.DateUpdated = DateTime.UtcNow;
                         sadS6x.isSaved = false;
 
                         if (!niHeaderCateg.isValid) continue;
@@ -11550,539 +12672,6 @@ namespace SAD806x
             }
 
             elemsTreeView.EndUpdate();
-        }
-
-        private void exportUniDb806xToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            if (!activatedUniDb806x) return;
-
-            if (sadBin == null) return;
-            if (sadS6x == null) return;
-
-            if (!confirmDirtyProperies()) return;
-            if (!confirmProcessRunning()) return;
-
-            if (saveFileDialogSQLite.ShowDialog() != DialogResult.OK) return;
-
-            processPreviousCursor = Cursor;
-            Cursor = System.Windows.Forms.Cursors.WaitCursor;
-
-            // To prevent opening an old information
-            sadBin.Errors = null;
-
-            sadProcessManager = new SADProcessManager();
-            sadProcessManager.Parameters = new object[] { saveFileDialogSQLite.FileName };
-
-            toolStripProgressBarMain.Value = 0;
-
-            processType = ProcessType.ProcessManager;
-            processRunning = true;
-            processUpdateTimer.Enabled = true;
-
-            processThread = new Thread(exportUniDb806xStartProcess);
-            processThread.Start();
-        }
-
-        private void exportUniDb806xStartProcess()
-        {
-            if (sadProcessManager == null) sadProcessManager = new SADProcessManager();
-
-            string filePath = string.Empty;
-
-            try
-            {
-                if (sadBin == null) throw new Exception();
-
-                filePath = (string)sadProcessManager.Parameters[0];
-
-                if (filePath == null || filePath == string.Empty) throw new Exception();
-            }
-            catch
-            {
-                sadProcessManager.SetProcessFailed("Invalid process start.");
-                return;
-            }
-
-            if (File.Exists(filePath))
-            {
-                // Original file autmatic Backup
-                try
-                {
-                    File.Copy(filePath, filePath + DateTime.Now.ToString(".yyyyMMdd.HHmmss.") + "bak", true);
-                }
-                catch
-                {
-                    sadProcessManager.SetProcessFailed("SQLite file backup has failed.\r\nNo other action will be managed.");
-                    return;
-                }
-            }
-            else
-            {
-                sadProcessManager.SetProcessFailed("SQLite file does not exist.\r\nNo compliant schema is available.\r\nNo other action will be managed.");
-                return;
-            }
-
-            //string filePath = @"C:\Users\Pym\Desktop\806x_SDSQLite.db";     // System.Data.SQLite
-            //string filePath = @"C:\Users\Pym\Desktop\806x_SQLite3.db";     // SQLite3
-            //string filePath = @"C:\Users\Pym\Desktop\806x_SQLite2.db";     // SQLite2
-
-            SQLite806xDB db806x = null;
-
-            try
-            {
-                db806x = new SQLite806xDB(filePath);
-            }
-            catch
-            {
-                sadProcessManager.SetProcessFailed("SQLite file opening or schema reading has failed.\r\nNo other action will be managed.");
-                return;
-            }
-
-            if (!db806x.ValidDB)
-            {
-                sadProcessManager.SetProcessFailed("SQLite file schema reading is not valid.\r\nNo other action will be managed.");
-                return;
-            }
-
-            ArrayList alErrors = new ArrayList();
-            
-            try
-            {
-                List<R_806x_Def_Tables> tTables = new List<R_806x_Def_Tables>();
-                foreach (S6xTable s6xObject in sadS6x.slTables.Values) SQLite806xTools.addTableRow(ref db806x, ref sadS6x, ref tTables, s6xObject);
-                foreach (S6xTable s6xObject in sadS6x.slDupTables.Values) SQLite806xTools.addTableRow(ref db806x, ref sadS6x, ref tTables, s6xObject);
-                db806x.Truncate<R_806x_Def_Tables>();
-                db806x.Write<R_806x_Def_Tables>(ref tTables);
-                tTables = null;
-            }
-            catch (Exception ex)
-            {
-                sadProcessManager.ProcessErrors.Add("SQLite Tables export part has failed.\r\n" + ex.Message);
-            }
-
-            try
-            {
-                List<R_806x_Def_Functions> tFunctions = new List<R_806x_Def_Functions>();
-                foreach (S6xFunction s6xObject in sadS6x.slFunctions.Values) SQLite806xTools.addFunctionRow(ref db806x, ref sadS6x, ref tFunctions, s6xObject);
-                foreach (S6xFunction s6xObject in sadS6x.slDupFunctions.Values) SQLite806xTools.addFunctionRow(ref db806x, ref sadS6x, ref tFunctions, s6xObject);
-                db806x.Truncate<R_806x_Def_Functions>();
-                db806x.Write<R_806x_Def_Functions>(ref tFunctions);
-                tFunctions = null;
-            }
-            catch (Exception ex)
-            {
-                sadProcessManager.ProcessErrors.Add("SQLite Functions export part has failed.\r\n" + ex.Message);
-            }
-
-            try
-            {
-                List<R_806x_Def_Scalars> tScalars = new List<R_806x_Def_Scalars>();
-                List<R_806x_Def_ScalarsBitFlags> tScalarsBF = new List<R_806x_Def_ScalarsBitFlags>();
-                foreach (S6xScalar s6xObject in sadS6x.slScalars.Values)
-                {
-                    SQLite806xTools.addScalarRow(ref db806x, ref sadS6x, ref tScalars, s6xObject);
-                    SQLite806xTools.addScalarBitFlagRow(ref db806x, ref sadS6x, ref tScalarsBF, s6xObject);
-                }
-                foreach (S6xScalar s6xObject in sadS6x.slDupScalars.Values)
-                {
-                    SQLite806xTools.addScalarRow(ref db806x, ref sadS6x, ref tScalars, s6xObject);
-                    SQLite806xTools.addScalarBitFlagRow(ref db806x, ref sadS6x, ref tScalarsBF, s6xObject);
-                }
-                db806x.Truncate<R_806x_Def_Scalars>();
-                db806x.Write<R_806x_Def_Scalars>(ref tScalars);
-                tScalars = null;
-                db806x.Truncate<R_806x_Def_ScalarsBitFlags>();
-                db806x.Write<R_806x_Def_ScalarsBitFlags>(ref tScalarsBF);
-                tScalarsBF = null;
-            }
-            catch (Exception ex)
-            {
-                sadProcessManager.ProcessErrors.Add("SQLite Scalars export part has failed.\r\n" + ex.Message);
-            }
-
-            try
-            {
-
-                List<R_806x_Def_Structures> tStructures = new List<R_806x_Def_Structures>();
-                foreach (S6xStructure s6xObject in sadS6x.slStructures.Values) SQLite806xTools.addStructureRow(ref db806x, ref sadS6x, ref tStructures, s6xObject);
-                foreach (S6xStructure s6xObject in sadS6x.slDupStructures.Values) SQLite806xTools.addStructureRow(ref db806x, ref sadS6x, ref tStructures, s6xObject);
-                db806x.Truncate<R_806x_Def_Structures>();
-                db806x.Write<R_806x_Def_Structures>(ref tStructures);
-                tStructures = null;
-            }
-            catch (Exception ex)
-            {
-                sadProcessManager.ProcessErrors.Add("SQLite Structures export part has failed.\r\n" + ex.Message);
-            }
-
-            try
-            {
-
-                List<R_806x_Def_Routines> tRoutines = new List<R_806x_Def_Routines>();
-                List<R_806x_Def_RoutinesArgs> tRoutinesArgs = new List<R_806x_Def_RoutinesArgs>();
-                foreach (S6xRoutine s6xObject in sadS6x.slRoutines.Values)
-                {
-                    SQLite806xTools.addRoutineRow(ref db806x, ref sadS6x, ref tRoutines, s6xObject);
-                    SQLite806xTools.addRoutineArgsRow(ref db806x, ref sadS6x, ref tRoutinesArgs, s6xObject);
-                }
-                db806x.Truncate<R_806x_Def_Routines>();
-                db806x.Write<R_806x_Def_Routines>(ref tRoutines);
-                tRoutines = null;
-                db806x.Truncate<R_806x_Def_RoutinesArgs>();
-                db806x.Write<R_806x_Def_RoutinesArgs>(ref tRoutinesArgs);
-                tRoutinesArgs = null;
-            }
-            catch (Exception ex)
-            {
-                sadProcessManager.ProcessErrors.Add("SQLite Routines export part has failed.\r\n" + ex.Message);
-            }
-
-            try
-            {
-                List<R_806x_Def_Registers> tRegisters = new List<R_806x_Def_Registers>();
-                List<R_806x_Def_RegistersBitFlags> tRegistersBF = new List<R_806x_Def_RegistersBitFlags>();
-                foreach (S6xRegister s6xObject in sadS6x.slRegisters.Values)
-                {
-                    SQLite806xTools.addRegisterRow(ref db806x, ref sadS6x, ref tRegisters, s6xObject);
-                    SQLite806xTools.addRegisterBitFlagRow(ref db806x, ref sadS6x, ref tRegistersBF, s6xObject);
-                }
-                db806x.Truncate<R_806x_Def_Registers>();
-                db806x.Write<R_806x_Def_Registers>(ref tRegisters);
-                tRegisters = null;
-                db806x.Truncate<R_806x_Def_RegistersBitFlags>();
-                db806x.Write<R_806x_Def_RegistersBitFlags>(ref tRegistersBF);
-                tRegistersBF = null;
-            }
-            catch (Exception ex)
-            {
-                sadProcessManager.ProcessErrors.Add("SQLite Registers export part has failed.\r\n" + ex.Message);
-            }
-
-            GC.Collect();
-
-            if (sadProcessManager.ProcessErrors.Count == 0) sadProcessManager.SetProcessFinished("Export is done.");
-            else sadProcessManager.SetProcessFinished("Export has finished with errors.");
-        }
-
-        private void importUniDb806xToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            if (!activatedUniDb806x) return;
-
-            if (sadBin == null) return;
-            if (sadS6x == null) return;
-
-            if (!confirmDirtyProperies()) return;
-            if (!confirmProcessRunning()) return;
-
-            if (openFileDialogSQLite.ShowDialog() != DialogResult.OK) return;
-            if (!File.Exists(openFileDialogSQLite.FileName)) return;
-            string sqLiteFilePath = openFileDialogSQLite.FileName;
-
-            if (!File.Exists(sqLiteFilePath)) return;
-
-            processPreviousCursor = Cursor;
-            Cursor = System.Windows.Forms.Cursors.WaitCursor;
-
-            // To prevent opening an old information
-            sadBin.Errors = null;
-
-            sadProcessManager = new SADProcessManager();
-            sadProcessManager.Parameters = new object[] { sqLiteFilePath };
-
-            toolStripProgressBarMain.Value = 0;
-
-            processType = ProcessType.ProcessManager;
-            processRunning = true;
-            processUpdateTimer.Enabled = true;
-
-            processThread = new Thread(importUniDb806xStartProcess);
-            processThread.Start();
-        }
-
-        private void importUniDb806xStartProcess()
-        {
-            if (sadProcessManager == null) sadProcessManager = new SADProcessManager();
-
-            string filePath = string.Empty;
-
-            try
-            {
-                if (sadBin == null) throw new Exception();
-
-                filePath = (string)sadProcessManager.Parameters[0];
-
-                if (filePath == null || filePath == string.Empty) throw new Exception();
-            }
-            catch
-            {
-                sadProcessManager.SetProcessFailed("Invalid process start.");
-                return;
-            }
-
-            sadProcessManager.SetProcessFailed("Import is not implemented.");
-
-            sadProcessManager.PostProcessAction = "importUniDb806xPostProcess";
-            sadProcessManager.PostProcessParameters = new object[] { };
-
-            sadProcessManager.ProcessProgressStatus = 99;       // To switch to 100 after notification update
-        }
-
-        private void importUniDb806xPostProcess()
-        {
-            if (sadProcessManager == null) return;
-
-            ArrayList alNewTreeNodesInfos = null;
-
-            try
-            {
-                alNewTreeNodesInfos = (ArrayList)((object[])sadProcessManager.PostProcessParameters)[0];
-            }
-            catch
-            {
-                sadProcessManager.ProcessErrors.Add("Invalid post process start.");
-                sadProcessManager.SetProcessFailed("Import has failed.");
-                GC.Collect();
-                return;
-            }
-
-            if (alNewTreeNodesInfos != null)
-            {
-                if (alNewTreeNodesInfos.Count != 0)
-                {
-                    elemsTreeView.BeginUpdate();
-
-                    try
-                    {
-                        // alNewTreeNodesInfos - ArrayList containing N string[] arrays
-                        // string[] array definition
-                        //  0 : Node Categ Name
-                        //  1 : Node Name (UniqueAddress)
-                        //  2 : Node Text
-                        //  3 : Node ToolTipText
-                    }
-                    catch (Exception ex)
-                    {
-                        sadProcessManager.ProcessErrors.Add("Elements update has failed.\r\n" + ex.Message);
-                    }
-
-                    elemsTreeView.EndUpdate();
-                }
-                alNewTreeNodesInfos = null;
-            }
-
-            outputToolStripMenuItem.Enabled = false;
-            
-            if (sadProcessManager.ProcessErrors.Count == 0) sadProcessManager.SetProcessFinished("Import is done.");
-            else sadProcessManager.SetProcessFinished("Import has finished with errors.");
-
-            GC.Collect();
-        }
-
-        private void syncUniDb806xToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            if (!activatedUniDb806x) return;
-
-            if (sadBin == null) return;
-            if (sadS6x == null) return;
-
-            if (!confirmDirtyProperies()) return;
-            if (!confirmProcessRunning()) return;
-
-            if (openFileDialogSQLite.ShowDialog() != DialogResult.OK) return;
-            if (!File.Exists(openFileDialogSQLite.FileName)) return;
-            string sqLiteFilePath = openFileDialogSQLite.FileName;
-
-            processPreviousCursor = Cursor;
-            Cursor = System.Windows.Forms.Cursors.WaitCursor;
-
-            // To prevent opening an old information
-            sadBin.Errors = null;
-
-            sadProcessManager = new SADProcessManager();
-            sadProcessManager.Parameters = new object[] { sqLiteFilePath };
-
-            toolStripProgressBarMain.Value = 0;
-
-            processType = ProcessType.ProcessManager;
-            processRunning = true;
-            processUpdateTimer.Enabled = true;
-
-            processThread = new Thread(syncUniDb806xStartProcess);
-            processThread.Start();
-
-            if (File.Exists(sqLiteFilePath))
-            {
-                // Original file autmatic Backup
-                try
-                {
-                    File.Copy(sqLiteFilePath, sqLiteFilePath + DateTime.Now.ToString(".yyyyMMdd.HHmmss.") + "bak", true);
-                }
-                catch
-                {
-                    Cursor = processPreviousCursor;
-                    MessageBox.Show("SQLite file backup has failed.\r\nNo other action will be managed.", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-            }
-            else
-            {
-                Cursor = processPreviousCursor;
-                MessageBox.Show("SQLite file does not exist.\r\nNo compliant schema is available.\r\nNo other action will be managed.", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            ArrayList alErrors = new ArrayList();
-
-            alErrors.Add("Synchronization is not implemented.");
-
-            outputToolStripMenuItem.Enabled = false;
-            
-            GC.Collect();
-
-            Cursor = processPreviousCursor;
-
-            if (alErrors.Count > 0)
-            {
-                MessageBox.Show(string.Join("\r\n\r\n", (string[])alErrors.ToArray(typeof(string))), Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            alErrors = null;
-        }
-
-        private void syncUniDb806xStartProcess()
-        {
-            if (sadProcessManager == null) sadProcessManager = new SADProcessManager();
-
-            string filePath = string.Empty;
-
-            try
-            {
-                if (sadBin == null) throw new Exception();
-
-                filePath = (string)sadProcessManager.Parameters[0];
-
-                if (filePath == null || filePath == string.Empty) throw new Exception();
-            }
-            catch
-            {
-                sadProcessManager.SetProcessFailed("Invalid process start.");
-                return;
-            }
-
-            sadProcessManager.SetProcessFailed("Synchronization is not implemented.");
-
-            sadProcessManager.PostProcessAction = "syncUniDb806xPostProcess";
-            sadProcessManager.PostProcessParameters = new object[] { };
-
-            sadProcessManager.ProcessProgressStatus = 99;       // To switch to 100 after notification update
-        }
-
-        private void syncUniDb806xPostProcess()
-        {
-            if (sadProcessManager == null) return;
-
-            ArrayList alNewTreeNodesInfos = null;
-
-            try
-            {
-                alNewTreeNodesInfos = (ArrayList)((object[])sadProcessManager.PostProcessParameters)[0];
-            }
-            catch
-            {
-                sadProcessManager.ProcessErrors.Add("Invalid post process start.");
-                sadProcessManager.SetProcessFailed("Synchronization has failed.");
-                GC.Collect();
-                return;
-            }
-
-            if (alNewTreeNodesInfos != null)
-            {
-                if (alNewTreeNodesInfos.Count != 0)
-                {
-                    elemsTreeView.BeginUpdate();
-
-                    try
-                    {
-                        // alNewTreeNodesInfos - ArrayList containing N string[] arrays
-                        // string[] array definition
-                        //  0 : Node Categ Name
-                        //  1 : Node Name (UniqueAddress)
-                        //  2 : Node Text
-                        //  3 : Node ToolTipText
-                    }
-                    catch (Exception ex)
-                    {
-                        sadProcessManager.ProcessErrors.Add("Elements synchronization has failed.\r\n" + ex.Message);
-                    }
-
-                    elemsTreeView.EndUpdate();
-                }
-                alNewTreeNodesInfos = null;
-            }
-
-            outputToolStripMenuItem.Enabled = false;
-
-            if (sadProcessManager.ProcessErrors.Count == 0) sadProcessManager.SetProcessFinished("Synchronization is done.");
-            else sadProcessManager.SetProcessFinished("Synchronization has finished with errors.");
-
-            GC.Collect();
-        }
-
-        private void extractBinUniDb806xToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            if (!activatedUniDb806x) return;
-
-            if (sadBin == null) return;
-            if (sadS6x == null) return;
-
-            if (!confirmDirtyProperies()) return;
-            if (!confirmProcessRunning()) return;
-
-            if (openFileDialogSQLite.ShowDialog() != DialogResult.OK) return;
-            if (!File.Exists(openFileDialogSQLite.FileName)) return;
-            string sqLiteFilePath = openFileDialogSQLite.FileName;
-
-            if (!File.Exists(sqLiteFilePath)) return;
-
-            processPreviousCursor = Cursor;
-            Cursor = System.Windows.Forms.Cursors.WaitCursor;
-
-            // To prevent opening an old information
-            sadBin.Errors = null;
-
-            sadProcessManager = new SADProcessManager();
-            sadProcessManager.Parameters = new object[] { openFileDialogSQLite.FileName };
-
-            toolStripProgressBarMain.Value = 0;
-
-            processType = ProcessType.ProcessManager;
-            processRunning = true;
-            processUpdateTimer.Enabled = true;
-
-            processThread = new Thread(extractBinUniDb806xStartProcess);
-            processThread.Start();
-        }
-
-        private void extractBinUniDb806xStartProcess()
-        {
-            if (sadProcessManager == null) sadProcessManager = new SADProcessManager();
-
-            string filePath = string.Empty;
-
-            try
-            {
-                if (sadBin == null) throw new Exception();
-
-                filePath = (string)sadProcessManager.Parameters[0];
-
-                if (filePath == null || filePath == string.Empty) throw new Exception();
-            }
-            catch
-            {
-                sadProcessManager.SetProcessFailed("Invalid process start.");
-                return;
-            }
-
-            sadProcessManager.SetProcessFailed("Binary extraction is not implemented.");
         }
 
         // 20200616 - PYM
@@ -12114,7 +12703,7 @@ namespace SAD806x
 
             S6xRegister rConst = (S6xRegister)sadBin.S6x.slRegisters[Tools.RegisterUniqueAddress(regPart1)];
             if (!rConst.isRConst) return;
-            
+
             int rConstValue = 0;
             try { rConstValue = Convert.ToInt32(rConst.ConstValue, 16); }
             catch { return; }
@@ -12130,6 +12719,1026 @@ namespace SAD806x
 
             regAddressTextBox.Text = string.Format("{0:x2}", rConstValue + adderValue);
             regAddressTextBox.Modified = true;
+        }
+
+        // Select UniDB 806x (.86x) file
+        private void selectUniDb806xToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!activatedUniDb806x) return;
+
+            if (openFileDialogSQLite.ShowDialog() != DialogResult.OK) return;
+
+            bool bResult = SQLite806xTools.selectUniDb806x(ref fileUniDb806xToolStripTextBox, openFileDialogSQLite.FileName, ref binariesUniDb806xToolStripMenuItem, ref filesUniDb806xToolStripMenuItem, new EventHandler(itemFilesUniDb806xToolStripMenuItem_Click));
+        }
+
+        private void openUniDb806xToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (fileUniDb806xToolStripTextBox.Tag == null) return;
+            string dbFilePath = (string)fileUniDb806xToolStripTextBox.Tag;
+            if (dbFilePath == string.Empty) return;
+
+            if (sqLite806xForm == null)
+            {
+                sqLite806xForm = new SQLite806xForm(dbFilePath);
+                sqLite806xForm.FormClosed += new FormClosedEventHandler(sqLite806xForm_FormClosed);
+            }
+            sqLite806xForm.Show();
+            sqLite806xForm.Focus();
+        }
+
+        private void sqLite806xForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            sqLite806xForm = null;
+        }
+
+        private void itemFilesUniDb806xToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (sender == null) return;
+            if (sender.GetType() != typeof(ToolStripMenuItem)) return;
+
+            if (SQLite806xTools.isForStrategyFileAdd((ToolStripMenuItem)sender))
+            {
+                if (fileUniDb806xToolStripTextBox.Tag == null) return;
+                string dbFilePath = (string)fileUniDb806xToolStripTextBox.Tag;
+                if (dbFilePath == string.Empty) return;
+
+                SQLite806xTools.strategyFileAdd((ToolStripMenuItem)sender, dbFilePath, ref sadBin, ref binariesUniDb806xToolStripMenuItem, ref filesUniDb806xToolStripMenuItem, new EventHandler(itemFilesUniDb806xToolStripMenuItem_Click));
+            }
+            else
+            {
+                // File itself
+                sqLite806xFileLabelToolStripMenuItem.Text = ((ToolStripMenuItem)sender).Text;
+                sqLite806xFileLabelToolStripMenuItem.ToolTipText = ((ToolStripMenuItem)sender).ToolTipText;
+                sqLite806xFileContextMenuStrip.Tag = ((ToolStripMenuItem)sender).Tag;
+                sqLite806xFileContextMenuStrip.Show(Cursor.Position);
+            }
+        }
+
+        private void sqLite806xFileContextMenuStrip_Opening(object sender, CancelEventArgs e)
+        {
+            if (sqLite806xFileContextMenuStrip.Tag == null)
+            {
+                e.Cancel = true;
+                return;
+            }
+        }
+
+        private void sqLite806xFileDownloadToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (sqLite806xFileContextMenuStrip.Tag == null) return;
+
+            if (fileUniDb806xToolStripTextBox.Tag == null) return;
+            string dbFilePath = (string)fileUniDb806xToolStripTextBox.Tag;
+            if (dbFilePath == string.Empty) return;
+
+            if (sqLite806xFileContextMenuStrip.Tag.GetType() == typeof(R_806x_Strategy_Binaries))
+            {
+                SQLite806xTools.strategyFileDownload<R_806x_Strategy_Binaries>(sqLite806xFileContextMenuStrip.Tag, dbFilePath, ref saveFileDialogBin);
+            }
+            else if (sqLite806xFileContextMenuStrip.Tag.GetType() == typeof(R_806x_Strategy_Files))
+            {
+                SQLite806xTools.strategyFileDownload<R_806x_Strategy_Files>(sqLite806xFileContextMenuStrip.Tag, dbFilePath, ref saveFileDialogGeneric);
+            }
+        }
+
+        private void sqLite806xFileUpdateToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (sqLite806xFileContextMenuStrip.Tag == null) return;
+
+            if (fileUniDb806xToolStripTextBox.Tag == null) return;
+            string dbFilePath = (string)fileUniDb806xToolStripTextBox.Tag;
+            if (dbFilePath == string.Empty) return;
+
+            if (sqLite806xFileContextMenuStrip.Tag.GetType() == typeof(R_806x_Strategy_Binaries))
+            {
+                SQLite806xTools.strategyFileUpdate<R_806x_Strategy_Binaries>(sqLite806xFileContextMenuStrip.Tag, dbFilePath, ref binariesUniDb806xToolStripMenuItem, new EventHandler(itemFilesUniDb806xToolStripMenuItem_Click));
+            }
+            else if (sqLite806xFileContextMenuStrip.Tag.GetType() == typeof(R_806x_Strategy_Files))
+            {
+                SQLite806xTools.strategyFileUpdate<R_806x_Strategy_Files>(sqLite806xFileContextMenuStrip.Tag, dbFilePath, ref filesUniDb806xToolStripMenuItem, new EventHandler(itemFilesUniDb806xToolStripMenuItem_Click));
+            }
+        }
+
+        private void sqLite806xFileRemoveToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (sqLite806xFileContextMenuStrip.Tag == null) return;
+
+            if (fileUniDb806xToolStripTextBox.Tag == null) return;
+            string dbFilePath = (string)fileUniDb806xToolStripTextBox.Tag;
+            if (dbFilePath == string.Empty) return;
+
+            if (sqLite806xFileContextMenuStrip.Tag.GetType() == typeof(R_806x_Strategy_Binaries))
+            {
+                SQLite806xTools.strategyFileRemove<R_806x_Strategy_Binaries>(sqLite806xFileContextMenuStrip.Tag, dbFilePath, ref binariesUniDb806xToolStripMenuItem, new EventHandler(itemFilesUniDb806xToolStripMenuItem_Click));
+            }
+            else if (sqLite806xFileContextMenuStrip.Tag.GetType() == typeof(R_806x_Strategy_Files))
+            {
+                SQLite806xTools.strategyFileRemove<R_806x_Strategy_Files>(sqLite806xFileContextMenuStrip.Tag, dbFilePath, ref filesUniDb806xToolStripMenuItem, new EventHandler(itemFilesUniDb806xToolStripMenuItem_Click));
+            }
+        }
+
+        private void exportUniDb806xToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!activatedUniDb806x) return;
+
+            if (fileUniDb806xToolStripTextBox.Tag == null) return;
+            if ((string)fileUniDb806xToolStripTextBox.Tag == string.Empty) return;
+
+            if (sadBin == null) return;
+            if (sadS6x == null) return;
+
+            if (!confirmDirtyProperies()) return;
+            if (!confirmProcessRunning()) return;
+
+            string sMessage = "Export will set database at SAD806x definition level.";
+            sMessage += "\r\nPrevious existing elements will be removed.";
+            sMessage += "\r\nInformation not present in SAD806x definition will be lost.";
+            sMessage += "\r\nA database backup is done before processing.";
+            sMessage += "\r\n\r\nContinue ?";
+            if (MessageBox.Show(sMessage, Application.ProductName, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+                
+            processPreviousCursor = Cursor;
+            Cursor = System.Windows.Forms.Cursors.WaitCursor;
+
+            // To prevent opening an old information
+            sadBin.Errors = null;
+
+            bool[] iesOpt = new bool[10];
+            iesOpt[0] = iesOptPropertiesToolStripMenuItem.Checked;
+            iesOpt[1] = iesOptTablesToolStripMenuItem.Checked;
+            iesOpt[2] = iesOptFunctionsToolStripMenuItem.Checked;
+            iesOpt[3] = iesOptScalarsToolStripMenuItem.Checked;
+            iesOpt[4] = iesOptStructuresToolStripMenuItem.Checked;
+            iesOpt[5] = iesOptRoutinesToolStripMenuItem.Checked;
+            iesOpt[6] = iesOptOperationsToolStripMenuItem.Checked;
+            iesOpt[7] = iesOptOtherToolStripMenuItem.Checked;
+            iesOpt[8] = iesOptRegistersToolStripMenuItem.Checked;
+            iesOpt[9] = iesOptSignaturesToolStripMenuItem.Checked;
+
+            sadProcessManager = new SADProcessManager();
+            sadProcessManager.Parameters = new object[] { fileUniDb806xToolStripTextBox.Tag, iesOpt };
+
+            toolStripProgressBarMain.Value = 0;
+
+            processType = ProcessType.ProcessManager;
+            processRunning = true;
+            processUpdateTimer.Enabled = true;
+
+            processThread = new Thread(exportUniDb806xStartProcess);
+            processThread.Start();
+        }
+
+        private void exportUniDb806xStartProcess()
+        {
+            if (sadProcessManager == null) sadProcessManager = new SADProcessManager();
+
+            string filePath = string.Empty;
+
+            bool[] iesOpt = null;
+            bool iesOptProperties = false;
+            bool iesOptTables = false;
+            bool iesOptFunctions = false;
+            bool iesOptScalars = false;
+            bool iesOptStructures = false;
+            bool iesOptRoutines = false;
+            bool iesOptOperations = false;
+            bool iesOptOther = false;
+            bool iesOptRegisters = false;
+            bool iesOptSignatures = false;
+
+            try
+            {
+                if (sadBin == null) throw new Exception();
+
+                filePath = (string)sadProcessManager.Parameters[0];
+
+                if (filePath == null || filePath == string.Empty) throw new Exception();
+
+                iesOpt = (bool[])sadProcessManager.Parameters[1];
+
+                iesOptProperties = iesOpt[0];
+                iesOptTables = iesOpt[1];
+                iesOptFunctions = iesOpt[2];
+                iesOptScalars = iesOpt[3];
+                iesOptStructures = iesOpt[4];
+                iesOptRoutines = iesOpt[5];
+                iesOptOperations = iesOpt[6];
+                iesOptOther = iesOpt[7];
+                iesOptRegisters = iesOpt[8];
+                iesOptSignatures = iesOpt[9];
+            }
+            catch
+            {
+                sadProcessManager.SetProcessFailed("Invalid process start.");
+                return;
+            }
+
+            if (File.Exists(filePath))
+            {
+                // Original file autmatic Backup
+                try
+                {
+                    File.Copy(filePath, filePath + DateTime.Now.ToString(".yyyyMMdd.HHmmss.") + "bak", true);
+                }
+                catch
+                {
+                    sadProcessManager.SetProcessFailed("SQLite file backup has failed.\r\nNo other action will be managed.");
+                    return;
+                }
+            }
+
+            SQLite806xDB db806x = null;
+
+            try
+            {
+                db806x = new SQLite806xDB(filePath);
+            }
+            catch
+            {
+                sadProcessManager.SetProcessFailed("SQLite file opening or schema reading has failed.\r\nNo other action will be managed.");
+                return;
+            }
+
+            if (!db806x.ValidDB)
+            {
+                sadProcessManager.SetProcessFailed("SQLite file schema reading is not valid.\r\nNo other action will be managed.");
+                return;
+            }
+
+            long totalS6xElements = 1;    // To prevent 0 dividing
+            long processedS6xElements = 0;
+            int processProgressStatus = 0;
+
+            if (iesOptTables) totalS6xElements += sadS6x.slTables.Count;
+            if (iesOptFunctions) totalS6xElements += sadS6x.slFunctions.Count;
+            if (iesOptScalars) totalS6xElements += sadS6x.slScalars.Count;
+            if (iesOptStructures) totalS6xElements += sadS6x.slStructures.Count;
+            if (iesOptRoutines) totalS6xElements += sadS6x.slRoutines.Count;
+            if (iesOptOperations) totalS6xElements += sadS6x.slOperations.Count;
+            if (iesOptOther) totalS6xElements += sadS6x.slOtherAddresses.Count;
+            if (iesOptRegisters) totalS6xElements += sadS6x.slRegisters.Count;
+            if (iesOptSignatures)
+            {
+                totalS6xElements += sadS6x.slSignatures.Count;
+                totalS6xElements += sadS6x.slElementsSignatures.Count;
+            }
+
+            if (iesOptProperties)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Properties...";
+                processProgressStatus = (int)(100.0 * ((double)processedS6xElements / (double)totalS6xElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedS6xElements += 1;
+                SQLite806xTools.exportProperties(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptTables)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Tables...";
+                processProgressStatus = (int)(100.0 * ((double)processedS6xElements / (double)totalS6xElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedS6xElements += sadS6x.slTables.Count;
+                SQLite806xTools.exportTables(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptFunctions)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Functions...";
+                processProgressStatus = (int)(100.0 * ((double)processedS6xElements / (double)totalS6xElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedS6xElements += sadS6x.slFunctions.Count;
+                SQLite806xTools.exportFunctions(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptScalars)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Scalars...";
+                processProgressStatus = (int)(100.0 * ((double)processedS6xElements / (double)totalS6xElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedS6xElements += sadS6x.slScalars.Count;
+                SQLite806xTools.exportScalars(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptStructures)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Structures...";
+                processProgressStatus = (int)(100.0 * ((double)processedS6xElements / (double)totalS6xElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedS6xElements += sadS6x.slStructures.Count;
+                SQLite806xTools.exportStructures(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptRoutines)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Routines...";
+                processProgressStatus = (int)(100.0 * ((double)processedS6xElements / (double)totalS6xElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedS6xElements += sadS6x.slRoutines.Count;
+                SQLite806xTools.exportRoutines(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptOperations)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Operations...";
+                processProgressStatus = (int)(100.0 * ((double)processedS6xElements / (double)totalS6xElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedS6xElements += sadS6x.slOperations.Count;
+                SQLite806xTools.exportOperations(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptOther)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Other addresses...";
+                processProgressStatus = (int)(100.0 * ((double)processedS6xElements / (double)totalS6xElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedS6xElements += sadS6x.slOtherAddresses.Count;
+                SQLite806xTools.exportOthers(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptRegisters)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Registers...";
+                processProgressStatus = (int)(100.0 * ((double)processedS6xElements / (double)totalS6xElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedS6xElements += sadS6x.slRegisters.Count;
+                SQLite806xTools.exportRegisters(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptSignatures)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Signatures...";
+                processProgressStatus = (int)(100.0 * ((double)processedS6xElements / (double)totalS6xElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedS6xElements += sadS6x.slSignatures.Count + sadS6x.slProcessElementsSignatures.Count;
+                SQLite806xTools.exportSignatures(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            // SyncStates update - For next sync
+            sadS6x.Properties.SyncStateUpdate(db806x.SyncType, db806x.SyncId);
+
+            sadProcessManager.ProcessProgressLabel = "Processing States...";
+            SQLite806xTools.exportSyncStates(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+
+            GC.Collect();
+
+            if (sadProcessManager.ProcessErrors.Count == 0) sadProcessManager.SetProcessFinished("Export is done.");
+            else sadProcessManager.SetProcessFinished("Export has finished with errors.");
+        }
+
+        private void importUniDb806xToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!activatedUniDb806x) return;
+
+            if (fileUniDb806xToolStripTextBox.Tag == null) return;
+            if ((string)fileUniDb806xToolStripTextBox.Tag == string.Empty) return;
+
+            if (sadBin == null) return;
+            if (sadS6x == null) return;
+
+            if (!confirmDirtyProperies()) return;
+            if (!confirmProcessRunning()) return;
+
+            string sMessage = "Import will set SAD806x definition at database level.";
+            sMessage += "\r\nPrevious existing elements will be removed.";
+            sMessage += "\r\nInformation not present in database will be lost.";
+            sMessage += "\r\nA definition backup is done before processing.";
+            sMessage += "\r\n\r\nContinue ?";
+            if (MessageBox.Show(sMessage, Application.ProductName, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+
+            processPreviousCursor = Cursor;
+            Cursor = System.Windows.Forms.Cursors.WaitCursor;
+
+            // To prevent opening an old information
+            sadBin.Errors = null;
+
+            bool[] iesOpt = new bool[10];
+            iesOpt[0] = iesOptPropertiesToolStripMenuItem.Checked;
+            iesOpt[1] = iesOptTablesToolStripMenuItem.Checked;
+            iesOpt[2] = iesOptFunctionsToolStripMenuItem.Checked;
+            iesOpt[3] = iesOptScalarsToolStripMenuItem.Checked;
+            iesOpt[4] = iesOptStructuresToolStripMenuItem.Checked;
+            iesOpt[5] = iesOptRoutinesToolStripMenuItem.Checked;
+            iesOpt[6] = iesOptOperationsToolStripMenuItem.Checked;
+            iesOpt[7] = iesOptOtherToolStripMenuItem.Checked;
+            iesOpt[8] = iesOptRegistersToolStripMenuItem.Checked;
+            iesOpt[9] = iesOptSignaturesToolStripMenuItem.Checked;
+            
+            sadProcessManager = new SADProcessManager();
+            sadProcessManager.Parameters = new object[] { fileUniDb806xToolStripTextBox.Tag, iesOpt };
+
+            toolStripProgressBarMain.Value = 0;
+
+            processType = ProcessType.ProcessManager;
+            processRunning = true;
+            processUpdateTimer.Enabled = true;
+
+            processThread = new Thread(importUniDb806xStartProcess);
+            processThread.Start();
+        }
+
+        private void importUniDb806xStartProcess()
+        {
+            if (sadProcessManager == null) sadProcessManager = new SADProcessManager();
+
+            string filePath = string.Empty;
+            bool[] iesOpt = null;
+            bool iesOptProperties = false;
+            bool iesOptTables = false;
+            bool iesOptFunctions = false;
+            bool iesOptScalars = false;
+            bool iesOptStructures = false;
+            bool iesOptRoutines = false;
+            bool iesOptOperations = false;
+            bool iesOptOther = false;
+            bool iesOptRegisters = false;
+            bool iesOptSignatures = false;
+            
+            try
+            {
+                if (sadBin == null) throw new Exception();
+
+                filePath = (string)sadProcessManager.Parameters[0];
+
+                if (filePath == null || filePath == string.Empty) throw new Exception();
+
+                iesOpt = (bool[])sadProcessManager.Parameters[1];
+
+                iesOptProperties = iesOpt[0];
+                iesOptTables = iesOpt[1];
+                iesOptFunctions = iesOpt[2];
+                iesOptScalars = iesOpt[3];
+                iesOptStructures = iesOpt[4];
+                iesOptRoutines = iesOpt[5];
+                iesOptOperations = iesOpt[6];
+                iesOptOther = iesOpt[7];
+                iesOptRegisters = iesOpt[8];
+                iesOptSignatures = iesOpt[9];
+            }
+            catch
+            {
+                sadProcessManager.SetProcessFailed("Invalid process start.");
+                return;
+            }
+
+            if (File.Exists(s6xFilePath))
+            {
+                // Original file autmatic Backup
+                try
+                {
+                    File.Copy(filePath, filePath + DateTime.Now.ToString(".yyyyMMdd.HHmmss.") + "bak", true);
+                }
+                catch
+                {
+                    sadProcessManager.SetProcessFailed("SAD806x definition backup has failed.\r\nNo other action will be managed.");
+                    return;
+                }
+            }
+
+            SQLite806xDB db806x = null;
+
+            try
+            {
+                db806x = new SQLite806xDB(filePath);
+            }
+            catch
+            {
+                sadProcessManager.SetProcessFailed("SQLite file opening or schema reading has failed.\r\nNo other action will be managed.");
+                return;
+            }
+
+            if (!db806x.ValidDB)
+            {
+                sadProcessManager.SetProcessFailed("SQLite file schema reading is not valid.\r\nNo other action will be managed.");
+                return;
+            }
+
+            long totalElements = 1;    // To prevent 0 dividing
+            long processedElements = 0;
+            int processProgressStatus = 0;
+
+            sadProcessManager.ProcessProgressLabel = "Counting records...";
+            totalElements = SQLite806xTools.importCount(ref db806x, ref iesOpt, ref sadProcessManager.ProcessErrors);
+            processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+            sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+            processedElements += 1;
+
+            if (iesOptProperties)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Properties...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.importProperties(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptTables)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Tables...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.importTables(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptFunctions)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Functions...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.importFunctions(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptScalars)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Scalars...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.importScalars(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptStructures)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Structures...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.importStructures(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptRoutines)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Routines...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.importRoutines(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptOperations)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Operations...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.importOperations(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptOther)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Other addresses...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.importOthers(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptRegisters)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Registers...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.importRegisters(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            if (iesOptSignatures)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Signatures...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.importSignatures(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+            }
+
+            // SyncStates update - For next sync
+            sadS6x.Properties.SyncStateUpdate(db806x.SyncType, db806x.SyncId);
+
+            GC.Collect();
+
+            sadProcessManager.PostProcessAction = "importUniDb806xPostProcess";
+            sadProcessManager.PostProcessParameters = new object[] { };
+
+            sadProcessManager.ProcessProgressStatus = 99;       // To switch to 100 after notification update
+        }
+
+        private void importUniDb806xPostProcess()
+        {
+            if (sadProcessManager == null) return;
+
+            ShowElementsTreeLoadS6x();
+
+            outputToolStripMenuItem.Enabled = false;
+            
+            if (sadProcessManager.ProcessErrors.Count == 0) sadProcessManager.SetProcessFinished("Import is done.");
+            else sadProcessManager.SetProcessFinished("Import has finished with errors.");
+
+            GC.Collect();
+        }
+
+        private void syncUniDb806xToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!activatedUniDb806x) return;
+
+            if (fileUniDb806xToolStripTextBox.Tag == null) return;
+            if ((string)fileUniDb806xToolStripTextBox.Tag == string.Empty) return;
+
+            if (sadBin == null) return;
+            if (sadS6x == null) return;
+
+            if (!confirmDirtyProperies()) return;
+            if (!confirmProcessRunning()) return;
+
+            string sMessage = "Synchronization will update SAD806x definition and Database in both ways.";
+            sMessage += "\r\nOldest elements will be overwritten.";
+            sMessage += "\r\nSAD806x only elements will be added.";
+            sMessage += "\r\nDatabase only elements will be added.";
+            sMessage += "\r\nA definition backup is done before processing.";
+            sMessage += "\r\n\r\nContinue ?";
+            if (MessageBox.Show(sMessage, Application.ProductName, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+
+            processPreviousCursor = Cursor;
+            Cursor = System.Windows.Forms.Cursors.WaitCursor;
+
+            // To prevent opening an old information
+            sadBin.Errors = null;
+
+            bool[] iesOpt = new bool[10];
+            iesOpt[0] = iesOptPropertiesToolStripMenuItem.Checked;
+            iesOpt[1] = iesOptTablesToolStripMenuItem.Checked;
+            iesOpt[2] = iesOptFunctionsToolStripMenuItem.Checked;
+            iesOpt[3] = iesOptScalarsToolStripMenuItem.Checked;
+            iesOpt[4] = iesOptStructuresToolStripMenuItem.Checked;
+            iesOpt[5] = iesOptRoutinesToolStripMenuItem.Checked;
+            iesOpt[6] = iesOptOperationsToolStripMenuItem.Checked;
+            iesOpt[7] = iesOptOtherToolStripMenuItem.Checked;
+            iesOpt[8] = iesOptRegistersToolStripMenuItem.Checked;
+            iesOpt[9] = iesOptSignaturesToolStripMenuItem.Checked;
+
+            sadProcessManager = new SADProcessManager();
+            sadProcessManager.Parameters = new object[] { fileUniDb806xToolStripTextBox.Tag, iesOpt };
+
+            toolStripProgressBarMain.Value = 0;
+
+            processType = ProcessType.ProcessManager;
+            processRunning = true;
+            processUpdateTimer.Enabled = true;
+
+            processThread = new Thread(syncUniDb806xStartProcess);
+            processThread.Start();
+        }
+
+        private void syncUniDb806xStartProcess()
+        {
+            if (sadProcessManager == null) sadProcessManager = new SADProcessManager();
+
+            string filePath = string.Empty;
+            bool[] iesOpt = null;
+            bool iesOptProperties = false;
+            bool iesOptTables = false;
+            bool iesOptFunctions = false;
+            bool iesOptScalars = false;
+            bool iesOptStructures = false;
+            bool iesOptRoutines = false;
+            bool iesOptOperations = false;
+            bool iesOptOther = false;
+            bool iesOptRegisters = false;
+            bool iesOptSignatures = false;
+
+            try
+            {
+                if (sadBin == null) throw new Exception();
+
+                filePath = (string)sadProcessManager.Parameters[0];
+
+                if (filePath == null || filePath == string.Empty) throw new Exception();
+
+                iesOpt = (bool[])sadProcessManager.Parameters[1];
+
+                iesOptProperties = iesOpt[0];
+                iesOptTables = iesOpt[1];
+                iesOptFunctions = iesOpt[2];
+                iesOptScalars = iesOpt[3];
+                iesOptStructures = iesOpt[4];
+                iesOptRoutines = iesOpt[5];
+                iesOptOperations = iesOpt[6];
+                iesOptOther = iesOpt[7];
+                iesOptRegisters = iesOpt[8];
+                iesOptSignatures = iesOpt[9];
+            }
+            catch
+            {
+                sadProcessManager.SetProcessFailed("Invalid process start.");
+                return;
+            }
+
+            if (File.Exists(filePath))
+            {
+                // Original file autmatic Backup
+                try
+                {
+                    File.Copy(filePath, filePath + DateTime.Now.ToString(".yyyyMMdd.HHmmss.") + "bak", true);
+                }
+                catch
+                {
+                    sadProcessManager.SetProcessFailed("SAD806x definition backup has failed.\r\nNo other action will be managed.");
+                    return;
+                }
+            }
+
+            SQLite806xDB db806x = null;
+
+            try
+            {
+                db806x = new SQLite806xDB(filePath);
+            }
+            catch
+            {
+                sadProcessManager.SetProcessFailed("SQLite file opening or schema reading has failed.\r\nNo other action will be managed.");
+                return;
+            }
+
+            if (!db806x.ValidDB)
+            {
+                sadProcessManager.SetProcessFailed("SQLite file schema reading is not valid.\r\nNo other action will be managed.");
+                return;
+            }
+
+            DateTime dtLastSync = sadS6x.Properties.SyncStateLastDate(db806x.SyncType, db806x.SyncId);
+
+            long totalElements = 1;    // To prevent 0 dividing
+
+            if (iesOptTables) totalElements += sadS6x.slTables.Count;
+            if (iesOptFunctions) totalElements += sadS6x.slFunctions.Count;
+            if (iesOptScalars) totalElements += sadS6x.slScalars.Count;
+            if (iesOptStructures) totalElements += sadS6x.slStructures.Count;
+            if (iesOptRoutines) totalElements += sadS6x.slRoutines.Count;
+            if (iesOptOperations) totalElements += sadS6x.slOperations.Count;
+            if (iesOptOther) totalElements += sadS6x.slOtherAddresses.Count;
+            if (iesOptRegisters) totalElements += sadS6x.slRegisters.Count;
+            if (iesOptSignatures)
+            {
+                totalElements += sadS6x.slSignatures.Count;
+                totalElements += sadS6x.slElementsSignatures.Count;
+            }
+            
+            long processedElements = 0;
+            int processProgressStatus = 0;
+
+            List<S_SQLiteSyncS6x> unSyncObjects = new List<S_SQLiteSyncS6x>();
+
+            sadProcessManager.ProcessProgressLabel = "Counting records...";
+            totalElements += SQLite806xTools.importCount(ref db806x, ref iesOpt, ref sadProcessManager.ProcessErrors);
+            processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+            sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+            processedElements += 1;
+
+            if (iesOptProperties)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Properties...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.syncProperties(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors, dtLastSync);
+            }
+
+            if (iesOptTables)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Tables...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.syncTables(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors, ref unSyncObjects, dtLastSync);
+            }
+
+            if (iesOptFunctions)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Functions...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.syncFunctions(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors, ref unSyncObjects, dtLastSync);
+            }
+
+            if (iesOptScalars)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Scalars...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.syncScalars(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors, ref unSyncObjects, dtLastSync);
+            }
+
+            if (iesOptStructures)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Structures...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.syncStructures(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors, ref unSyncObjects, dtLastSync);
+            }
+
+            if (iesOptRoutines)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Routines...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.syncRoutines(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors, ref unSyncObjects, dtLastSync);
+            }
+
+            if (iesOptOperations)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Operations...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.syncOperations(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors, ref unSyncObjects, dtLastSync);
+            }
+
+            if (iesOptOther)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Other addresses...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.syncOthers(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors, ref unSyncObjects, dtLastSync);
+            }
+
+            if (iesOptRegisters)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Registers...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.syncRegisters(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors, ref unSyncObjects, dtLastSync);
+            }
+
+            if (iesOptSignatures)
+            {
+                sadProcessManager.ProcessProgressLabel = "Processing Signatures...";
+                processProgressStatus = (int)(100.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.syncSignatures(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors, ref unSyncObjects, dtLastSync);
+            }
+
+            // SyncStates update - For next sync
+            sadS6x.Properties.SyncStateUpdate(db806x.SyncType, db806x.SyncId);
+            sadS6x.isSaved = false;
+
+            sadProcessManager.ProcessProgressLabel = "Processing States...";
+            SQLite806xTools.exportSyncStates(ref db806x, ref sadS6x, ref sadProcessManager.ProcessErrors);
+
+            db806x = null;
+            
+            GC.Collect();
+
+            sadProcessManager.PostProcessAction = "syncUniDb806xPostProcess";
+            if (unSyncObjects != null) if (unSyncObjects.Count > 0) sadProcessManager.ProcessProgressLabel = "Asking for choices...";
+            // unSyncObjects have been deleted on one side
+            //      At this level, they have been recreated temporary
+            //      Question is : Should we keep them or remove them from both sides ?
+            sadProcessManager.PostProcessParameters = new object[] {filePath, unSyncObjects };
+
+            sadProcessManager.ProcessProgressStatus = 99;       // To switch to 100 after notification update
+        }
+
+        private void syncUniDb806xPostProcess()
+        {
+            if (sadProcessManager == null) return;
+
+            if (sadProcessManager.PostProcessParameters == null) return;
+            if (((object[])sadProcessManager.PostProcessParameters).Length < 2) return;
+            string filePath = (string)((object[])sadProcessManager.PostProcessParameters)[0];
+            List<S_SQLiteSyncS6x> unSyncObjects = (List<S_SQLiteSyncS6x>)((object[])sadProcessManager.PostProcessParameters)[1];
+
+            // unSyncObjects have been deleted on one side
+            //      At this level, they have been recreated temporary
+            //      Question is : Should we keep them or remove them from both sides ?
+            if (unSyncObjects != null)
+            {
+                if (unSyncObjects.Count > 0)
+                {
+                    List<S_SQLiteSyncS6x> syncObjectsToRemove = new List<S_SQLiteSyncS6x>();
+
+                    SQLite806xDB db806x = null;
+
+                    try { db806x = new SQLite806xDB(filePath); }
+                    catch { db806x = null; }
+
+                    if (!db806x.ValidDB) db806x = null;
+
+                    if (db806x != null)
+                    {
+                        if (new SQLite806xSyncForm(ref db806x, ref unSyncObjects, ref syncObjectsToRemove, ref elemsTreeView).ShowDialog() == DialogResult.OK)
+                        {
+                            if (syncObjectsToRemove != null)
+                            {
+                                if (syncObjectsToRemove.Count > 0)
+                                {
+                                    sadProcessManager = new SADProcessManager();
+                                    sadProcessManager.Parameters = new object[] { fileUniDb806xToolStripTextBox.Tag, syncObjectsToRemove };
+
+                                    toolStripProgressBarMain.Value = 0;
+
+                                    processType = ProcessType.ProcessManager;
+                                    processRunning = true;
+                                    processUpdateTimer.Enabled = true;
+
+                                    processThread = new Thread(syncUniDb806xCleanUpStartProcess);
+                                    processThread.Start();
+
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            ShowElementsTreeLoadS6x();
+
+            outputToolStripMenuItem.Enabled = false;
+
+            if (sadProcessManager.ProcessErrors.Count == 0) sadProcessManager.SetProcessFinished("Synchronization is done.");
+            else sadProcessManager.SetProcessFinished("Synchronization has finished with errors.");
+
+            GC.Collect();
+        }
+
+        private void syncUniDb806xCleanUpStartProcess()
+        {
+            if (sadProcessManager == null) sadProcessManager = new SADProcessManager();
+
+            string filePath = string.Empty;
+            List<S_SQLiteSyncS6x> syncObjectsToRemove = null;
+
+            try
+            {
+                if (sadBin == null) throw new Exception();
+
+                filePath = (string)sadProcessManager.Parameters[0];
+
+                if (filePath == null || filePath == string.Empty) throw new Exception();
+
+                syncObjectsToRemove = (List<S_SQLiteSyncS6x>)sadProcessManager.Parameters[1];
+                if (syncObjectsToRemove == null) syncObjectsToRemove = new List<S_SQLiteSyncS6x>();
+            }
+            catch
+            {
+                sadProcessManager.SetProcessFailed("Invalid process start.");
+                return;
+            }
+
+            SQLite806xDB db806x = null;
+
+            try
+            {
+                db806x = new SQLite806xDB(filePath);
+            }
+            catch
+            {
+                sadProcessManager.SetProcessFailed("SQLite file opening or schema reading has failed.\r\nNo other action will be managed.");
+                return;
+            }
+
+            if (!db806x.ValidDB)
+            {
+                sadProcessManager.SetProcessFailed("SQLite file schema reading is not valid.\r\nNo other action will be managed.");
+                return;
+            }
+
+            List<object> dbRowsToDelete = new List<object>();   // For removal in one transaction per table
+            long totalElements = syncObjectsToRemove.Count;
+            long processedElements = 0;
+            int processProgressStatus = 0;
+
+            sadProcessManager.ProcessProgressLabel = "Searching/Removing records...";
+            foreach (S_SQLiteSyncS6x syncObjectToRemove in syncObjectsToRemove)
+            {
+                processProgressStatus = (int)(80.0 * ((double)processedElements / (double)totalElements));
+                sadProcessManager.ProcessProgressStatus = processProgressStatus >= 99 ? 98 : processProgressStatus;
+                processedElements += SQLite806xTools.syncRemovalStep1(syncObjectToRemove, ref db806x, ref sadS6x, ref dbRowsToDelete, ref sadProcessManager.ProcessErrors);
+            }
+
+            sadProcessManager.ProcessProgressLabel = "Removing database records...";
+            sadProcessManager.ProcessProgressStatus = 80;
+            SQLite806xTools.syncRemovalStep2(ref dbRowsToDelete, ref db806x, ref sadProcessManager.ProcessErrors);
+
+            db806x = null;
+
+            GC.Collect();
+
+            sadProcessManager.PostProcessAction = "syncUniDb806xPostProcess";
+            sadProcessManager.PostProcessParameters = new object[] { filePath, null };
+
+            sadProcessManager.ProcessProgressStatus = 99;       // To switch to 100 after notification update
+        }
+
+        private void iesOptAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            iesOptSetAll(true);
+        }
+
+        private void iesOptNoneToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            iesOptSetAll(false);
+        }
+
+        private void iesOptSetAll(bool bChecked)
+        {
+            iesOptPropertiesToolStripMenuItem.Checked = bChecked;
+            iesOptTablesToolStripMenuItem.Checked = bChecked;
+            iesOptFunctionsToolStripMenuItem.Checked = bChecked;
+            iesOptScalarsToolStripMenuItem.Checked = bChecked;
+            iesOptStructuresToolStripMenuItem.Checked = bChecked;
+            iesOptRoutinesToolStripMenuItem.Checked = bChecked;
+            iesOptOperationsToolStripMenuItem.Checked = bChecked;
+            iesOptOtherToolStripMenuItem.Checked = bChecked;
+            iesOptRegistersToolStripMenuItem.Checked = bChecked;
+            iesOptSignaturesToolStripMenuItem.Checked = bChecked;
         }
     }
 }

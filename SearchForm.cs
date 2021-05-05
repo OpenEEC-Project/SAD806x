@@ -27,6 +27,8 @@ namespace SAD806x
 
             this.FormClosing += new FormClosingEventHandler(SearchForm_FormClosing);
 
+            searchTreeView.StateImageList = elemsTreeView.StateImageList;
+            
             searchTextBox.KeyPress += new KeyPressEventHandler(searchTextBox_KeyPress);
             searchTreeView.NodeMouseClick += new TreeNodeMouseClickEventHandler(searchTreeView_NodeMouseClick);
             searchTreeView.AfterSelect += new TreeViewEventHandler(searchTreeView_AfterSelect);
@@ -72,6 +74,7 @@ namespace SAD806x
                         }
                         if (tnMainNode.Text != tnNode.Text) tnNode.Text = tnMainNode.Text;
                         if (tnMainNode.ToolTipText != tnNode.ToolTipText) tnNode.ToolTipText = tnMainNode.ToolTipText;
+                        if (tnMainNode.StateImageKey != tnNode.StateImageKey) tnNode.StateImageKey = tnMainNode.StateImageKey;
                     }
 
                     foreach (TreeNode tnNode in lsRemoval) tnCateg.Nodes.Remove(tnNode);
@@ -170,6 +173,7 @@ namespace SAD806x
                 tnNode.Name = tnMFNode.Name;
                 tnNode.Text = tnMFNode.Text;
                 tnNode.ToolTipText = tnMFNode.ToolTipText;
+                tnNode.StateImageKey = tnMFNode.StateImageKey;
                 parentNode.Nodes.Add(tnNode);
             }
 
@@ -187,7 +191,7 @@ namespace SAD806x
             foreach (S6xFunction s6xObject in sadS6x.slFunctions.Values)
             {
                 bool isResult = false;
-                string[] searchValues = new string[] { s6xObject.Address, s6xObject.Label, s6xObject.ShortLabel, s6xObject.Comments, s6xObject.Information };
+                string[] searchValues = new string[] { s6xObject.Address, s6xObject.Label, s6xObject.ShortLabel, s6xObject.InputUnits, s6xObject.OutputUnits, s6xObject.Comments, s6xObject.Information, s6xObject.Category, s6xObject.Category2, s6xObject.Category3, s6xObject.IdentificationDetails };
                 foreach (string searchValue in searchValues)
                 {
                     string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
@@ -202,7 +206,7 @@ namespace SAD806x
             foreach (S6xOperation s6xObject in sadS6x.slOperations.Values)
             {
                 bool isResult = false;
-                string[] searchValues = new string[] { s6xObject.Address, s6xObject.Label, s6xObject.ShortLabel, s6xObject.Comments, s6xObject.Information };
+                string[] searchValues = new string[] { s6xObject.Address, s6xObject.Label, s6xObject.ShortLabel, s6xObject.Comments, s6xObject.Information, s6xObject.Category, s6xObject.Category2, s6xObject.Category3, s6xObject.IdentificationDetails };
                 foreach (string searchValue in searchValues)
                 {
                     string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
@@ -217,7 +221,7 @@ namespace SAD806x
             foreach (S6xOtherAddress s6xObject in sadS6x.slOtherAddresses.Values)
             {
                 bool isResult = false;
-                string[] searchValues = new string[] { s6xObject.Address, s6xObject.Label, s6xObject.Comments, s6xObject.Information };
+                string[] searchValues = new string[] { s6xObject.Address, s6xObject.Label, s6xObject.Comments, s6xObject.Information, s6xObject.Category, s6xObject.Category2, s6xObject.Category3, s6xObject.IdentificationDetails };
                 foreach (string searchValue in searchValues)
                 {
                     string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
@@ -232,7 +236,7 @@ namespace SAD806x
             foreach (S6xRegister s6xObject in sadS6x.slRegisters.Values)
             {
                 bool isResult = false;
-                string[] searchValues = new string[] { s6xObject.Address, s6xObject.Label, s6xObject.ByteLabel, s6xObject.WordLabel, s6xObject.Comments, s6xObject.Information };
+                string[] searchValues = new string[] { s6xObject.Address, s6xObject.Label, s6xObject.ByteLabel, s6xObject.WordLabel, s6xObject.ConstValue, s6xObject.Units, s6xObject.Comments, s6xObject.Information, s6xObject.Category, s6xObject.Category2, s6xObject.Category3, s6xObject.IdentificationDetails };
                 foreach (string searchValue in searchValues)
                 {
                     string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
@@ -247,7 +251,7 @@ namespace SAD806x
                 {
                     foreach (S6xBitFlag s6xBF in s6xObject.BitFlags)
                     {
-                        searchValues = new string[] { s6xBF.ShortLabel, s6xBF.Label, s6xBF.SetValue, s6xBF.NotSetValue, s6xBF.Comments };
+                        searchValues = new string[] { s6xBF.ShortLabel, s6xBF.Label, s6xBF.SetValue, s6xBF.NotSetValue, s6xBF.Comments, s6xBF.Category, s6xBF.Category2, s6xBF.Category3, s6xBF.IdentificationDetails };
                         foreach (string searchValue in searchValues)
                         {
                             string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
@@ -265,7 +269,7 @@ namespace SAD806x
             foreach (S6xRoutine s6xObject in sadS6x.slRoutines.Values)
             {
                 bool isResult = false;
-                string[] searchValues = new string[] { s6xObject.Address, s6xObject.Label, s6xObject.ShortLabel, s6xObject.Comments, s6xObject.Information };
+                string[] searchValues = new string[] { s6xObject.Address, s6xObject.Label, s6xObject.ShortLabel, s6xObject.Comments, s6xObject.Information, s6xObject.Category, s6xObject.Category2, s6xObject.Category3, s6xObject.IdentificationDetails };
                 foreach (string searchValue in searchValues)
                 {
                     string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
@@ -275,12 +279,71 @@ namespace SAD806x
                         break;
                     }
                 }
+                if (!isResult && s6xObject.InputArguments != null)
+                {
+                    // Nothing Interesting to search for
+                }
+                if (!isResult && s6xObject.InputStructures != null)
+                {
+                    // Nothing Interesting to search for
+                }
+                if (!isResult && s6xObject.InputTables != null)
+                {
+                    foreach (S6xRoutineInputTable s6xSubObject in s6xObject.InputTables)
+                    {
+                        searchValues = new string[] { s6xSubObject.ForcedCellsUnits, s6xSubObject.ForcedColsUnits, s6xSubObject.ForcedRowsUnits };
+                        foreach (string searchValue in searchValues)
+                        {
+                            string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                            if (cSearchValue.Contains(searchText))
+                            {
+                                isResult = true;
+                                break;
+                            }
+                        }
+                        if (isResult) break;
+                    }
+                }
+                if (!isResult && s6xObject.InputFunctions != null)
+                {
+                    foreach (S6xRoutineInputFunction s6xSubObject in s6xObject.InputFunctions)
+                    {
+                        searchValues = new string[] { s6xSubObject.ForcedInputUnits, s6xSubObject.ForcedOutputUnits };
+                        foreach (string searchValue in searchValues)
+                        {
+                            string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                            if (cSearchValue.Contains(searchText))
+                            {
+                                isResult = true;
+                                break;
+                            }
+                        }
+                        if (isResult) break;
+                    }
+                }
+                if (!isResult && s6xObject.InputScalars != null)
+                {
+                    foreach (S6xRoutineInputScalar s6xSubObject in s6xObject.InputScalars)
+                    {
+                        searchValues = new string[] { s6xSubObject.ForcedUnits };
+                        foreach (string searchValue in searchValues)
+                        {
+                            string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                            if (cSearchValue.Contains(searchText))
+                            {
+                                isResult = true;
+                                break;
+                            }
+                        }
+                        if (isResult) break;
+                    }
+                }
                 if (isResult) results.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.ROUTINES), s6xObject.UniqueAddress });
             }
             foreach (S6xScalar s6xObject in sadS6x.slScalars.Values)
             {
                 bool isResult = false;
-                string[] searchValues = new string[] { s6xObject.Address, s6xObject.Label, s6xObject.ShortLabel, s6xObject.Comments, s6xObject.Information };
+                string[] searchValues = new string[] { s6xObject.Address, s6xObject.Label, s6xObject.ShortLabel, s6xObject.Units, s6xObject.Comments, s6xObject.Information, s6xObject.Category, s6xObject.Category2, s6xObject.Category3, s6xObject.IdentificationDetails };
                 foreach (string searchValue in searchValues)
                 {
                     string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
@@ -295,7 +358,7 @@ namespace SAD806x
                 {
                     foreach (S6xBitFlag s6xBF in s6xObject.BitFlags)
                     {
-                        searchValues = new string[] { s6xBF.ShortLabel, s6xBF.Label, s6xBF.SetValue, s6xBF.NotSetValue, s6xBF.Comments };
+                        searchValues = new string[] { s6xBF.ShortLabel, s6xBF.Label, s6xBF.SetValue, s6xBF.NotSetValue, s6xBF.Comments, s6xBF.Category, s6xBF.Category2, s6xBF.Category3, s6xBF.IdentificationDetails };
                         foreach (string searchValue in searchValues)
                         {
                             string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
@@ -310,10 +373,10 @@ namespace SAD806x
                 }
                 if (isResult) results.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), s6xObject.UniqueAddress });
             }
-            foreach (S6xSignature s6xObject in sadS6x.slSignatures.Values)
+            foreach (S6xStructure s6xObject in sadS6x.slStructures.Values)
             {
                 bool isResult = false;
-                string[] searchValues = new string[] { s6xObject.SignatureLabel, s6xObject.SignatureCategory, s6xObject.SignatureComments, s6xObject.Label, s6xObject.ShortLabel, s6xObject.Comments, s6xObject.Information };
+                string[] searchValues = new string[] { s6xObject.Address, s6xObject.Label, s6xObject.ShortLabel, s6xObject.Comments, s6xObject.Information, s6xObject.Category, s6xObject.Category2, s6xObject.Category3, s6xObject.IdentificationDetails };
                 foreach (string searchValue in searchValues)
                 {
                     string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
@@ -323,37 +386,189 @@ namespace SAD806x
                         break;
                     }
                 }
-                // TO BE EXTENDED
+                if (isResult) results.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), s6xObject.UniqueAddress });
+            }
+            foreach (S6xTable s6xObject in sadS6x.slTables.Values)
+            {
+                bool isResult = false;
+                string[] searchValues = new string[] { s6xObject.Address, s6xObject.Label, s6xObject.ShortLabel, s6xObject.CellsUnits, s6xObject.ColsUnits, s6xObject.RowsUnits, s6xObject.Comments, s6xObject.Information, s6xObject.Category, s6xObject.Category2, s6xObject.Category3, s6xObject.IdentificationDetails };
+                foreach (string searchValue in searchValues)
+                {
+                    string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                    if (cSearchValue.Contains(searchText))
+                    {
+                        isResult = true;
+                        break;
+                    }
+                }
+                if (isResult) results.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), s6xObject.UniqueAddress });
+            }
+            foreach (S6xSignature s6xObject in sadS6x.slSignatures.Values)
+            {
+                bool isResult = false;
+                string[] searchValues = new string[] { s6xObject.SignatureLabel, s6xObject.SignatureCategory, s6xObject.SignatureComments, s6xObject.Label, s6xObject.ShortLabel, s6xObject.Comments, s6xObject.Information, s6xObject.SignatureCategory, s6xObject.SignatureCategory2, s6xObject.SignatureCategory3, s6xObject.IdentificationDetails, s6xObject.RoutineCategory, s6xObject.RoutineCategory2, s6xObject.RoutineCategory3, s6xObject.IdentificationDetails };
+                foreach (string searchValue in searchValues)
+                {
+                    string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                    if (cSearchValue.Contains(searchText))
+                    {
+                        isResult = true;
+                        break;
+                    }
+                }
+                if (!isResult && s6xObject.InputArguments != null)
+                {
+                    // Nothing Interesting to search for
+                }
+                if (!isResult && s6xObject.InputStructures != null)
+                {
+                    // Nothing Interesting to search for
+                }
+                if (!isResult && s6xObject.InputTables != null)
+                {
+                    foreach (S6xRoutineInputTable s6xSubObject in s6xObject.InputTables)
+                    {
+                        searchValues = new string[] { s6xSubObject.ForcedCellsUnits, s6xSubObject.ForcedColsUnits, s6xSubObject.ForcedRowsUnits };
+                        foreach (string searchValue in searchValues)
+                        {
+                            string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                            if (cSearchValue.Contains(searchText))
+                            {
+                                isResult = true;
+                                break;
+                            }
+                        }
+                        if (isResult) break;
+                    }
+                }
+                if (!isResult && s6xObject.InputFunctions != null)
+                {
+                    foreach (S6xRoutineInputFunction s6xSubObject in s6xObject.InputFunctions)
+                    {
+                        searchValues = new string[] { s6xSubObject.ForcedInputUnits, s6xSubObject.ForcedOutputUnits };
+                        foreach (string searchValue in searchValues)
+                        {
+                            string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                            if (cSearchValue.Contains(searchText))
+                            {
+                                isResult = true;
+                                break;
+                            }
+                        }
+                        if (isResult) break;
+                    }
+                }
+                if (!isResult && s6xObject.InputScalars != null)
+                {
+                    foreach (S6xRoutineInputScalar s6xSubObject in s6xObject.InputScalars)
+                    {
+                        searchValues = new string[] { s6xSubObject.ForcedUnits };
+                        foreach (string searchValue in searchValues)
+                        {
+                            string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                            if (cSearchValue.Contains(searchText))
+                            {
+                                isResult = true;
+                                break;
+                            }
+                        }
+                        if (isResult) break;
+                    }
+                }
+                if (!isResult && s6xObject.InternalStructures != null)
+                {
+                    foreach (S6xRoutineInternalStructure s6xSubObject in s6xObject.InternalStructures)
+                    {
+                        searchValues = new string[] { s6xSubObject.Label, s6xSubObject.ShortLabel, s6xSubObject.Comments, s6xSubObject.Category, s6xSubObject.Category2, s6xSubObject.Category3, s6xSubObject.IdentificationDetails };
+                        foreach (string searchValue in searchValues)
+                        {
+                            string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                            if (cSearchValue.Contains(searchText))
+                            {
+                                isResult = true;
+                                break;
+                            }
+                        }
+                        if (isResult) break;
+                    }
+                }
+                if (!isResult && s6xObject.InternalTables != null)
+                {
+                    foreach (S6xRoutineInternalTable s6xSubObject in s6xObject.InternalTables)
+                    {
+                        searchValues = new string[] { s6xSubObject.Label, s6xSubObject.ShortLabel, s6xSubObject.CellsUnits, s6xSubObject.ColsUnits, s6xSubObject.RowsUnits, s6xSubObject.Comments, s6xSubObject.Category, s6xSubObject.Category2, s6xSubObject.Category3, s6xSubObject.IdentificationDetails };
+                        foreach (string searchValue in searchValues)
+                        {
+                            string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                            if (cSearchValue.Contains(searchText))
+                            {
+                                isResult = true;
+                                break;
+                            }
+                        }
+                        if (isResult) break;
+                    }
+                }
+                if (!isResult && s6xObject.InternalFunctions != null)
+                {
+                    foreach (S6xRoutineInternalFunction s6xSubObject in s6xObject.InternalFunctions)
+                    {
+                        searchValues = new string[] { s6xSubObject.Label, s6xSubObject.ShortLabel, s6xSubObject.InputUnits, s6xSubObject.OutputUnits, s6xSubObject.Comments, s6xSubObject.Category, s6xSubObject.Category2, s6xSubObject.Category3, s6xSubObject.IdentificationDetails };
+                        foreach (string searchValue in searchValues)
+                        {
+                            string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                            if (cSearchValue.Contains(searchText))
+                            {
+                                isResult = true;
+                                break;
+                            }
+                        }
+                        if (isResult) break;
+                    }
+                }
+                if (!isResult && s6xObject.InternalScalars != null)
+                {
+                    foreach (S6xRoutineInternalScalar s6xSubObject in s6xObject.InternalScalars)
+                    {
+                        searchValues = new string[] { s6xSubObject.Label, s6xSubObject.ShortLabel, s6xSubObject.Units, s6xSubObject.Comments, s6xSubObject.Category, s6xSubObject.Category2, s6xSubObject.Category3, s6xSubObject.IdentificationDetails };
+                        foreach (string searchValue in searchValues)
+                        {
+                            string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                            if (cSearchValue.Contains(searchText))
+                            {
+                                isResult = true;
+                                break;
+                            }
+                        }
+                        if (isResult) break;
+
+                        // BitFlags AddOn
+                        if (s6xSubObject.BitFlagsNum > 0)
+                        {
+                            foreach (S6xBitFlag s6xBF in s6xSubObject.BitFlags)
+                            {
+                                searchValues = new string[] { s6xBF.ShortLabel, s6xBF.Label, s6xBF.SetValue, s6xBF.NotSetValue, s6xBF.Comments, s6xBF.Category, s6xBF.Category2, s6xBF.Category3, s6xBF.IdentificationDetails };
+                                foreach (string searchValue in searchValues)
+                                {
+                                    string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                                    if (cSearchValue.Contains(searchText))
+                                    {
+                                        isResult = true;
+                                        break;
+                                    }
+                                }
+                                if (isResult) break;
+                            }
+                        }
+                        if (isResult) break;
+                    }
+                }
                 if (isResult) results.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SIGNATURES), s6xObject.UniqueKey });
             }
             foreach (S6xElementSignature s6xObject in sadS6x.slElementsSignatures.Values)
             {
                 bool isResult = false;
-                string[] searchValues = new string[] { s6xObject.SignatureLabel, s6xObject.SignatureKey, s6xObject.SignatureCategory, s6xObject.SignatureComments, s6xObject.Information, string.Empty, string.Empty, string.Empty };
-                if (s6xObject.Scalar != null)
-                {
-                    searchValues[5] = s6xObject.Scalar.Label;
-                    searchValues[6] = s6xObject.Scalar.ShortLabel;
-                    searchValues[7] = s6xObject.Scalar.Comments;
-                }
-                else if (s6xObject.Function != null)
-                {
-                    searchValues[5] = s6xObject.Function.Label;
-                    searchValues[6] = s6xObject.Function.ShortLabel;
-                    searchValues[7] = s6xObject.Function.Comments;
-                }
-                else if (s6xObject.Table != null)
-                {
-                    searchValues[5] = s6xObject.Table.Label;
-                    searchValues[6] = s6xObject.Table.ShortLabel;
-                    searchValues[7] = s6xObject.Table.Comments;
-                }
-                else if (s6xObject.Structure != null)
-                {
-                    searchValues[5] = s6xObject.Structure.Label;
-                    searchValues[6] = s6xObject.Structure.ShortLabel;
-                    searchValues[7] = s6xObject.Structure.Comments;
-                }
+                string[] searchValues = new string[] { s6xObject.SignatureLabel, s6xObject.SignatureKey, s6xObject.SignatureCategory, s6xObject.SignatureComments, s6xObject.Information, s6xObject.SignatureCategory, s6xObject.SignatureCategory2, s6xObject.SignatureCategory3, s6xObject.IdentificationDetails };
                 foreach (string searchValue in searchValues)
                 {
                     string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
@@ -363,10 +578,20 @@ namespace SAD806x
                         break;
                     }
                 }
-                // BitFlags AddOn
                 if (!isResult && s6xObject.Scalar != null)
                 {
-                    if (s6xObject.Scalar.BitFlagsNum > 0)
+                    searchValues = new string[] { s6xObject.Scalar.Label, s6xObject.Scalar.ShortLabel, s6xObject.Scalar.Units, s6xObject.Scalar.Comments, s6xObject.Scalar.Category, s6xObject.Scalar.Category2, s6xObject.Scalar.Category3, s6xObject.Scalar.IdentificationDetails };
+                    foreach (string searchValue in searchValues)
+                    {
+                        string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                        if (cSearchValue.Contains(searchText))
+                        {
+                            isResult = true;
+                            break;
+                        }
+                    }
+                    // BitFlags AddOn
+                    if (!isResult && s6xObject.Scalar.BitFlagsNum > 0)
                     {
                         foreach (S6xBitFlag s6xBF in s6xObject.Scalar.BitFlags)
                         {
@@ -384,37 +609,46 @@ namespace SAD806x
                         }
                     }
                 }
+                if (!isResult && s6xObject.Function != null)
+                {
+                    searchValues = new string[] { s6xObject.Function.Label, s6xObject.Function.ShortLabel, s6xObject.Function.InputUnits, s6xObject.Function.OutputUnits, s6xObject.Function.Comments, s6xObject.Function.Category, s6xObject.Function.Category2, s6xObject.Function.Category3, s6xObject.Function.IdentificationDetails };
+                    foreach (string searchValue in searchValues)
+                    {
+                        string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                        if (cSearchValue.Contains(searchText))
+                        {
+                            isResult = true;
+                            break;
+                        }
+                    }
+                }
+                if (!isResult && s6xObject.Table != null)
+                {
+                    searchValues = new string[] { s6xObject.Table.Label, s6xObject.Table.ShortLabel, s6xObject.Table.CellsUnits, s6xObject.Table.ColsUnits, s6xObject.Table.RowsUnits, s6xObject.Table.Comments, s6xObject.Table.Category, s6xObject.Table.Category2, s6xObject.Table.Category3, s6xObject.Table.IdentificationDetails };
+                    foreach (string searchValue in searchValues)
+                    {
+                        string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                        if (cSearchValue.Contains(searchText))
+                        {
+                            isResult = true;
+                            break;
+                        }
+                    }
+                }
+                if (!isResult && s6xObject.Structure != null)
+                {
+                    searchValues = new string[] { s6xObject.Structure.Label, s6xObject.Structure.ShortLabel, s6xObject.Structure.Comments, s6xObject.Structure.Category, s6xObject.Structure.Category2, s6xObject.Structure.Category3, s6xObject.Structure.IdentificationDetails };
+                    foreach (string searchValue in searchValues)
+                    {
+                        string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
+                        if (cSearchValue.Contains(searchText))
+                        {
+                            isResult = true;
+                            break;
+                        }
+                    }
+                }
                 if (isResult) results.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.ELEMSSIGNATURES), s6xObject.UniqueKey });
-            }
-            foreach (S6xStructure s6xObject in sadS6x.slStructures.Values)
-            {
-                bool isResult = false;
-                string[] searchValues = new string[] { s6xObject.Address, s6xObject.Label, s6xObject.ShortLabel, s6xObject.Comments, s6xObject.Information };
-                foreach (string searchValue in searchValues)
-                {
-                    string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
-                    if (cSearchValue.Contains(searchText))
-                    {
-                        isResult = true;
-                        break;
-                    }
-                }
-                if (isResult) results.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), s6xObject.UniqueAddress });
-            }
-            foreach (S6xTable s6xObject in sadS6x.slTables.Values)
-            {
-                bool isResult = false;
-                string[] searchValues = new string[] { s6xObject.Address, s6xObject.Label, s6xObject.ShortLabel, s6xObject.Comments, s6xObject.Information };
-                foreach (string searchValue in searchValues)
-                {
-                    string cSearchValue = (searchValue == null) ? string.Empty : searchValue.ToLower();
-                    if (cSearchValue.Contains(searchText))
-                    {
-                        isResult = true;
-                        break;
-                    }
-                }
-                if (isResult) results.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), s6xObject.UniqueAddress });
             }
 
             return results;
@@ -469,6 +703,7 @@ namespace SAD806x
                         tnParent.Name = tnMainParent.Name;
                         tnParent.Text = S6xNav.getHeaderCategLabel(S6xNav.getHeaderCateg(tnMainParent.Name));
                         tnParent.ToolTipText = tnMainParent.ToolTipText;
+                        tnParent.StateImageKey = tnMainParent.StateImageKey;
                         searchTreeView.Nodes.Add(tnParent);
                         break;
                     default:

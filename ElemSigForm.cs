@@ -5,6 +5,8 @@ using System.Data;
 using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
+using System.Reflection;
+using System.Globalization;
 
 namespace SAD806x
 {
@@ -18,6 +20,9 @@ namespace SAD806x
         private SADS6x S6x = null;
         private S6xElementSignature s6xESig = null;
 
+        private ImageList stateImageList = null;
+        private S6xNavCategories s6xNavCategories = null;
+        
         private TreeNode currentTreeNode = null;
 
         private Repository repoTables = null;
@@ -29,13 +34,19 @@ namespace SAD806x
 
         private RepositoryConversion repoConversion = null;
 
-        public ElemSigForm(ref SADS6x s6x, ref S6xElementSignature eSig)
+        private DialogResult closingDialogResult = DialogResult.Cancel;
+
+        public ElemSigForm(ref SADS6x s6x, ref S6xElementSignature eSig, ref ImageList ilStateImageList, ref S6xNavCategories navCategories)
         {
             S6x = s6x;
             s6xESig = eSig;
+            stateImageList = ilStateImageList;
+            s6xNavCategories = navCategories;
 
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
             catch { }
+
+            this.FormClosing += new FormClosingEventHandler(Form_FormClosing);
 
             InitializeComponent();
         }
@@ -45,10 +56,10 @@ namespace SAD806x
             advElemsTreeView.BeforeCheck += new TreeViewCancelEventHandler(advElemsTreeView_BeforeCheck);
             advElemsTreeView.AfterCheck += new TreeViewEventHandler(advElemsTreeView_AfterCheck);
 
-            advSigTextBox.TextChanged += new EventHandler(advSigTextBox_TextChanged);
-            
             advLabelTextBox.Text = s6xESig.SignatureLabel;
             advSigTextBox.Text = s6xESig.Signature;
+
+            advSigTextBox.TextChanged += new EventHandler(advSigTextBox_TextChanged);
 
             mainTipPictureBox.Tag = SharedUI.ElementSignatureTip();
             mainTipPictureBox.MouseHover += new EventHandler(TipPictureBox_MouseHover);
@@ -61,6 +72,8 @@ namespace SAD806x
             repoContextMenuStrip.Opening += new CancelEventHandler(repoContextMenuStrip_Opening);
             repoToolStripTextBox.TextChanged += new EventHandler(repoToolStripTextBox_TextChanged);
             repoToolStripMenuItem.DropDownItemClicked += new ToolStripItemClickedEventHandler(repoToolStripMenuItem_DropDownItemClicked);
+
+            sharedIdentificationStatusTrackBar.ValueChanged += new EventHandler(sharedIdentificationStatusTrackBar_ValueChanged);
 
             scalarScalePrecNumericUpDown.Minimum = SADDef.DefaultScaleMinPrecision;
             scalarScalePrecNumericUpDown.Maximum = SADDef.DefaultScaleMaxPrecision;
@@ -95,6 +108,11 @@ namespace SAD806x
             initRepositories();
 
             loadElemsTreeView();
+        }
+
+        private void Form_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            this.DialogResult = closingDialogResult;
         }
 
         private void attachPropertiesEventsControls(ref Control.ControlCollection controls)
@@ -170,6 +188,14 @@ namespace SAD806x
                             s6xESig.Scalar.Byte = true;
                             s6xESig.Scalar.ScaleExpression = "X";
                             s6xESig.Scalar.ScalePrecision = SADDef.DefaultScalePrecision;
+
+                            s6xESig.Scalar.DateCreated = DateTime.UtcNow;
+                            s6xESig.Scalar.DateUpdated = DateTime.UtcNow;
+                            s6xESig.Scalar.Category = string.Empty;
+                            s6xESig.Scalar.Category2 = string.Empty;
+                            s6xESig.Scalar.Category3 = string.Empty;
+                            s6xESig.Scalar.IdentificationStatus = 0;
+                            s6xESig.Scalar.IdentificationDetails = string.Empty;
                         }
                         s6xESig.Function = null;
                         s6xESig.Table = null;
@@ -188,6 +214,14 @@ namespace SAD806x
                             s6xESig.Function.OutputScaleExpression = "X";
                             s6xESig.Function.InputScalePrecision = SADDef.DefaultScalePrecision;
                             s6xESig.Function.OutputScalePrecision = SADDef.DefaultScalePrecision;
+
+                            s6xESig.Function.DateCreated = DateTime.UtcNow;
+                            s6xESig.Function.DateUpdated = DateTime.UtcNow;
+                            s6xESig.Function.Category = string.Empty;
+                            s6xESig.Function.Category2 = string.Empty;
+                            s6xESig.Function.Category3 = string.Empty;
+                            s6xESig.Function.IdentificationStatus = 0;
+                            s6xESig.Function.IdentificationDetails = string.Empty;
                         }
                         s6xESig.Scalar = null;
                         s6xESig.Table = null;
@@ -203,6 +237,14 @@ namespace SAD806x
                             s6xESig.Table.RowsNumber = 0;
                             s6xESig.Table.CellsScaleExpression = "X";
                             s6xESig.Table.CellsScalePrecision = SADDef.DefaultScalePrecision;
+
+                            s6xESig.Table.DateCreated = DateTime.UtcNow;
+                            s6xESig.Table.DateUpdated = DateTime.UtcNow;
+                            s6xESig.Table.Category = string.Empty;
+                            s6xESig.Table.Category2 = string.Empty;
+                            s6xESig.Table.Category3 = string.Empty;
+                            s6xESig.Table.IdentificationStatus = 0;
+                            s6xESig.Table.IdentificationDetails = string.Empty;
                         }
                         s6xESig.Scalar = null;
                         s6xESig.Function = null;
@@ -215,6 +257,14 @@ namespace SAD806x
                             s6xESig.Structure.Label = "New Structure";
                             s6xESig.Structure.ShortLabel = SADDef.ShortStructurePrefix + string.Format("{0:d3}", S6x.slStructures.Count + 1);
                             s6xESig.Structure.Number = 0;
+
+                            s6xESig.Structure.DateCreated = DateTime.UtcNow;
+                            s6xESig.Structure.DateUpdated = DateTime.UtcNow;
+                            s6xESig.Structure.Category = string.Empty;
+                            s6xESig.Structure.Category2 = string.Empty;
+                            s6xESig.Structure.Category3 = string.Empty;
+                            s6xESig.Structure.IdentificationStatus = 0;
+                            s6xESig.Structure.IdentificationDetails = string.Empty;
                         }
                         s6xESig.Scalar = null;
                         s6xESig.Function = null;
@@ -234,14 +284,27 @@ namespace SAD806x
         private void advSigTextBox_TextChanged(object sender, EventArgs e)
         {
             s6xESig.Signature = advSigTextBox.Text;
+
+            closingDialogResult = DialogResult.OK;
+        }
+
+        private void sharedIdentificationStatusTrackBar_ValueChanged(object sender, EventArgs e)
+        {
+            int iStatus = sharedIdentificationStatusTrackBar.Value;
+
+            sharedIdentificationLabel.Text = string.Format("{0} ({1:d2}%)", sharedIdentificationLabel.Tag, iStatus);
         }
 
         private void loadElemsTreeView()
         {
-            if (s6xESig.Scalar != null) advElemsTreeView.Nodes[TreeCategScalarNodeName].Checked = true;
-            else if (s6xESig.Function != null) advElemsTreeView.Nodes[TreeCategFunctionNodeName].Checked = true;
-            else if (s6xESig.Table != null) advElemsTreeView.Nodes[TreeCategTableNodeName].Checked = true;
-            else if (s6xESig.Structure != null) advElemsTreeView.Nodes[TreeCategStructureNodeName].Checked = true;
+            string checkedCateg = string.Empty;
+
+            if (s6xESig.Scalar != null) checkedCateg = TreeCategScalarNodeName;
+            else if (s6xESig.Function != null) checkedCateg = TreeCategFunctionNodeName;
+            else if (s6xESig.Table != null) checkedCateg = TreeCategTableNodeName;
+            else if (s6xESig.Structure != null) checkedCateg = TreeCategStructureNodeName;
+
+            if (checkedCateg != string.Empty) advElemsTreeView.Nodes[checkedCateg].Checked = true;
         }
 
         private void showCateg()
@@ -320,6 +383,8 @@ namespace SAD806x
                     commentsTextBox.Text = sigIntStr.Comments;
                     outputCommentsCheckBox.Checked = sigIntStr.OutputComments;
 
+                    showSharedDetails(S6xNavHeaderCategory.STRUCTURES, sigIntStr);
+                    
                     sigIntStr = null;
                     break;
                 case TreeCategTableNodeName:
@@ -333,7 +398,10 @@ namespace SAD806x
                     tableScalePrecNumericUpDown.Value = sigIntTbl.CellsScalePrecision;
                     tableSignedCheckBox.Checked = sigIntTbl.SignedOutput;
                     tableWordCheckBox.Checked = sigIntTbl.WordOutput;
-                    
+
+                    tableCellsMinTextBox.Text = sigIntTbl.CellsMin;
+                    tableCellsMaxTextBox.Text = sigIntTbl.CellsMax;
+
                     shortLabelTextBox.Text = sigIntTbl.ShortLabel;
                     labelTextBox.Text = sigIntTbl.Label;
 
@@ -344,6 +412,8 @@ namespace SAD806x
                     
                     commentsTextBox.Text = sigIntTbl.Comments;
                     outputCommentsCheckBox.Checked = sigIntTbl.OutputComments;
+
+                    showSharedDetails(S6xNavHeaderCategory.TABLES, sigIntTbl);
 
                     sigIntTbl = null;
                     break;
@@ -360,6 +430,11 @@ namespace SAD806x
                     functionUnitsInputTextBox.Text = sigIntFunc.InputUnits;
                     functionUnitsOutputTextBox.Text = sigIntFunc.OutputUnits;
 
+                    functionMinInputTextBox.Text = sigIntFunc.InputMin;
+                    functionMaxInputTextBox.Text = sigIntFunc.InputMax;
+                    functionMinOutputTextBox.Text = sigIntFunc.OutputMin;
+                    functionMaxOutputTextBox.Text = sigIntFunc.OutputMax;
+
                     shortLabelTextBox.Text = sigIntFunc.ShortLabel;
                     labelTextBox.Text = sigIntFunc.Label;
 
@@ -371,6 +446,8 @@ namespace SAD806x
                     commentsTextBox.Text = sigIntFunc.Comments;
                     outputCommentsCheckBox.Checked = sigIntFunc.OutputComments;
 
+                    showSharedDetails(S6xNavHeaderCategory.FUNCTIONS, sigIntFunc);
+
                     sigIntFunc = null;
                     break;
                 case TreeCategScalarNodeName:
@@ -381,6 +458,9 @@ namespace SAD806x
                     scalarScalePrecNumericUpDown.Value = sigIntScal.ScalePrecision;
                     scalarSignedCheckBox.Checked = sigIntScal.Signed;
                     scalarUnitsTextBox.Text = sigIntScal.Units;
+
+                    scalarMinTextBox.Text = sigIntScal.Min;
+                    scalarMaxTextBox.Text = sigIntScal.Max;
 
                     shortLabelTextBox.Text = sigIntScal.ShortLabel;
                     labelTextBox.Text = sigIntScal.Label;
@@ -396,11 +476,95 @@ namespace SAD806x
 
                     scalarBitFlagsButton.Tag = null;
 
+                    showSharedDetails(S6xNavHeaderCategory.SCALARS, sigIntScal);
+
                     sigIntScal = null;
                     break;
                 default:
                     return;
             }
+        }
+
+        private void showSharedDetails(S6xNavHeaderCategory headerCateg, object s6xObject)
+        {
+            if (s6xObject == null) return;
+
+            string nameOfDateCreated = "DateCreated";
+            string nameOfDateUpdated = "DateUpdated";
+            string nameOfCategory = "Category";
+            string nameOfCategory2 = "Category2";
+            string nameOfCategory3 = "Category3";
+            string nameOfIdentificationStatus = "IdentificationStatus";
+            string nameOfIdentificationDetails = "IdentificationDetails";
+
+            Type s6xType = s6xObject.GetType();
+
+            PropertyInfo piPI = null;
+            object oValue = null;
+
+            piPI = s6xType.GetProperty(nameOfDateCreated);
+            if (piPI != null) sharedDateCreatedDateTimePicker.Value = Tools.getValidDateTime(piPI.GetValue(s6xObject, null), S6x.Properties.DateCreated).ToLocalTime();
+            piPI = null;
+
+            piPI = s6xType.GetProperty(nameOfDateUpdated);
+            if (piPI != null) sharedDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(piPI.GetValue(s6xObject, null), S6x.Properties.DateUpdated).ToLocalTime();
+            piPI = null;
+
+            S6xNav.s6xNavCategoriesLoad(headerCateg, sharedCategComboBox, S6xNavCategoryLevel.ONE, ref s6xNavCategories);
+            S6xNav.s6xNavCategoriesLoad(headerCateg, sharedCateg2ComboBox, S6xNavCategoryLevel.TWO, ref s6xNavCategories);
+            S6xNav.s6xNavCategoriesLoad(headerCateg, sharedCateg3ComboBox, S6xNavCategoryLevel.THREE, ref s6xNavCategories);
+
+            piPI = s6xType.GetProperty(nameOfCategory);
+            if (piPI != null)
+            {
+                oValue = piPI.GetValue(s6xObject, null);
+                if (oValue == null) sharedCategComboBox.Text = string.Empty;
+                else sharedCategComboBox.Text = (string)oValue;
+            }
+            piPI = null;
+
+            piPI = s6xType.GetProperty(nameOfCategory2);
+            if (piPI != null)
+            {
+                oValue = piPI.GetValue(s6xObject, null);
+                if (oValue == null) sharedCateg2ComboBox.Text = string.Empty;
+                else sharedCateg2ComboBox.Text = (string)oValue;
+            }
+            piPI = null;
+
+            piPI = s6xType.GetProperty(nameOfCategory3);
+            if (piPI != null)
+            {
+                oValue = piPI.GetValue(s6xObject, null);
+                if (oValue == null) sharedCateg3ComboBox.Text = string.Empty;
+                else sharedCateg3ComboBox.Text = (string)oValue;
+            }
+            piPI = null;
+
+            piPI = s6xType.GetProperty(nameOfIdentificationStatus);
+            if (piPI != null)
+            {
+                oValue = piPI.GetValue(s6xObject, null);
+                if ((int)oValue < 0) sharedIdentificationStatusTrackBar.Value = 0;
+                else if ((int)oValue > 100) sharedIdentificationStatusTrackBar.Value = 100;
+                else sharedIdentificationStatusTrackBar.Value = (int)oValue;
+            }
+            piPI = null;
+
+            // Windows 10 1809 (10.0.17763) Issue
+            sharedIdentificationDetailsTextBox.Clear();
+            sharedIdentificationDetailsTextBox.Multiline = false;
+            sharedIdentificationDetailsTextBox.Multiline = true;
+
+            piPI = s6xType.GetProperty(nameOfIdentificationDetails);
+            if (piPI != null)
+            {
+                oValue = piPI.GetValue(s6xObject, null);
+                if (oValue == null) sharedIdentificationDetailsTextBox.Text = string.Empty;
+                else sharedIdentificationDetailsTextBox.Text = (string)oValue;
+                sharedIdentificationDetailsTextBox.Text = sharedIdentificationDetailsTextBox.Text.Replace("\r\n", "\n").Replace("\n\r", "\n").Replace("\n", "\r\n");
+            }
+            piPI = null;
         }
 
         private void updateElem()
@@ -453,6 +617,8 @@ namespace SAD806x
                     label = sigIntStr.Label;
                     comments = sigIntStr.Comments;
 
+                    updateSharedDetails(S6xNavHeaderCategory.STRUCTURES, sigIntStr);
+
                     sigIntStr = null;
                     break;
                 case TreeCategTableNodeName:
@@ -467,6 +633,9 @@ namespace SAD806x
                     sigIntTbl.SignedOutput = tableSignedCheckBox.Checked;
                     sigIntTbl.WordOutput = tableWordCheckBox.Checked;
 
+                    sigIntTbl.CellsMin = tableCellsMinTextBox.Text;
+                    sigIntTbl.CellsMax = tableCellsMaxTextBox.Text;
+
                     sigIntTbl.ShortLabel = shortLabelTextBox.Text;
                     sigIntTbl.Label = labelTextBox.Text;
                     sigIntTbl.Comments = commentsTextBox.Text;
@@ -475,6 +644,8 @@ namespace SAD806x
                     uniqueKey = sigIntTbl.UniqueKey;
                     label = sigIntTbl.Label;
                     comments = sigIntTbl.Comments;
+
+                    updateSharedDetails(S6xNavHeaderCategory.TABLES, sigIntTbl);
 
                     sigIntTbl = null;
                     break;
@@ -491,6 +662,11 @@ namespace SAD806x
                     sigIntFunc.InputUnits = functionUnitsInputTextBox.Text;
                     sigIntFunc.OutputUnits = functionUnitsOutputTextBox.Text;
 
+                    sigIntFunc.InputMin = functionMinInputTextBox.Text;
+                    sigIntFunc.InputMax = functionMaxInputTextBox.Text;
+                    sigIntFunc.OutputMin = functionMinOutputTextBox.Text;
+                    sigIntFunc.OutputMax = functionMaxOutputTextBox.Text;
+
                     sigIntFunc.ShortLabel = shortLabelTextBox.Text;
                     sigIntFunc.Label = labelTextBox.Text;
                     sigIntFunc.Comments = commentsTextBox.Text;
@@ -499,6 +675,8 @@ namespace SAD806x
                     uniqueKey = sigIntFunc.UniqueKey;
                     label = sigIntFunc.Label;
                     comments = sigIntFunc.Comments;
+
+                    updateSharedDetails(S6xNavHeaderCategory.FUNCTIONS, sigIntFunc);
 
                     sigIntFunc = null;
                     break;
@@ -509,6 +687,9 @@ namespace SAD806x
                     sigIntScal.ScalePrecision = (int)scalarScalePrecNumericUpDown.Value;
                     sigIntScal.Signed = scalarSignedCheckBox.Checked;
                     sigIntScal.Units = scalarUnitsTextBox.Text;
+
+                    sigIntScal.Min = scalarMinTextBox.Text;
+                    sigIntScal.Max = scalarMaxTextBox.Text;
 
                     sigIntScal.ShortLabel = shortLabelTextBox.Text;
                     sigIntScal.Label = labelTextBox.Text;
@@ -528,11 +709,79 @@ namespace SAD806x
                         s6xScalar = null;
                     }
 
+                    updateSharedDetails(S6xNavHeaderCategory.SCALARS, sigIntScal);
+
                     sigIntScal = null;
                     break;
                 default:
                     return;
             }
+
+            closingDialogResult = DialogResult.OK;
+        }
+
+        private void updateSharedDetails(S6xNavHeaderCategory headerCateg, object s6xObject)
+        {
+            if (s6xObject == null) return;
+
+            string nameOfDateCreated = "DateCreated";
+            string nameOfDateUpdated = "DateUpdated";
+            string nameOfCategory = "Category";
+            string nameOfCategory2 = "Category2";
+            string nameOfCategory3 = "Category3";
+            string nameOfIdentificationStatus = "IdentificationStatus";
+            string nameOfIdentificationDetails = "IdentificationDetails";
+
+            // Global Categories header
+            S6xNavHeaderCategory replacedHeaderCateg = S6xNavHeaderCategory.UNDEFINED;
+
+            Type s6xType = s6xObject.GetType();
+
+            PropertyInfo piPI = null;
+
+            piPI = s6xType.GetProperty(nameOfIdentificationStatus);
+            if (piPI != null) piPI.SetValue(s6xObject, sharedIdentificationStatusTrackBar.Value, null);
+            piPI = null;
+
+            piPI = s6xType.GetProperty(nameOfIdentificationDetails);
+            if (piPI != null) piPI.SetValue(s6xObject, sharedIdentificationDetailsTextBox.Text, null);
+            piPI = null;
+
+            piPI = s6xType.GetProperty(nameOfDateCreated);
+            if (piPI != null) piPI.SetValue(s6xObject, sharedDateCreatedDateTimePicker.Value.ToUniversalTime(), null);
+            piPI = null;
+
+            piPI = s6xType.GetProperty(nameOfDateUpdated);
+            if (piPI != null)
+            {
+                sharedDateUpdatedDateTimePicker.Value = DateTime.Now;
+                piPI.SetValue(s6xObject, sharedDateUpdatedDateTimePicker.Value.ToUniversalTime(), null);
+            }
+            piPI = null;
+
+            piPI = s6xType.GetProperty(nameOfCategory);
+            if (piPI != null)
+            {
+                piPI.SetValue(s6xObject, sharedCategComboBox.Text, null);
+                S6xNav.s6xNavCategoriesAdd(replacedHeaderCateg, headerCateg, ref sharedCategComboBox, S6xNavCategoryLevel.ONE, sharedCategComboBox.Text, ref s6xNavCategories);
+            }
+            piPI = null;
+
+            piPI = s6xType.GetProperty(nameOfCategory2);
+            if (piPI != null)
+            {
+                piPI.SetValue(s6xObject, sharedCateg2ComboBox.Text, null);
+                S6xNav.s6xNavCategoriesAdd(replacedHeaderCateg, headerCateg, ref sharedCateg2ComboBox, S6xNavCategoryLevel.TWO, sharedCateg2ComboBox.Text, ref s6xNavCategories);
+            }
+            piPI = null;
+
+            piPI = s6xType.GetProperty(nameOfCategory3);
+            if (piPI != null)
+            {
+                piPI.SetValue(s6xObject, sharedCateg3ComboBox.Text, null);
+                S6xNav.s6xNavCategoriesAdd(replacedHeaderCateg, headerCateg, ref sharedCateg3ComboBox, S6xNavCategoryLevel.THREE, sharedCateg3ComboBox.Text, ref s6xNavCategories);
+            }
+            piPI = null;
         }
 
         private bool checkElem(string categ)
@@ -548,15 +797,23 @@ namespace SAD806x
                 case TreeCategTableNodeName:
                     checkPassed &= checkVariableValue(tableColsTextBox.Text);
                     checkPassed &= checkColsRowsNumber(tableRowsTextBox.Text);
-                    checkPassed &= checkScaleExpression(tableScaleTextBox.Text);
+                    checkScaleExpression(tableScaleTextBox.Text);               // Warning Only
+                    checkMinMax(tableCellsMinTextBox.Text);                     // Warning Only
+                    checkMinMax(tableCellsMaxTextBox.Text);                     // Warning Only
                     return checkPassed;
                 case TreeCategFunctionNodeName:
                     checkPassed &= checkColsRowsNumber(functionRowsTextBox.Text);
-                    checkPassed &= checkScaleExpression(functionScaleInputTextBox.Text);
-                    checkPassed &= checkScaleExpression(functionScaleOutputTextBox.Text);
+                    checkScaleExpression(functionScaleInputTextBox.Text);       // Warning Only
+                    checkScaleExpression(functionScaleOutputTextBox.Text);      // Warning Only
+                    checkMinMax(functionMinInputTextBox.Text);                  // Warning Only
+                    checkMinMax(functionMaxInputTextBox.Text);                  // Warning Only
+                    checkMinMax(functionMinOutputTextBox.Text);                 // Warning Only
+                    checkMinMax(functionMaxOutputTextBox.Text);                 // Warning Only
                     return checkPassed;
                 case TreeCategScalarNodeName:
-                    checkPassed &= checkScaleExpression(scalarScaleTextBox.Text);
+                    checkScaleExpression(scalarScaleTextBox.Text);              // Warning Only
+                    checkMinMax(scalarMinTextBox.Text);                         // Warning Only
+                    checkMinMax(scalarMaxTextBox.Text);                         // Warning Only
                     return checkPassed;
                 default:
                     return false;
@@ -598,6 +855,16 @@ namespace SAD806x
             return true;
         }
 
+        private bool checkMinMax(string number)
+        {
+            if (number.Contains(SADDef.SignatureParamBytePrefixSuffix)) number = number.Replace(SADDef.SignatureParamBytePrefixSuffix, string.Empty);
+
+            if (number == Tools.getValidMinMax(number)) return true;
+
+            MessageBox.Show("Minimum or Maximum value \"" + number + "\" will not be seen as a valid expression.\r\nExpect format is '000000.0000'.", Application.ProductName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
+        }
+
         private bool checkForcedColsRowsNumber(string number)
         {
             if (number == string.Empty) return true;
@@ -624,7 +891,9 @@ namespace SAD806x
             try
             {
                 int num = Convert.ToInt32(number);
-                if (num <= 0 || num > 99) return false;
+                // 20210311 - PYM - 0 is for Autodetection
+                //if (num <= 0 || num > 99) return false;
+                if (num < 0 || num > 99) return false;
             }
             catch
             {
@@ -696,14 +965,17 @@ namespace SAD806x
             tempScalar.Label = labelTextBox.Text;
             tempScalar.Byte = scalarByteCheckBox.Checked;
 
-            BitFlagsForm bitFlagsForm = new BitFlagsForm(ref S6x, ref tempScalar);
-            bitFlagsForm.ShowDialog();
+            BitFlagsForm bitFlagsForm = new BitFlagsForm(ref S6x, ref tempScalar, ref stateImageList, ref s6xNavCategories);
+            bool updatedBitFlags = bitFlagsForm.ShowDialog() == DialogResult.OK;
             bitFlagsForm = null;
 
-            scalarBitFlagsCheckBox.Checked = tempScalar.isBitFlags;
+            if (updatedBitFlags)
+            {
+                scalarBitFlagsCheckBox.Checked = tempScalar.isBitFlags;
 
-            // To be reused on Update
-            scalarBitFlagsButton.Tag = tempScalar;
+                // To be reused on Update
+                scalarBitFlagsButton.Tag = tempScalar;
+            }
 
             tempScalar = null;
         }

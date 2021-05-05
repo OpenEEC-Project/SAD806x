@@ -25,7 +25,7 @@ namespace SAD806x.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("2020-09-15")]
+        [global::System.Configuration.DefaultSettingValueAttribute("2021-04-27")]
         public string VersionDate {
             get {
                 return ((string)(this["VersionDate"]));

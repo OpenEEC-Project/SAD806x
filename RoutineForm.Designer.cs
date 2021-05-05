@@ -29,17 +29,17 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.Windows.Forms.TreeNode treeNode1 = new System.Windows.Forms.TreeNode("Input Arguments");
-            System.Windows.Forms.TreeNode treeNode2 = new System.Windows.Forms.TreeNode("Input Structures");
-            System.Windows.Forms.TreeNode treeNode3 = new System.Windows.Forms.TreeNode("Input Tables");
-            System.Windows.Forms.TreeNode treeNode4 = new System.Windows.Forms.TreeNode("Input Functions");
-            System.Windows.Forms.TreeNode treeNode5 = new System.Windows.Forms.TreeNode("Input Scalars");
-            System.Windows.Forms.TreeNode treeNode6 = new System.Windows.Forms.TreeNode("Routine Elements Detection", new System.Windows.Forms.TreeNode[] {
-            treeNode1,
-            treeNode2,
-            treeNode3,
-            treeNode4,
-            treeNode5});
+            System.Windows.Forms.TreeNode treeNode7 = new System.Windows.Forms.TreeNode("Input Arguments");
+            System.Windows.Forms.TreeNode treeNode8 = new System.Windows.Forms.TreeNode("Input Structures");
+            System.Windows.Forms.TreeNode treeNode9 = new System.Windows.Forms.TreeNode("Input Tables");
+            System.Windows.Forms.TreeNode treeNode10 = new System.Windows.Forms.TreeNode("Input Functions");
+            System.Windows.Forms.TreeNode treeNode11 = new System.Windows.Forms.TreeNode("Input Scalars");
+            System.Windows.Forms.TreeNode treeNode12 = new System.Windows.Forms.TreeNode("Routine Elements Detection", new System.Windows.Forms.TreeNode[] {
+            treeNode7,
+            treeNode8,
+            treeNode9,
+            treeNode10,
+            treeNode11});
             this.advHeaderPanel = new System.Windows.Forms.Panel();
             this.advSLabelTextBox = new System.Windows.Forms.TextBox();
             this.advLabelTextBox = new System.Windows.Forms.TextBox();
@@ -135,6 +135,10 @@
             this.repoToolStripTextBox = new System.Windows.Forms.ToolStripTextBox();
             this.repoToolStripSeparator = new System.Windows.Forms.ToolStripSeparator();
             this.repoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.label53 = new System.Windows.Forms.Label();
+            this.sharedDateUpdatedDateTimePicker = new System.Windows.Forms.DateTimePicker();
+            this.label52 = new System.Windows.Forms.Label();
+            this.sharedDateCreatedDateTimePicker = new System.Windows.Forms.DateTimePicker();
             this.advHeaderPanel.SuspendLayout();
             this.inputTableTabPage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.inputTableScalePrecNumericUpDown)).BeginInit();
@@ -311,7 +315,7 @@
             // label25
             // 
             this.label25.AutoSize = true;
-            this.label25.Location = new System.Drawing.Point(398, 65);
+            this.label25.Location = new System.Drawing.Point(440, 65);
             this.label25.Name = "label25";
             this.label25.Size = new System.Drawing.Size(81, 13);
             this.label25.TabIndex = 53;
@@ -581,20 +585,20 @@
             this.advElemsTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.advElemsTreeView.Location = new System.Drawing.Point(0, 0);
             this.advElemsTreeView.Name = "advElemsTreeView";
-            treeNode1.Name = "INPARGUMENTS";
-            treeNode1.Text = "Input Arguments";
-            treeNode2.Name = "INPSTRUCTURES";
-            treeNode2.Text = "Input Structures";
-            treeNode3.Name = "INPTABLES";
-            treeNode3.Text = "Input Tables";
-            treeNode4.Name = "INPFUNCTIONS";
-            treeNode4.Text = "Input Functions";
-            treeNode5.Name = "INPSCALARS";
-            treeNode5.Text = "Input Scalars";
-            treeNode6.Name = "ROUTINE";
-            treeNode6.Text = "Routine Elements Detection";
+            treeNode7.Name = "INPARGUMENTS";
+            treeNode7.Text = "Input Arguments";
+            treeNode8.Name = "INPSTRUCTURES";
+            treeNode8.Text = "Input Structures";
+            treeNode9.Name = "INPTABLES";
+            treeNode9.Text = "Input Tables";
+            treeNode10.Name = "INPFUNCTIONS";
+            treeNode10.Text = "Input Functions";
+            treeNode11.Name = "INPSCALARS";
+            treeNode11.Text = "Input Scalars";
+            treeNode12.Name = "ROUTINE";
+            treeNode12.Text = "Routine Elements Detection";
             this.advElemsTreeView.Nodes.AddRange(new System.Windows.Forms.TreeNode[] {
-            treeNode6});
+            treeNode12});
             this.advElemsTreeView.Size = new System.Drawing.Size(327, 387);
             this.advElemsTreeView.TabIndex = 1;
             // 
@@ -618,11 +622,15 @@
             // 
             // elemFooterPanel
             // 
+            this.elemFooterPanel.Controls.Add(this.label53);
             this.elemFooterPanel.Controls.Add(this.elemUpdateButton);
+            this.elemFooterPanel.Controls.Add(this.sharedDateUpdatedDateTimePicker);
+            this.elemFooterPanel.Controls.Add(this.sharedDateCreatedDateTimePicker);
+            this.elemFooterPanel.Controls.Add(this.label52);
             this.elemFooterPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.elemFooterPanel.Location = new System.Drawing.Point(0, 360);
+            this.elemFooterPanel.Location = new System.Drawing.Point(0, 349);
             this.elemFooterPanel.Name = "elemFooterPanel";
-            this.elemFooterPanel.Size = new System.Drawing.Size(653, 27);
+            this.elemFooterPanel.Size = new System.Drawing.Size(653, 38);
             this.elemFooterPanel.TabIndex = 3;
             // 
             // elemUpdateButton
@@ -631,8 +639,8 @@
             this.elemUpdateButton.Dock = System.Windows.Forms.DockStyle.Right;
             this.elemUpdateButton.Location = new System.Drawing.Point(571, 0);
             this.elemUpdateButton.Name = "elemUpdateButton";
-            this.elemUpdateButton.Size = new System.Drawing.Size(82, 27);
-            this.elemUpdateButton.TabIndex = 20;
+            this.elemUpdateButton.Size = new System.Drawing.Size(82, 38);
+            this.elemUpdateButton.TabIndex = 50;
             this.elemUpdateButton.Text = "Add / Update";
             this.elemUpdateButton.UseVisualStyleBackColor = true;
             this.elemUpdateButton.Click += new System.EventHandler(this.elemUpdateButton_Click);
@@ -781,7 +789,7 @@
             // 
             // inputFunctionScalePrecOutputNumericUpDown
             // 
-            this.inputFunctionScalePrecOutputNumericUpDown.Location = new System.Drawing.Point(490, 206);
+            this.inputFunctionScalePrecOutputNumericUpDown.Location = new System.Drawing.Point(490, 194);
             this.inputFunctionScalePrecOutputNumericUpDown.Maximum = new decimal(new int[] {
             5,
             0,
@@ -798,7 +806,7 @@
             // 
             // inputFunctionScalePrecInputNumericUpDown
             // 
-            this.inputFunctionScalePrecInputNumericUpDown.Location = new System.Drawing.Point(160, 206);
+            this.inputFunctionScalePrecInputNumericUpDown.Location = new System.Drawing.Point(78, 193);
             this.inputFunctionScalePrecInputNumericUpDown.Maximum = new decimal(new int[] {
             5,
             0,
@@ -816,7 +824,7 @@
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(398, 17);
+            this.label5.Location = new System.Drawing.Point(440, 17);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(81, 13);
             this.label5.TabIndex = 25;
@@ -848,7 +856,7 @@
             // inputFunctionByteCheckBox
             // 
             this.inputFunctionByteCheckBox.AutoSize = true;
-            this.inputFunctionByteCheckBox.Location = new System.Drawing.Point(3, 82);
+            this.inputFunctionByteCheckBox.Location = new System.Drawing.Point(62, 82);
             this.inputFunctionByteCheckBox.Name = "inputFunctionByteCheckBox";
             this.inputFunctionByteCheckBox.Size = new System.Drawing.Size(47, 17);
             this.inputFunctionByteCheckBox.TabIndex = 5;
@@ -858,7 +866,7 @@
             // label11
             // 
             this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(416, 190);
+            this.label11.Location = new System.Drawing.Point(416, 178);
             this.label11.Name = "label11";
             this.label11.Size = new System.Drawing.Size(105, 13);
             this.label11.TabIndex = 21;
@@ -866,7 +874,7 @@
             // 
             // inputFunctionScaleOutputTextBox
             // 
-            this.inputFunctionScaleOutputTextBox.Location = new System.Drawing.Point(415, 206);
+            this.inputFunctionScaleOutputTextBox.Location = new System.Drawing.Point(415, 194);
             this.inputFunctionScaleOutputTextBox.Name = "inputFunctionScaleOutputTextBox";
             this.inputFunctionScaleOutputTextBox.Size = new System.Drawing.Size(69, 20);
             this.inputFunctionScaleOutputTextBox.TabIndex = 11;
@@ -874,7 +882,7 @@
             // label10
             // 
             this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(94, 190);
+            this.label10.Location = new System.Drawing.Point(0, 177);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(97, 13);
             this.label10.TabIndex = 19;
@@ -882,7 +890,7 @@
             // 
             // inputFunctionScaleInputTextBox
             // 
-            this.inputFunctionScaleInputTextBox.Location = new System.Drawing.Point(85, 206);
+            this.inputFunctionScaleInputTextBox.Location = new System.Drawing.Point(3, 193);
             this.inputFunctionScaleInputTextBox.Name = "inputFunctionScaleInputTextBox";
             this.inputFunctionScaleInputTextBox.Size = new System.Drawing.Size(69, 20);
             this.inputFunctionScaleInputTextBox.TabIndex = 9;
@@ -890,7 +898,7 @@
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(0, 140);
+            this.label8.Location = new System.Drawing.Point(210, 131);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(110, 13);
             this.label8.TabIndex = 17;
@@ -898,7 +906,7 @@
             // 
             // inputFunctionRowsTextBox
             // 
-            this.inputFunctionRowsTextBox.Location = new System.Drawing.Point(3, 156);
+            this.inputFunctionRowsTextBox.Location = new System.Drawing.Point(213, 147);
             this.inputFunctionRowsTextBox.Name = "inputFunctionRowsTextBox";
             this.inputFunctionRowsTextBox.Size = new System.Drawing.Size(69, 20);
             this.inputFunctionRowsTextBox.TabIndex = 8;
@@ -913,7 +921,7 @@
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(336, 229);
+            this.label7.Location = new System.Drawing.Point(419, 229);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(102, 13);
             this.label7.TabIndex = 14;
@@ -922,7 +930,7 @@
             // inputFunctionSignedOutputCheckBox
             // 
             this.inputFunctionSignedOutputCheckBox.AutoSize = true;
-            this.inputFunctionSignedOutputCheckBox.Location = new System.Drawing.Point(279, 82);
+            this.inputFunctionSignedOutputCheckBox.Location = new System.Drawing.Point(427, 82);
             this.inputFunctionSignedOutputCheckBox.Name = "inputFunctionSignedOutputCheckBox";
             this.inputFunctionSignedOutputCheckBox.Size = new System.Drawing.Size(94, 17);
             this.inputFunctionSignedOutputCheckBox.TabIndex = 7;
@@ -964,7 +972,7 @@
             // inputFunctionSignedInputCheckBox
             // 
             this.inputFunctionSignedInputCheckBox.AutoSize = true;
-            this.inputFunctionSignedInputCheckBox.Location = new System.Drawing.Point(122, 82);
+            this.inputFunctionSignedInputCheckBox.Location = new System.Drawing.Point(247, 82);
             this.inputFunctionSignedInputCheckBox.Name = "inputFunctionSignedInputCheckBox";
             this.inputFunctionSignedInputCheckBox.Size = new System.Drawing.Size(86, 17);
             this.inputFunctionSignedInputCheckBox.TabIndex = 6;
@@ -1095,6 +1103,44 @@
             this.repoToolStripMenuItem.Size = new System.Drawing.Size(172, 22);
             this.repoToolStripMenuItem.Text = "Related Repository";
             this.repoToolStripMenuItem.ToolTipText = "Results";
+            // 
+            // label53
+            // 
+            this.label53.AutoSize = true;
+            this.label53.Location = new System.Drawing.Point(269, 0);
+            this.label53.Name = "label53";
+            this.label53.Size = new System.Drawing.Size(72, 13);
+            this.label53.TabIndex = 89;
+            this.label53.Text = "Date updated";
+            // 
+            // sharedDateUpdatedDateTimePicker
+            // 
+            this.sharedDateUpdatedDateTimePicker.CustomFormat = "yyyy-MM-dd HH:mm:ss";
+            this.sharedDateUpdatedDateTimePicker.Enabled = false;
+            this.sharedDateUpdatedDateTimePicker.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
+            this.sharedDateUpdatedDateTimePicker.Location = new System.Drawing.Point(272, 16);
+            this.sharedDateUpdatedDateTimePicker.Name = "sharedDateUpdatedDateTimePicker";
+            this.sharedDateUpdatedDateTimePicker.Size = new System.Drawing.Size(180, 20);
+            this.sharedDateUpdatedDateTimePicker.TabIndex = 45;
+            // 
+            // label52
+            // 
+            this.label52.AutoSize = true;
+            this.label52.Location = new System.Drawing.Point(4, 0);
+            this.label52.Name = "label52";
+            this.label52.Size = new System.Drawing.Size(69, 13);
+            this.label52.TabIndex = 88;
+            this.label52.Text = "Date created";
+            // 
+            // sharedDateCreatedDateTimePicker
+            // 
+            this.sharedDateCreatedDateTimePicker.CustomFormat = "yyyy-MM-dd HH:mm:ss";
+            this.sharedDateCreatedDateTimePicker.Enabled = false;
+            this.sharedDateCreatedDateTimePicker.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
+            this.sharedDateCreatedDateTimePicker.Location = new System.Drawing.Point(7, 16);
+            this.sharedDateCreatedDateTimePicker.Name = "sharedDateCreatedDateTimePicker";
+            this.sharedDateCreatedDateTimePicker.Size = new System.Drawing.Size(180, 20);
+            this.sharedDateCreatedDateTimePicker.TabIndex = 40;
             // 
             // RoutineForm
             // 
@@ -1235,5 +1281,9 @@
         private System.Windows.Forms.NumericUpDown inputFunctionScalePrecInputNumericUpDown;
         private System.Windows.Forms.NumericUpDown inputFunctionScalePrecOutputNumericUpDown;
         private System.Windows.Forms.NumericUpDown inputScalarScalePrecNumericUpDown;
+        private System.Windows.Forms.Label label53;
+        private System.Windows.Forms.DateTimePicker sharedDateUpdatedDateTimePicker;
+        private System.Windows.Forms.Label label52;
+        private System.Windows.Forms.DateTimePicker sharedDateCreatedDateTimePicker;
     }
 }

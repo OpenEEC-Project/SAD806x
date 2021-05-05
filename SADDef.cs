@@ -18,6 +18,7 @@ namespace SAD806x
         public const string settingsSAD806xImpExpFileName = "settingss6ximpexp.xml";
         public const string settingsSADImpExpFileName = "settingssadimpexp.xml";
         public const string settingsTunerProImpExpFileName = "settingstpimpexp.xml";
+        public const string settingsEABEImpExpFileName = "settingseabeimpexp.xml";
         public const string settings806xUniDbImpExpFileName = "settingsudbimpexp.xml";
         
         // Repository file names
@@ -58,6 +59,7 @@ namespace SAD806x
         public const string Bank_8_Early_SigStart_1 = "FFFA201C";
         public const string Bank_8_Early_SigStart_2 = "FFFA2021";
         public const string Bank_8_Early_SigStart_3 = "FFFA2023";
+        public const string Bank_8_Early_SigStart_4 = "FFFA20B3";
         public const string Bank_8_9_0_SigStart = "FFFA";
         public const string Bank_9_0_SigStart = "FFFA27";
         public const string Bank_1_SigStart = "27FE";
@@ -96,6 +98,8 @@ namespace SAD806x
         public const string Info_8065_FirstRBase_Signature_1 = "A1" + "%CPOI%" + "..A1%FRBASE%00..1008B301" + "%LNUM%" + "..1008A2....C2....E0";
         public const string Info_8065_FirstRBase_Signature_2 = "A1" + "%CPOI%" + "..........A1%FRBASE%00..1008B301" + "%LNUM%" + "..1008A2....C2....E0";
         public const string Info_8065_FirstRBase_Signature_3 = "A1" + "%CPOI%" + "..A1%FRBASE%00..B301" + "%LNUM%" + "..A2....C2....E0";
+        // 20210222 - PYM - Pilot Version
+        public const string Info_8065_FirstRBase_Signature_4 = "A1" + "%CPOI%" + "........FBA1%FRBASE%00..B301" + "%LNUM%" + "..A2....C2....E0";
         // Checksum Calculation Signature
         public const string Info_8065_CheckSumCalc_Signature_Banks_8_0_9 = "A1" + "%CSCSTARTP%" + "..B1....10" + "%CSCBANK%" + "66....89" + "%CSCENDP%" + "..D3F210" + "%CSCBANK%";
         public const string Info_8065_CheckSumCalc_Signature_Bank_1 = "A1" + "%CSCSTARTP%" + "..B1....66....89" + "%CSCENDP%" + "..D1F4";
@@ -108,7 +112,7 @@ namespace SAD806x
 
         // VID Block - On Early 8065, addresses will be lowered with 0x6000
         public static object[] Info_8065_VID_Block_Addresses = new object[] {
-            new object[] { 0xdf06, 7, "ASCII", "STRATEGY", "FF", "Strategy", "Strategy"},
+            new object[] { 0xdf06, 8, "ASCII", "STRATEGY", "FF", "Strategy", "Strategy"},
             new object[] { 0xdf14, 7, "ASCII", "SERIAL", "FF", "Part Number", "Part Number"},
             new object[] { 0xdf1d, 26, "HEX", "PATSCODE", "PATS Code", "PATS Code"},
             new object[] { 0xdf63, 29, "ASCII", "COPYRIGHT", "FF", "Copyright", "Copyright"},
@@ -168,7 +172,9 @@ namespace SAD806x
 
         public const string ShortTablePrefix = "Tb";
         public const string LongTablePrefix = "Table ";
-        public const string ShortFunctionPrefix = "Fn";
+        //20210413 - PYM - Now it becomes Fc, to prevent Fn000 vs FN000 conflicts
+        //public const string ShortFunctionPrefix = "Fn";
+        public const string ShortFunctionPrefix = "Fc";
         public const string LongFunctionPrefix = "Function ";
         public const string ShortScalarPrefix = "Sc";
         public const string LongScalarPrefix = "Scalar ";
@@ -177,7 +183,9 @@ namespace SAD806x
 
         public const string ShortExtTablePrefix = "OTb";
         public const string LongExtTablePrefix = "Other Table ";
-        public const string ShortExtFunctionPrefix = "OFn";
+        //20210413 - PYM - Now it becomes Fc, to prevent Fn000 vs FN000 conflicts
+        //public const string ShortExtFunctionPrefix = "OFn";
+        public const string ShortExtFunctionPrefix = "OFc";
         public const string LongExtFunctionPrefix = "Other Function ";
         public const string ShortExtScalarPrefix = "OCn";
         public const string LongExtScalarPrefix = "Other Scalar ";

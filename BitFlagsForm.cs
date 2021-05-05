@@ -17,14 +17,19 @@ namespace SAD806x
         private S6xScalar s6xScalar = null;
         private S6xRegister s6xReg = null;
 
+        private S6xNavCategories s6xNavCategories = null; 
+        
         private SortedList slBitFlags = null;
 
         private TreeNode currentTreeNode = null;
 
-        public BitFlagsForm(ref SADS6x s6x, ref S6xScalar scalar)
+        private DialogResult closingDialogResult = DialogResult.Cancel;
+
+        public BitFlagsForm(ref SADS6x s6x, ref S6xScalar scalar, ref ImageList stateImageList, ref S6xNavCategories navCategories)
         {
             S6x = s6x;
             s6xScalar = scalar;
+            s6xNavCategories = navCategories;
 
             slBitFlags = new SortedList();
 
@@ -33,13 +38,18 @@ namespace SAD806x
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
             catch { }
 
+            this.FormClosing += new FormClosingEventHandler(Form_FormClosing);
+
             InitializeComponent();
+
+            advElemsTreeView.StateImageList = stateImageList;
         }
 
-        public BitFlagsForm(ref SADS6x s6x, ref S6xRegister register)
+        public BitFlagsForm(ref SADS6x s6x, ref S6xRegister register, ref ImageList stateImageList, ref S6xNavCategories navCategories)
         {
             S6x = s6x;
             s6xReg = register;
+            s6xNavCategories = navCategories;
 
             slBitFlags = new SortedList();
 
@@ -48,7 +58,11 @@ namespace SAD806x
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
             catch { }
 
+            this.FormClosing += new FormClosingEventHandler(Form_FormClosing);
+
             InitializeComponent();
+
+            advElemsTreeView.StateImageList = stateImageList;
         }
 
         private void BitFlagsForm_Load(object sender, EventArgs e)
@@ -60,16 +74,31 @@ namespace SAD806x
 
             bitFlagPositionComboBox.SelectedIndexChanged += new EventHandler(bitFlagPositionComboBox_SelectedIndexChanged);
 
+            sharedIdentificationStatusTrackBar.ValueChanged += new EventHandler(sharedIdentificationStatusTrackBar_ValueChanged);
+
+            S6xNavHeaderCategory headerCateg = S6xNavHeaderCategory.UNDEFINED;
             if (s6xScalar != null)
             {
                 advLabelTextBox.Text = s6xScalar.Label;
                 advSLabelTextBox.Text = s6xScalar.UniqueAddressHex;
+                headerCateg = S6xNavHeaderCategory.SCALARS;
             }
             else if (s6xReg != null)
             {
                 advLabelTextBox.Text = s6xReg.Label;
                 advSLabelTextBox.Text = s6xReg.Address;
+                headerCateg = S6xNavHeaderCategory.REGISTERS;
             }
+
+            sharedCategComboBox.Items.Clear();
+            sharedCategComboBox.Items.Add(new S6xNavCategory(string.Empty));
+            foreach (S6xNavCategory navCateg in s6xNavCategories.getCategories(headerCateg, S6xNavCategoryLevel.ONE, true).Values) sharedCategComboBox.Items.Add(navCateg);
+            sharedCateg2ComboBox.Items.Clear();
+            sharedCateg2ComboBox.Items.Add(new S6xNavCategory(string.Empty));
+            foreach (S6xNavCategory navCateg in s6xNavCategories.getCategories(headerCateg, S6xNavCategoryLevel.TWO, true).Values) sharedCateg2ComboBox.Items.Add(navCateg);
+            sharedCateg3ComboBox.Items.Clear();
+            sharedCateg3ComboBox.Items.Add(new S6xNavCategory(string.Empty));
+            foreach (S6xNavCategory navCateg in s6xNavCategories.getCategories(headerCateg, S6xNavCategoryLevel.THREE, true).Values) sharedCateg3ComboBox.Items.Add(navCateg);
 
             Control.ControlCollection controls = null;
             controls = (Control.ControlCollection)bitFlagTabPage.Controls;
@@ -79,6 +108,11 @@ namespace SAD806x
             loadElemsTreeView();
             if (advElemsTreeView.Nodes[TreeRootNodeName].Nodes.Count == 0) clearElem();
             else advElemsTreeView.SelectedNode = advElemsTreeView.Nodes[TreeRootNodeName].Nodes[0];
+        }
+
+        private void Form_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            this.DialogResult = closingDialogResult;
         }
 
         private void attachPropertiesEventsControls(ref Control.ControlCollection controls)
@@ -154,6 +188,13 @@ namespace SAD806x
             }
         }
 
+        private void sharedIdentificationStatusTrackBar_ValueChanged(object sender, EventArgs e)
+        {
+            int iStatus = sharedIdentificationStatusTrackBar.Value;
+
+            sharedIdentificationLabel.Text = string.Format("{0} ({1:d2}%)", sharedIdentificationLabel.Tag, iStatus);
+        }
+
         private void newElementToolStripMenuItem_Click(object sender, EventArgs e)
         {
             newElem();
@@ -218,6 +259,7 @@ namespace SAD806x
                 tnNode.Name = s6xObject.UniqueKey;
                 if (s6xObject.Label == "B" + s6xObject.Position.ToString()) tnNode.Text = s6xObject.Label;
                 else tnNode.Text = "B" + s6xObject.Position.ToString() + " - " + s6xObject.Label;
+                tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xObject.IdentificationStatus);
                 advElemsTreeView.Nodes[TreeRootNodeName].Nodes.Add(tnNode);
                 tnNode = null;
             }
@@ -291,6 +333,12 @@ namespace SAD806x
                         // To reset start position.
                         ((ComboBox)control).Tag = null;
                         break;
+                    case "DateTimePicker":
+                        ((DateTimePicker)control).Value = DateTime.Now;
+                        break;
+                    case "TrackBar":
+                        ((TrackBar)control).Value = 0;
+                        break;
                 }
             }
         }
@@ -324,9 +372,35 @@ namespace SAD806x
                     bitFlagCommentsTextBox.Text = s6xBitFlag.Comments;
                     bitFlagCommentsTextBox.Text = bitFlagCommentsTextBox.Text.Replace("\n", "\r\n");
                     bitFlagPositionComboBox.SelectedIndex = s6xBitFlag.Position;
+
+                    sharedDateCreatedDateTimePicker.Value = Tools.getValidDateTime(s6xBitFlag.DateCreated, S6x.Properties.DateCreated).ToLocalTime();
+                    sharedDateUpdatedDateTimePicker.Value = Tools.getValidDateTime(s6xBitFlag.DateUpdated, S6x.Properties.DateUpdated).ToLocalTime();
+
+                    if (s6xBitFlag.Category == null) sharedCategComboBox.Text = string.Empty;
+                    else sharedCategComboBox.Text = s6xBitFlag.Category;
+                    if (s6xBitFlag.Category2 == null) sharedCateg2ComboBox.Text = string.Empty;
+                    else sharedCateg2ComboBox.Text = s6xBitFlag.Category2;
+                    if (s6xBitFlag.Category3 == null) sharedCateg3ComboBox.Text = string.Empty;
+                    else sharedCateg3ComboBox.Text = s6xBitFlag.Category3;
+
+                    if (s6xBitFlag.IdentificationStatus < 0) sharedIdentificationStatusTrackBar.Value = 0;
+                    else if (s6xBitFlag.IdentificationStatus > 100) sharedIdentificationStatusTrackBar.Value = 100;
+                    else sharedIdentificationStatusTrackBar.Value = s6xBitFlag.IdentificationStatus;
+
+                    // Windows 10 1809 (10.0.17763) Issue
+                    sharedIdentificationDetailsTextBox.Clear();
+                    sharedIdentificationDetailsTextBox.Multiline = false;
+                    sharedIdentificationDetailsTextBox.Multiline = true;
+
+                    if (s6xBitFlag.IdentificationDetails == null) sharedIdentificationDetailsTextBox.Text = string.Empty;
+                    else sharedIdentificationDetailsTextBox.Text = s6xBitFlag.IdentificationDetails;
+                    sharedIdentificationDetailsTextBox.Text = sharedIdentificationDetailsTextBox.Text.Replace("\r\n", "\n").Replace("\n\r", "\n").Replace("\n", "\r\n");
+
                     // To Keep trace of start position.
                     bitFlagPositionComboBox.Tag = s6xBitFlag.Position;
                     s6xBitFlag = null;
+
+                    elemTabControl.SelectedTab = bitFlagTabPage;
                     break;
                 default:
                     return;
@@ -369,6 +443,8 @@ namespace SAD806x
 
             updateArray(currentTreeNode.Parent.Name);
 
+            closingDialogResult = DialogResult.OK;
+
             int tnIndex = currentTreeNode.Parent.Nodes.IndexOf(currentTreeNode);
             currentTreeNode.Parent.Nodes.Remove(currentTreeNode);
             if (tnIndex < currentTreeNode.Parent.Nodes.Count) advElemsTreeView.SelectedNode = advElemsTreeView.Nodes[TreeRootNodeName].Nodes[tnIndex];
@@ -395,11 +471,20 @@ namespace SAD806x
                     bitFlag.SetValue = "1";
                     bitFlag.NotSetValue = "0";
 
+                    bitFlag.DateCreated = DateTime.UtcNow;
+                    bitFlag.DateUpdated = DateTime.UtcNow;
+                    bitFlag.Category = string.Empty;
+                    bitFlag.Category2 = string.Empty;
+                    bitFlag.Category3 = string.Empty;
+                    bitFlag.IdentificationStatus = 0;
+                    bitFlag.IdentificationDetails = string.Empty;
+
                     updateArray(TreeRootNodeName);
 
                     TreeNode tnNode = new TreeNode();
                     tnNode.Name = uniqueKey;
                     tnNode.Text = bitFlag.Label;
+                    tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(bitFlag.IdentificationStatus);
                     advElemsTreeView.Nodes[TreeRootNodeName].Nodes.Add(tnNode);
 
                     tnNode = null;
@@ -407,6 +492,8 @@ namespace SAD806x
 
                 bitFlag = null;
             }
+
+            closingDialogResult = DialogResult.OK;
 
             advElemsTreeView.ExpandAll();
 
@@ -419,6 +506,8 @@ namespace SAD806x
 
             slBitFlags.Clear();
             updateArray(TreeRootNodeName);
+
+            closingDialogResult = DialogResult.OK;
 
             advElemsTreeView.Nodes[TreeRootNodeName].Nodes.Clear();
 
@@ -461,7 +550,7 @@ namespace SAD806x
                         startUniqueKey = startBitFlag.UniqueKey;
                         startBitFlag = null;
                     }
-                    
+
                     if (slBitFlags.ContainsKey(uniqueKey)) bitFlag = (S6xBitFlag)slBitFlags[uniqueKey];
                     else slBitFlags.Add(uniqueKey, bitFlag);
 
@@ -473,6 +562,17 @@ namespace SAD806x
                     bitFlag.Comments = bitFlagCommentsTextBox.Text;
                     bitFlag.Position = bitFlagPositionComboBox.SelectedIndex;
                     bitFlag.HideParent = bitFlagHParentCheckBox.Checked;
+
+                    bitFlag.IdentificationStatus = sharedIdentificationStatusTrackBar.Value;
+                    bitFlag.IdentificationDetails = sharedIdentificationDetailsTextBox.Text;
+
+                    bitFlag.DateCreated = sharedDateCreatedDateTimePicker.Value.ToUniversalTime();
+                    sharedDateUpdatedDateTimePicker.Value = DateTime.Now;
+                    bitFlag.DateUpdated = sharedDateUpdatedDateTimePicker.Value.ToUniversalTime();
+
+                    bitFlag.Category = sharedCategComboBox.Text;
+                    bitFlag.Category2 = sharedCateg2ComboBox.Text;
+                    bitFlag.Category3 = sharedCateg3ComboBox.Text;
 
                     // Start position change mngt
                     if (startUniqueKey != string.Empty && uniqueKey != startUniqueKey)
@@ -503,8 +603,12 @@ namespace SAD806x
                 currentTreeNode.Name = uniqueKey;
                 advElemsTreeView.Nodes[TreeRootNodeName].Nodes.Add(currentTreeNode);
             }
+
+            closingDialogResult = DialogResult.OK;
+            
             currentTreeNode.Text = label;
             currentTreeNode.ToolTipText = comments;
+            currentTreeNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(sharedIdentificationStatusTrackBar.Value);
 
             clearElem();
 
@@ -565,7 +669,8 @@ namespace SAD806x
 
             if (s6xScalar.AddressBinInt >= S6x.Properties.XdfBaseOffsetInt)
             {
-                xdfObject = new XdfFlag(s6xScalar, (S6xBitFlag)slBitFlags[currentTreeNode.Name], S6x.Properties.XdfBaseOffsetInt);
+                XdfHeaderCategory[] defaultElementHeaderCategories = Tools.XDFDefaultElementHeaderCategories(new string[] { ((S6xBitFlag)slBitFlags[currentTreeNode.Name]).Category, ((S6xBitFlag)slBitFlags[currentTreeNode.Name]).Category2, ((S6xBitFlag)slBitFlags[currentTreeNode.Name]).Category3 });
+                xdfObject = new XdfFlag(s6xScalar, (S6xBitFlag)slBitFlags[currentTreeNode.Name], S6x.Properties.XdfBaseOffsetInt, defaultElementHeaderCategories);
             }
 
             MemoryStream mStr = new MemoryStream();

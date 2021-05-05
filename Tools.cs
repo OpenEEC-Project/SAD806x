@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.IO;
+using System.Globalization;
 using NCalc;
 
 namespace SAD806x
@@ -62,13 +63,25 @@ namespace SAD806x
             }
         }
 
+        public static string DuplicateUniqueAddress(int bankNum, int address, int duplicateNum)
+        {
+            return string.Format("{0,1} {1,5} {2,2}", bankNum, address, duplicateNum); 
+        }
+        
         public static string RegisterUniqueAddress(int address)
         {
             return string.Format("R {0,4}", address);
         }
 
+        public static bool RegisterValideUniqueAddress(string address)
+        {
+            return RegisterUniqueAddress(address) != "R XXXX";
+        }
+
         public static string RegisterUniqueAddress(string address)
         {
+            if (address == string.Empty) return "R XXXX";
+
             try
             {
                 if (address.Contains(SADDef.AdditionSeparator))
@@ -95,6 +108,8 @@ namespace SAD806x
 
         public static int RegisterUniqueAddressInt(string address)
         {
+            if (address == string.Empty) return 0;
+
             try
             {
                 if (address.Contains(SADDef.AdditionSeparator))
@@ -188,6 +203,32 @@ namespace SAD806x
             return "0x" + string.Format("{0:x4}", binAddress - xdfOffset);
         }
 
+        public static int binAddressFromXlsAddress(int xlsAddress, int xlsOffset)
+        {
+            return xlsAddress + xlsOffset + SADDef.EecBankStartAddress;
+        }
+
+        public static int xlsAddressFromBinAddress(int binAddress, int xlsOffset)
+        {
+            return binAddress - xlsOffset - SADDef.EecBankStartAddress;
+        }
+
+        public static string getValidMinMax(string minMax)
+        {
+            if (minMax == string.Empty) return minMax;
+
+            try
+            {
+                double num = Convert.ToDouble(minMax.Replace(',', 'z').Replace(' ', 'z'), NumberFormatInfo.GetInstance(CultureInfo.GetCultureInfo("en-US")));
+            }
+            catch
+            {
+                return null;
+            }
+
+            return minMax;
+        }
+        
         public static string PointerTranslation(string sPointer)
         {
             if (sPointer.Length == 1) sPointer = "0" + sPointer;
@@ -916,6 +957,93 @@ namespace SAD806x
             else return sLabel;
         }
 
+        public static XdfHeaderCategory[] XDFDefaultElementHeaderCategories(string[] arrCategories)
+        {
+            if (arrCategories == null) return null;
+            ArrayList alCategories = new ArrayList();
+            for (int iIndex = 0; iIndex < arrCategories.Length; iIndex++)
+            {
+                if (arrCategories[iIndex] == null) continue;
+                if (arrCategories[iIndex] == string.Empty) continue;
+                alCategories.Add(new XdfHeaderCategory() { index = arrCategories[iIndex], name = arrCategories[iIndex] });
+            }
+            if (alCategories.Count == 0) return null;
+            return (XdfHeaderCategory[])alCategories.ToArray(typeof(XdfHeaderCategory));
+        }
+
+        public static XdfCategory[] XDFElementCategories(XdfHeaderCategory[] xdfHeaderCategories, string[] arrCategories)
+        {
+            if (xdfHeaderCategories == null) return null;
+            if (arrCategories == null) return null;
+            ArrayList alCategories = new ArrayList();
+            for (int iIndex = 0; iIndex < arrCategories.Length; iIndex++)
+            {
+                if (arrCategories[iIndex] == null) continue;
+                if (arrCategories[iIndex] == string.Empty) continue;
+                foreach (XdfHeaderCategory xdfHeaderCategory in xdfHeaderCategories)
+                {
+                    if (xdfHeaderCategory.name.ToUpper() != arrCategories[iIndex].ToUpper()) continue;
+                    if (xdfHeaderCategory.name == xdfHeaderCategory.index)
+                    //  Default Element level case when Categories are unknown
+                    {
+                        alCategories.Add(new XdfCategory() { index = iIndex.ToString(), category = xdfHeaderCategory.name });
+                    }
+                    else
+                    {
+                        try { alCategories.Add(new XdfCategory() { index = iIndex.ToString(), category = (Convert.ToInt32(xdfHeaderCategory.index, 16) + 1).ToString() }); }
+                        catch { }
+                    }
+                    break;
+                }
+            }
+            if (alCategories.Count == 0) return null;
+            return (XdfCategory[])alCategories.ToArray(typeof(XdfCategory));
+        }
+
+        public static string[] S6xElementCategories(XdfHeaderCategory[] xdfHeaderCategories, XdfCategory[] xdfCategories)
+        {
+            string[] arrCategories = new string[3];
+            if (xdfHeaderCategories == null) return arrCategories;
+            if (xdfCategories == null) return arrCategories;
+            foreach (XdfCategory xdfCategory in xdfCategories)
+            {
+                if (xdfCategory == null) continue;
+                if (xdfCategory.index == null) continue;
+                if (xdfCategory.category == null) continue;
+                if (xdfCategory.category == string.Empty) continue;
+
+                string hexCategory = string.Empty;
+                try { hexCategory = "0x" + (Convert.ToInt32(xdfCategory.category) - 1).ToString("X"); }
+                catch { continue; }
+
+                foreach (XdfHeaderCategory xdfHeaderCategory in xdfHeaderCategories)
+                {
+                    if (xdfHeaderCategory == null) continue;
+                    if (hexCategory.ToUpper() != xdfHeaderCategory.index.ToUpper()) continue;
+
+                    switch (xdfCategory.index.ToUpper())
+                    {
+                        case "0":
+                        case "A":
+                            arrCategories[0] = xdfHeaderCategory.name;
+                            break;
+                        case "1":
+                        case "B":
+                            arrCategories[1] = xdfHeaderCategory.name;
+                            break;
+                        case "2":
+                        case "C":
+                            arrCategories[2] = xdfHeaderCategory.name;
+                            break;
+                    }
+
+                    break;
+                }
+            }
+
+            return arrCategories;
+        }
+
         public static string FNLabelToShortLabel(string sLabel, string sDefaultSLabel)
         {
             Regex regExp = null;
@@ -965,6 +1093,91 @@ namespace SAD806x
             if (s6xESig1.SignatureCategory != s6xESig2.SignatureCategory) return s6xESig1.SignatureCategory.CompareTo(s6xESig2.SignatureCategory);
 
             return s6xESig1.UniqueKey.CompareTo(s6xESig2.UniqueKey);
+        }
+
+        public static DateTime getValidDateTime(object dbValue)
+        {
+            return getValidDateTime(dbValue, new DateTime(2000, 1, 1, 0, 0, 0));
+        }
+
+        public static DateTime getValidDateTime(object dbValue, DateTime defaultValue)
+        {
+            DateTime dtResult = defaultValue;
+
+            if (dbValue == null || dbValue == DBNull.Value) return dtResult;
+
+            try { dtResult = (DateTime)dbValue; }
+            catch { }
+
+            if (dtResult == DateTime.MinValue) return defaultValue;
+
+            return dtResult;
+        }
+
+        public static string getStatisticsItemLabel(StatisticsItems siSI)
+        {
+            switch (siSI)
+            {
+                case StatisticsItems.RegShortcut0x100:
+                    return "Register Shortcut +0x100";
+                case StatisticsItems.RegShortcut0x100SFR:
+                    return "Register Shortcut +0x100 SFR";
+            }
+            return string.Empty;
+        }
+
+        public static int getStatisticsItemMaxCountForAddresses(StatisticsItems siSI)
+        {
+            switch (siSI)
+            {
+                case StatisticsItems.RegShortcut0x100:
+                case StatisticsItems.RegShortcut0x100SFR:
+                    return 100;
+            }
+
+            return int.MaxValue;
+        }
+
+        public static string getStatisticsRegisterItemLabel(StatisticsRegisterItems sriSRI)
+        {
+            switch (sriSRI)
+            {
+                case StatisticsRegisterItems.Count:
+                    return "Count";
+                case StatisticsRegisterItems.RegShortcut0x100:
+                    return "Register Shortcut +0x100";
+                case StatisticsRegisterItems.Immediate:
+                    return "Immediate";
+                case StatisticsRegisterItems.Direct:
+                    return "Direct";
+                case StatisticsRegisterItems.Indirect:
+                    return "Indirect";
+                case StatisticsRegisterItems.AutoIncrement:
+                    return "Auto Increment";
+                case StatisticsRegisterItems.ShortIndex:
+                    return "Short Index";
+                case StatisticsRegisterItems.LongIndex:
+                    return "Long Index";
+            }
+            return string.Empty;
+        }
+
+        public static int getStatisticsItemMaxCountForRegistersAddresses(StatisticsRegisterItems sriSRI)
+        {
+            switch (sriSRI)
+            {
+                case StatisticsRegisterItems.Count:
+                case StatisticsRegisterItems.RegShortcut0x100:
+                case StatisticsRegisterItems.Immediate:
+                case StatisticsRegisterItems.Direct:
+                case StatisticsRegisterItems.Indirect:
+                case StatisticsRegisterItems.AutoIncrement:
+                case StatisticsRegisterItems.ShortIndex:
+                case StatisticsRegisterItems.LongIndex:
+                    return 100;
+            }
+
+            return int.MaxValue;
         }
     }
 }

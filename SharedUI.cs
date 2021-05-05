@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
+using System.Reflection;
 
 namespace SAD806x
 {
@@ -38,6 +39,14 @@ namespace SAD806x
         ONE,
         TWO,
         THREE
+    }
+
+    public enum S6xNavCategoryDepth
+    {
+        DISABLED = 0,
+        MINIMUM = 1,
+        MEDIUM = 2,
+        MAXIMUM = 3
     }
 
     // Main Form Navigation Information based on TreeNodes
@@ -86,21 +95,25 @@ namespace SAD806x
             else if (categoryLevel == S6xNavCategoryLevel.THREE) slLists3[headerCategory] = new SortedList<string, S6xNavCategory>();
         }
 
-        public void addCategory(S6xNavHeaderCategory headerCategory, S6xNavCategoryLevel categoryLevel, string categoryName)
+        public bool addCategory(S6xNavHeaderCategory headerCategory, S6xNavCategoryLevel categoryLevel, string categoryName)
         {
             S6xNavCategory newNICateg = new S6xNavCategory(categoryName);
-            if (categoryLevel == S6xNavCategoryLevel.ONE)
+            switch (categoryLevel)
             {
-                if (!slLists1[headerCategory].ContainsKey(newNICateg.Key)) slLists1[headerCategory].Add(newNICateg.Key, newNICateg);
+                case S6xNavCategoryLevel.ONE:
+                    if (slLists1[headerCategory].ContainsKey(newNICateg.Key)) return false;
+                    slLists1[headerCategory].Add(newNICateg.Key, newNICateg);
+                    return true;
+                case S6xNavCategoryLevel.TWO:
+                    if (slLists2[headerCategory].ContainsKey(newNICateg.Key)) return false;
+                    slLists2[headerCategory].Add(newNICateg.Key, newNICateg);
+                    return true;
+                case S6xNavCategoryLevel.THREE:
+                    if (slLists3[headerCategory].ContainsKey(newNICateg.Key)) return false;
+                    slLists3[headerCategory].Add(newNICateg.Key, newNICateg);
+                    return true;
             }
-            else if (categoryLevel == S6xNavCategoryLevel.TWO)
-            {
-                if (!slLists2[headerCategory].ContainsKey(newNICateg.Key)) slLists2[headerCategory].Add(newNICateg.Key, newNICateg);
-            }
-            else if (categoryLevel == S6xNavCategoryLevel.THREE)
-            {
-                if (!slLists3[headerCategory].ContainsKey(newNICateg.Key)) slLists3[headerCategory].Add(newNICateg.Key, newNICateg);
-            }
+            return false;
         }
 
         public S6xNavCategory getCategory(S6xNavHeaderCategory headerCategory, S6xNavCategoryLevel categoryLevel, bool globalIncluded, string categoryName)
@@ -283,7 +296,7 @@ namespace SAD806x
             return null;
         }
 
-        public void AddNode(TreeNode tnNode, S6xNavCategory navCateg1, S6xNavCategory navCateg2, S6xNavCategory navCateg3, bool isNodeDuplicate)
+        public void AddNode(TreeNode tnNode, S6xNavCategory navCateg1, S6xNavCategory navCateg2, S6xNavCategory navCateg3, bool isNodeDuplicate, S6xNavCategoryDepth navCategDepth)
         {
             if (isNodeDuplicate)
             {
@@ -299,7 +312,7 @@ namespace SAD806x
             TreeNode tnRightCateg = HeaderCategoryNode;
             TreeNode tnCateg = null;
 
-            if (navCateg1 != null)
+            if (navCateg1 != null && navCategDepth != S6xNavCategoryDepth.DISABLED)
             {
                 tnCateg = tnRightCateg.Nodes[navCateg1.Key];
                 if (tnCateg == null)
@@ -603,7 +616,218 @@ namespace SAD806x
             }
         }
 
+        public static string getIdentificationStatusStateImageKey(int idStatus)
+        {
+            if (idStatus < 33) return "identification00";
+            else if (idStatus < 66) return "identification33";
+            else if (idStatus < 100) return "identification66";
+            else return "identification100";
+        }
 
+        public static string getS6xNavHeaderCategoryStateImageKey(S6xNavHeaderCategory headerCateg)
+        {
+            switch (headerCateg)
+            {
+                case S6xNavHeaderCategory.PROPERTIES:
+                    return "elemProperty";
+                case S6xNavHeaderCategory.RESERVED:
+                    return "elemReserved";
+                case S6xNavHeaderCategory.TABLES:
+                    return "elemTable";
+                case S6xNavHeaderCategory.FUNCTIONS:
+                    return "elemFunction";
+                case S6xNavHeaderCategory.SCALARS:
+                    return "elemScalar";
+                case S6xNavHeaderCategory.STRUCTURES:
+                    return "elemStructure";
+                case S6xNavHeaderCategory.ROUTINES:
+                    return "elemRoutine";
+                case S6xNavHeaderCategory.OPERATIONS:
+                    return "elemOperation";
+                case S6xNavHeaderCategory.REGISTERS:
+                    return "elemRegister";
+                case S6xNavHeaderCategory.OTHER:
+                    return "elemOther";
+                case S6xNavHeaderCategory.SIGNATURES:
+                    return "elemSignature";
+                case S6xNavHeaderCategory.ELEMSSIGNATURES:
+                    return "elemSignature";
+            }
+
+            return string.Empty;
+        }
+
+        public static object[] getElemsTreeViewUpdateSharedDetails(object s6xObject)
+        {
+            object[] arrResult = new object[4];
+            arrResult[3] = 0;
+
+            if (s6xObject == null) return arrResult;
+
+            Type s6xType = s6xObject.GetType();
+
+            string nameOfCategory = "Category";
+            string nameOfCategory2 = "Category2";
+            string nameOfCategory3 = "Category3";
+            string nameOfIdentificationStatus = "IdentificationStatus";
+
+            if (s6xType == typeof(S6xSignature) || s6xType == typeof(S6xElementSignature))
+            {
+                nameOfCategory = "SignatureCategory";
+                nameOfCategory2 = "SignatureCategory2";
+                nameOfCategory3 = "SignatureCategory3";
+            }
+
+            string[] arrSharedProperties = new string[] { nameOfCategory, nameOfCategory2, nameOfCategory3, nameOfIdentificationStatus };
+
+            for (int iProperty = 0; iProperty < arrResult.Length && iProperty < arrSharedProperties.Length; iProperty++)
+            {
+                PropertyInfo piPI = s6xType.GetProperty(arrSharedProperties[iProperty]);
+                if (piPI == null) continue;
+                arrResult[iProperty] = piPI.GetValue(s6xObject, null);
+            }
+
+            arrSharedProperties = null;
+
+            return arrResult;
+        }
+
+        public static void s6xNavCategoriesReset(S6xNavHeaderCategory headerCateg, ref S6xNavCategories s6xNavCategories, ref SADBin sadBin, ref SADS6x sadS6x)
+        {
+            if (s6xNavCategories == null) s6xNavCategories = new S6xNavCategories();
+
+            if (headerCateg == S6xNavHeaderCategory.RESERVED && sadBin != null)
+            {
+                if (sadBin.Bank8 != null) s6xNavCategories.addCategory(headerCateg, S6xNavCategoryLevel.ONE, "Bank 8");
+                if (sadBin.Bank1 != null) s6xNavCategories.addCategory(headerCateg, S6xNavCategoryLevel.ONE, "Bank 1");
+                if (sadBin.Bank9 != null) s6xNavCategories.addCategory(headerCateg, S6xNavCategoryLevel.ONE, "Bank 9");
+                if (sadBin.Bank0 != null) s6xNavCategories.addCategory(headerCateg, S6xNavCategoryLevel.ONE, "Bank 0");
+                return;
+            }
+
+            if (sadS6x != null)
+            {
+                s6xNavCategories.resetCategory(headerCateg, S6xNavCategoryLevel.ONE);
+                s6xNavCategories.resetCategory(headerCateg, S6xNavCategoryLevel.TWO);
+                s6xNavCategories.resetCategory(headerCateg, S6xNavCategoryLevel.THREE);
+
+                string nameOfCategory = "Category";
+                string nameOfCategory2 = "Category2";
+                string nameOfCategory3 = "Category3";
+
+                S6xNavHeaderCategory replacedHeaderCateg = S6xNavHeaderCategory.UNDEFINED;
+
+                SortedList slS6xList = null;
+                switch (headerCateg)
+                {
+                    case S6xNavHeaderCategory.TABLES:
+                        slS6xList = sadS6x.slTables;
+                        break;
+                    case S6xNavHeaderCategory.FUNCTIONS:
+                        slS6xList = sadS6x.slFunctions;
+                        break;
+                    case S6xNavHeaderCategory.SCALARS:
+                        slS6xList = sadS6x.slScalars;
+                        break;
+                    case S6xNavHeaderCategory.STRUCTURES:
+                        slS6xList = sadS6x.slStructures;
+                        break;
+                    case S6xNavHeaderCategory.ROUTINES:
+                        slS6xList = sadS6x.slRoutines;
+                        break;
+                    case S6xNavHeaderCategory.OPERATIONS:
+                        slS6xList = sadS6x.slOperations;
+                        break;
+                    case S6xNavHeaderCategory.REGISTERS:
+                        slS6xList = sadS6x.slRegisters;
+                        break;
+                    case S6xNavHeaderCategory.OTHER:
+                        slS6xList = sadS6x.slOtherAddresses;
+                        break;
+                    case S6xNavHeaderCategory.SIGNATURES:
+                        slS6xList = sadS6x.slSignatures;
+                        replacedHeaderCateg = headerCateg;
+                        nameOfCategory = "SignatureCategory";
+                        nameOfCategory2 = "SignatureCategory2";
+                        nameOfCategory3 = "SignatureCategory3";
+                        break;
+                    case S6xNavHeaderCategory.ELEMSSIGNATURES:
+                        slS6xList = sadS6x.slElementsSignatures;
+                        replacedHeaderCateg = headerCateg;
+                        nameOfCategory = "SignatureCategory";
+                        nameOfCategory2 = "SignatureCategory2";
+                        nameOfCategory3 = "SignatureCategory3";
+                        break;
+                }
+
+                if (slS6xList != null)
+                {
+                    foreach (object s6xObject in slS6xList.Values)
+                    {
+                        if (s6xObject == null) continue;
+
+                        Type s6xType = s6xObject.GetType();
+                        PropertyInfo piPI = null;
+                        object oValue = null;
+
+                        piPI = s6xType.GetProperty(nameOfCategory);
+                        if (piPI != null)
+                        {
+                            oValue = piPI.GetValue(s6xObject, null);
+                            if (oValue != null) s6xNavCategories.addCategory(replacedHeaderCateg, S6xNavCategoryLevel.ONE, (string)oValue);
+                        }
+                        piPI = null;
+
+                        piPI = s6xType.GetProperty(nameOfCategory2);
+                        if (piPI != null)
+                        {
+                            oValue = piPI.GetValue(s6xObject, null);
+                            if (oValue != null) s6xNavCategories.addCategory(replacedHeaderCateg, S6xNavCategoryLevel.TWO, (string)oValue);
+                        }
+                        piPI = null;
+
+                        piPI = s6xType.GetProperty(nameOfCategory3);
+                        if (piPI != null)
+                        {
+                            oValue = piPI.GetValue(s6xObject, null);
+                            if (oValue != null) s6xNavCategories.addCategory(replacedHeaderCateg, S6xNavCategoryLevel.THREE, (string)oValue);
+                        }
+                        piPI = null;
+                    }
+                }
+            }
+        }
+
+        public static void s6xNavCategoriesLoad(S6xNavHeaderCategory headerCateg, ComboBox categComboBox, S6xNavCategoryLevel ncLevel, ref S6xNavCategories s6xNavCategories)
+        {
+            if (categComboBox.Tag != null)
+            {
+                // No need to reload
+                if ((S6xNavHeaderCategory)categComboBox.Tag == headerCateg) return;
+            }
+
+            if (s6xNavCategories == null) s6xNavCategories = new S6xNavCategories();
+
+            categComboBox.Items.Clear();
+
+            categComboBox.Items.Add(new S6xNavCategory(string.Empty));
+
+            foreach (S6xNavCategory navCateg in s6xNavCategories.getCategories(headerCateg, ncLevel, true).Values) categComboBox.Items.Add(navCateg);
+
+            categComboBox.Tag = headerCateg;
+        }
+
+        public static void s6xNavCategoriesAdd(S6xNavHeaderCategory addHeaderCateg, S6xNavHeaderCategory reloadHeaderCateg, ref ComboBox categComboBox, S6xNavCategoryLevel ncLevel, string newCategory, ref S6xNavCategories s6xNavCategories)
+        {
+            if (newCategory == null || newCategory == string.Empty) return;
+
+            bool addedCategory = s6xNavCategories.addCategory(addHeaderCateg, ncLevel, newCategory);
+            if (addedCategory)
+            {
+                categComboBox.Tag = null;   // To force the reload
+                s6xNavCategoriesLoad(reloadHeaderCateg, categComboBox, ncLevel, ref s6xNavCategories);
+            }
+        }
     }
 
     public static class SharedUI

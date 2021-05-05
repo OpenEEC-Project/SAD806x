@@ -29,10 +29,10 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.Windows.Forms.TreeNode treeNode1 = new System.Windows.Forms.TreeNode("Scalar");
-            System.Windows.Forms.TreeNode treeNode2 = new System.Windows.Forms.TreeNode("Function");
-            System.Windows.Forms.TreeNode treeNode3 = new System.Windows.Forms.TreeNode("Table");
-            System.Windows.Forms.TreeNode treeNode4 = new System.Windows.Forms.TreeNode("Structure");
+            System.Windows.Forms.TreeNode treeNode9 = new System.Windows.Forms.TreeNode("Scalar");
+            System.Windows.Forms.TreeNode treeNode10 = new System.Windows.Forms.TreeNode("Function");
+            System.Windows.Forms.TreeNode treeNode11 = new System.Windows.Forms.TreeNode("Table");
+            System.Windows.Forms.TreeNode treeNode12 = new System.Windows.Forms.TreeNode("Structure");
             this.advHeaderPanel = new System.Windows.Forms.Panel();
             this.advSLabelTextBox = new System.Windows.Forms.TextBox();
             this.advLabelTextBox = new System.Windows.Forms.TextBox();
@@ -62,7 +62,6 @@
             this.label35 = new System.Windows.Forms.Label();
             this.label36 = new System.Windows.Forms.Label();
             this.label39 = new System.Windows.Forms.Label();
-            this.label40 = new System.Windows.Forms.Label();
             this.tableSignedCheckBox = new System.Windows.Forms.CheckBox();
             this.functionTabPage = new System.Windows.Forms.TabPage();
             this.functionScalePrecOutputNumericUpDown = new System.Windows.Forms.NumericUpDown();
@@ -79,7 +78,6 @@
             this.label48 = new System.Windows.Forms.Label();
             this.functionSignedOutputCheckBox = new System.Windows.Forms.CheckBox();
             this.label49 = new System.Windows.Forms.Label();
-            this.label50 = new System.Windows.Forms.Label();
             this.functionSignedInputCheckBox = new System.Windows.Forms.CheckBox();
             this.scalarTabPage = new System.Windows.Forms.TabPage();
             this.scalarInlineCommentsCheckBox = new System.Windows.Forms.CheckBox();
@@ -103,6 +101,17 @@
             this.shortLabelTextBox = new System.Windows.Forms.TextBox();
             this.label38 = new System.Windows.Forms.Label();
             this.elemFooterPanel = new System.Windows.Forms.Panel();
+            this.sharedIdentificationStatusTrackBar = new System.Windows.Forms.TrackBar();
+            this.sharedIdentificationDetailsTextBox = new System.Windows.Forms.TextBox();
+            this.sharedIdentificationLabel = new System.Windows.Forms.Label();
+            this.sharedCateg3ComboBox = new System.Windows.Forms.ComboBox();
+            this.sharedCateg2ComboBox = new System.Windows.Forms.ComboBox();
+            this.sharedCategsLabel = new System.Windows.Forms.Label();
+            this.sharedCategComboBox = new System.Windows.Forms.ComboBox();
+            this.label53 = new System.Windows.Forms.Label();
+            this.sharedDateUpdatedDateTimePicker = new System.Windows.Forms.DateTimePicker();
+            this.label52 = new System.Windows.Forms.Label();
+            this.sharedDateCreatedDateTimePicker = new System.Windows.Forms.DateTimePicker();
             this.commentsTextBox = new System.Windows.Forms.TextBox();
             this.outputCommentsCheckBox = new System.Windows.Forms.CheckBox();
             this.label33 = new System.Windows.Forms.Label();
@@ -113,6 +122,22 @@
             this.repoToolStripTextBox = new System.Windows.Forms.ToolStripTextBox();
             this.repoToolStripSeparator = new System.Windows.Forms.ToolStripSeparator();
             this.repoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.label60 = new System.Windows.Forms.Label();
+            this.tableCellsMaxTextBox = new System.Windows.Forms.TextBox();
+            this.label2 = new System.Windows.Forms.Label();
+            this.tableCellsMinTextBox = new System.Windows.Forms.TextBox();
+            this.label3 = new System.Windows.Forms.Label();
+            this.scalarMaxTextBox = new System.Windows.Forms.TextBox();
+            this.label4 = new System.Windows.Forms.Label();
+            this.scalarMinTextBox = new System.Windows.Forms.TextBox();
+            this.label5 = new System.Windows.Forms.Label();
+            this.functionMaxInputTextBox = new System.Windows.Forms.TextBox();
+            this.label6 = new System.Windows.Forms.Label();
+            this.functionMinInputTextBox = new System.Windows.Forms.TextBox();
+            this.label7 = new System.Windows.Forms.Label();
+            this.functionMaxOutputTextBox = new System.Windows.Forms.TextBox();
+            this.label8 = new System.Windows.Forms.Label();
+            this.functionMinOutputTextBox = new System.Windows.Forms.TextBox();
             this.advHeaderPanel.SuspendLayout();
             this.advMainPanel.SuspendLayout();
             this.advMainSplitContainer.Panel1.SuspendLayout();
@@ -131,6 +156,7 @@
             this.elemHeaderPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.mainTipPictureBox)).BeginInit();
             this.elemFooterPanel.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.sharedIdentificationStatusTrackBar)).BeginInit();
             this.advSigPanel.SuspendLayout();
             this.repoContextMenuStrip.SuspendLayout();
             this.SuspendLayout();
@@ -143,13 +169,13 @@
             this.advHeaderPanel.Dock = System.Windows.Forms.DockStyle.Top;
             this.advHeaderPanel.Location = new System.Drawing.Point(0, 0);
             this.advHeaderPanel.Name = "advHeaderPanel";
-            this.advHeaderPanel.Size = new System.Drawing.Size(667, 29);
+            this.advHeaderPanel.Size = new System.Drawing.Size(671, 29);
             this.advHeaderPanel.TabIndex = 0;
             // 
             // advSLabelTextBox
             // 
             this.advSLabelTextBox.Dock = System.Windows.Forms.DockStyle.Right;
-            this.advSLabelTextBox.Location = new System.Drawing.Point(567, 0);
+            this.advSLabelTextBox.Location = new System.Drawing.Point(571, 0);
             this.advSLabelTextBox.Name = "advSLabelTextBox";
             this.advSLabelTextBox.ReadOnly = true;
             this.advSLabelTextBox.Size = new System.Drawing.Size(100, 20);
@@ -162,7 +188,7 @@
             this.advLabelTextBox.Location = new System.Drawing.Point(0, 0);
             this.advLabelTextBox.Name = "advLabelTextBox";
             this.advLabelTextBox.ReadOnly = true;
-            this.advLabelTextBox.Size = new System.Drawing.Size(667, 20);
+            this.advLabelTextBox.Size = new System.Drawing.Size(671, 20);
             this.advLabelTextBox.TabIndex = 0;
             // 
             // advMainPanel
@@ -173,7 +199,7 @@
             this.advMainPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.advMainPanel.Location = new System.Drawing.Point(0, 29);
             this.advMainPanel.Name = "advMainPanel";
-            this.advMainPanel.Size = new System.Drawing.Size(667, 532);
+            this.advMainPanel.Size = new System.Drawing.Size(671, 681);
             this.advMainPanel.TabIndex = 1;
             // 
             // advMainSplitContainer
@@ -192,7 +218,7 @@
             this.advMainSplitContainer.Panel2.Controls.Add(this.elemTabControl);
             this.advMainSplitContainer.Panel2.Controls.Add(this.elemHeaderPanel);
             this.advMainSplitContainer.Panel2.Controls.Add(this.elemFooterPanel);
-            this.advMainSplitContainer.Size = new System.Drawing.Size(667, 358);
+            this.advMainSplitContainer.Size = new System.Drawing.Size(671, 507);
             this.advMainSplitContainer.SplitterDistance = 132;
             this.advMainSplitContainer.TabIndex = 5;
             // 
@@ -202,30 +228,30 @@
             this.advElemsTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.advElemsTreeView.Location = new System.Drawing.Point(0, 0);
             this.advElemsTreeView.Name = "advElemsTreeView";
-            treeNode1.Name = "SCALAR";
-            treeNode1.Text = "Scalar";
-            treeNode2.Name = "FUNCTION";
-            treeNode2.Text = "Function";
-            treeNode3.Name = "TABLE";
-            treeNode3.Text = "Table";
-            treeNode4.Name = "STRUCTURE";
-            treeNode4.Text = "Structure";
+            treeNode9.Name = "SCALAR";
+            treeNode9.Text = "Scalar";
+            treeNode10.Name = "FUNCTION";
+            treeNode10.Text = "Function";
+            treeNode11.Name = "TABLE";
+            treeNode11.Text = "Table";
+            treeNode12.Name = "STRUCTURE";
+            treeNode12.Text = "Structure";
             this.advElemsTreeView.Nodes.AddRange(new System.Windows.Forms.TreeNode[] {
-            treeNode1,
-            treeNode2,
-            treeNode3,
-            treeNode4});
-            this.advElemsTreeView.Size = new System.Drawing.Size(132, 331);
+            treeNode9,
+            treeNode10,
+            treeNode11,
+            treeNode12});
+            this.advElemsTreeView.Size = new System.Drawing.Size(132, 480);
             this.advElemsTreeView.TabIndex = 3;
             // 
             // elemUpdateButton
             // 
             this.elemUpdateButton.AutoSize = true;
             this.elemUpdateButton.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.elemUpdateButton.Location = new System.Drawing.Point(0, 331);
+            this.elemUpdateButton.Location = new System.Drawing.Point(0, 480);
             this.elemUpdateButton.Name = "elemUpdateButton";
             this.elemUpdateButton.Size = new System.Drawing.Size(132, 27);
-            this.elemUpdateButton.TabIndex = 30;
+            this.elemUpdateButton.TabIndex = 100;
             this.elemUpdateButton.Text = "Apply";
             this.elemUpdateButton.UseVisualStyleBackColor = true;
             this.elemUpdateButton.Click += new System.EventHandler(this.elemUpdateButton_Click);
@@ -240,11 +266,12 @@
             this.elemTabControl.Location = new System.Drawing.Point(0, 84);
             this.elemTabControl.Name = "elemTabControl";
             this.elemTabControl.SelectedIndex = 0;
-            this.elemTabControl.Size = new System.Drawing.Size(531, 207);
+            this.elemTabControl.Size = new System.Drawing.Size(535, 184);
             this.elemTabControl.TabIndex = 2;
             // 
             // structureTabPage
             // 
+            this.structureTabPage.AutoScroll = true;
             this.structureTabPage.Controls.Add(this.structureTipPictureBox);
             this.structureTabPage.Controls.Add(this.structureNumTextBox);
             this.structureTabPage.Controls.Add(this.structureStructTextBox);
@@ -252,7 +279,7 @@
             this.structureTabPage.Controls.Add(this.label28);
             this.structureTabPage.Location = new System.Drawing.Point(4, 22);
             this.structureTabPage.Name = "structureTabPage";
-            this.structureTabPage.Size = new System.Drawing.Size(523, 181);
+            this.structureTabPage.Size = new System.Drawing.Size(527, 158);
             this.structureTabPage.TabIndex = 9;
             this.structureTabPage.Text = "Structure";
             this.structureTabPage.UseVisualStyleBackColor = true;
@@ -304,6 +331,11 @@
             // 
             // tableTabPage
             // 
+            this.tableTabPage.AutoScroll = true;
+            this.tableTabPage.Controls.Add(this.label60);
+            this.tableTabPage.Controls.Add(this.tableCellsMaxTextBox);
+            this.tableTabPage.Controls.Add(this.label2);
+            this.tableTabPage.Controls.Add(this.tableCellsMinTextBox);
             this.tableTabPage.Controls.Add(this.tableScalePrecNumericUpDown);
             this.tableTabPage.Controls.Add(this.tableCellsUnitsTextBox);
             this.tableTabPage.Controls.Add(this.tableColsTextBox);
@@ -318,18 +350,17 @@
             this.tableTabPage.Controls.Add(this.label35);
             this.tableTabPage.Controls.Add(this.label36);
             this.tableTabPage.Controls.Add(this.label39);
-            this.tableTabPage.Controls.Add(this.label40);
             this.tableTabPage.Controls.Add(this.tableSignedCheckBox);
             this.tableTabPage.Location = new System.Drawing.Point(4, 22);
             this.tableTabPage.Name = "tableTabPage";
-            this.tableTabPage.Size = new System.Drawing.Size(523, 181);
+            this.tableTabPage.Size = new System.Drawing.Size(527, 158);
             this.tableTabPage.TabIndex = 10;
             this.tableTabPage.Text = "Table";
             this.tableTabPage.UseVisualStyleBackColor = true;
             // 
             // tableScalePrecNumericUpDown
             // 
-            this.tableScalePrecNumericUpDown.Location = new System.Drawing.Point(425, 25);
+            this.tableScalePrecNumericUpDown.Location = new System.Drawing.Point(484, 25);
             this.tableScalePrecNumericUpDown.Maximum = new decimal(new int[] {
             5,
             0,
@@ -346,21 +377,21 @@
             // 
             // tableCellsUnitsTextBox
             // 
-            this.tableCellsUnitsTextBox.Location = new System.Drawing.Point(350, 69);
+            this.tableCellsUnitsTextBox.Location = new System.Drawing.Point(360, 69);
             this.tableCellsUnitsTextBox.Name = "tableCellsUnitsTextBox";
             this.tableCellsUnitsTextBox.Size = new System.Drawing.Size(155, 20);
             this.tableCellsUnitsTextBox.TabIndex = 16;
             // 
             // tableColsTextBox
             // 
-            this.tableColsTextBox.Location = new System.Drawing.Point(3, 25);
+            this.tableColsTextBox.Location = new System.Drawing.Point(3, 24);
             this.tableColsTextBox.Name = "tableColsTextBox";
             this.tableColsTextBox.Size = new System.Drawing.Size(69, 20);
             this.tableColsTextBox.TabIndex = 8;
             // 
             // tableScaleTextBox
             // 
-            this.tableScaleTextBox.Location = new System.Drawing.Point(350, 25);
+            this.tableScaleTextBox.Location = new System.Drawing.Point(409, 25);
             this.tableScaleTextBox.Name = "tableScaleTextBox";
             this.tableScaleTextBox.Size = new System.Drawing.Size(69, 20);
             this.tableScaleTextBox.TabIndex = 12;
@@ -368,7 +399,7 @@
             // 
             // tableRowsTextBox
             // 
-            this.tableRowsTextBox.Location = new System.Drawing.Point(122, 25);
+            this.tableRowsTextBox.Location = new System.Drawing.Point(148, 25);
             this.tableRowsTextBox.Name = "tableRowsTextBox";
             this.tableRowsTextBox.Size = new System.Drawing.Size(69, 20);
             this.tableRowsTextBox.TabIndex = 9;
@@ -376,7 +407,7 @@
             // 
             // tableRowsUnitsTextBox
             // 
-            this.tableRowsUnitsTextBox.Location = new System.Drawing.Point(175, 69);
+            this.tableRowsUnitsTextBox.Location = new System.Drawing.Point(188, 69);
             this.tableRowsUnitsTextBox.Name = "tableRowsUnitsTextBox";
             this.tableRowsUnitsTextBox.Size = new System.Drawing.Size(153, 20);
             this.tableRowsUnitsTextBox.TabIndex = 15;
@@ -391,7 +422,7 @@
             // tableWordCheckBox
             // 
             this.tableWordCheckBox.AutoSize = true;
-            this.tableWordCheckBox.Location = new System.Drawing.Point(244, 28);
+            this.tableWordCheckBox.Location = new System.Drawing.Point(289, 28);
             this.tableWordCheckBox.Name = "tableWordCheckBox";
             this.tableWordCheckBox.Size = new System.Drawing.Size(52, 17);
             this.tableWordCheckBox.TabIndex = 11;
@@ -401,7 +432,7 @@
             // label30
             // 
             this.label30.AutoSize = true;
-            this.label30.Location = new System.Drawing.Point(347, 53);
+            this.label30.Location = new System.Drawing.Point(357, 53);
             this.label30.Name = "label30";
             this.label30.Size = new System.Drawing.Size(56, 13);
             this.label30.TabIndex = 73;
@@ -410,7 +441,7 @@
             // label31
             // 
             this.label31.AutoSize = true;
-            this.label31.Location = new System.Drawing.Point(0, 9);
+            this.label31.Location = new System.Drawing.Point(-1, 9);
             this.label31.Name = "label31";
             this.label31.Size = new System.Drawing.Size(87, 13);
             this.label31.TabIndex = 72;
@@ -419,7 +450,7 @@
             // label32
             // 
             this.label32.AutoSize = true;
-            this.label32.Location = new System.Drawing.Point(347, 9);
+            this.label32.Location = new System.Drawing.Point(406, 9);
             this.label32.Name = "label32";
             this.label32.Size = new System.Drawing.Size(34, 13);
             this.label32.TabIndex = 71;
@@ -428,7 +459,7 @@
             // label35
             // 
             this.label35.AutoSize = true;
-            this.label35.Location = new System.Drawing.Point(119, 9);
+            this.label35.Location = new System.Drawing.Point(145, 9);
             this.label35.Name = "label35";
             this.label35.Size = new System.Drawing.Size(74, 13);
             this.label35.TabIndex = 70;
@@ -437,7 +468,7 @@
             // label36
             // 
             this.label36.AutoSize = true;
-            this.label36.Location = new System.Drawing.Point(172, 53);
+            this.label36.Location = new System.Drawing.Point(185, 53);
             this.label36.Name = "label36";
             this.label36.Size = new System.Drawing.Size(61, 13);
             this.label36.TabIndex = 69;
@@ -452,19 +483,10 @@
             this.label39.TabIndex = 68;
             this.label39.Text = "Columns Units";
             // 
-            // label40
-            // 
-            this.label40.AutoSize = true;
-            this.label40.Location = new System.Drawing.Point(0, 179);
-            this.label40.Name = "label40";
-            this.label40.Size = new System.Drawing.Size(56, 13);
-            this.label40.TabIndex = 67;
-            this.label40.Text = "Comments";
-            // 
             // tableSignedCheckBox
             // 
             this.tableSignedCheckBox.AutoSize = true;
-            this.tableSignedCheckBox.Location = new System.Drawing.Point(244, 9);
+            this.tableSignedCheckBox.Location = new System.Drawing.Point(289, 9);
             this.tableSignedCheckBox.Name = "tableSignedCheckBox";
             this.tableSignedCheckBox.Size = new System.Drawing.Size(59, 17);
             this.tableSignedCheckBox.TabIndex = 10;
@@ -473,6 +495,15 @@
             // 
             // functionTabPage
             // 
+            this.functionTabPage.AutoScroll = true;
+            this.functionTabPage.Controls.Add(this.label7);
+            this.functionTabPage.Controls.Add(this.functionMaxOutputTextBox);
+            this.functionTabPage.Controls.Add(this.label8);
+            this.functionTabPage.Controls.Add(this.functionMinOutputTextBox);
+            this.functionTabPage.Controls.Add(this.label5);
+            this.functionTabPage.Controls.Add(this.functionMaxInputTextBox);
+            this.functionTabPage.Controls.Add(this.label6);
+            this.functionTabPage.Controls.Add(this.functionMinInputTextBox);
             this.functionTabPage.Controls.Add(this.functionScalePrecOutputNumericUpDown);
             this.functionTabPage.Controls.Add(this.functionScalePrecInputNumericUpDown);
             this.functionTabPage.Controls.Add(this.functionScaleOutputTextBox);
@@ -487,18 +518,17 @@
             this.functionTabPage.Controls.Add(this.label48);
             this.functionTabPage.Controls.Add(this.functionSignedOutputCheckBox);
             this.functionTabPage.Controls.Add(this.label49);
-            this.functionTabPage.Controls.Add(this.label50);
             this.functionTabPage.Controls.Add(this.functionSignedInputCheckBox);
             this.functionTabPage.Location = new System.Drawing.Point(4, 22);
             this.functionTabPage.Name = "functionTabPage";
-            this.functionTabPage.Size = new System.Drawing.Size(523, 181);
+            this.functionTabPage.Size = new System.Drawing.Size(527, 158);
             this.functionTabPage.TabIndex = 11;
             this.functionTabPage.Text = "Function";
             this.functionTabPage.UseVisualStyleBackColor = true;
             // 
             // functionScalePrecOutputNumericUpDown
             // 
-            this.functionScalePrecOutputNumericUpDown.Location = new System.Drawing.Point(490, 68);
+            this.functionScalePrecOutputNumericUpDown.Location = new System.Drawing.Point(484, 29);
             this.functionScalePrecOutputNumericUpDown.Maximum = new decimal(new int[] {
             5,
             0,
@@ -515,7 +545,7 @@
             // 
             // functionScalePrecInputNumericUpDown
             // 
-            this.functionScalePrecInputNumericUpDown.Location = new System.Drawing.Point(160, 68);
+            this.functionScalePrecInputNumericUpDown.Location = new System.Drawing.Point(260, 29);
             this.functionScalePrecInputNumericUpDown.Maximum = new decimal(new int[] {
             5,
             0,
@@ -532,7 +562,7 @@
             // 
             // functionScaleOutputTextBox
             // 
-            this.functionScaleOutputTextBox.Location = new System.Drawing.Point(415, 68);
+            this.functionScaleOutputTextBox.Location = new System.Drawing.Point(409, 29);
             this.functionScaleOutputTextBox.Name = "functionScaleOutputTextBox";
             this.functionScaleOutputTextBox.Size = new System.Drawing.Size(69, 20);
             this.functionScaleOutputTextBox.TabIndex = 14;
@@ -540,7 +570,7 @@
             // 
             // functionScaleInputTextBox
             // 
-            this.functionScaleInputTextBox.Location = new System.Drawing.Point(85, 68);
+            this.functionScaleInputTextBox.Location = new System.Drawing.Point(185, 29);
             this.functionScaleInputTextBox.Name = "functionScaleInputTextBox";
             this.functionScaleInputTextBox.Size = new System.Drawing.Size(69, 20);
             this.functionScaleInputTextBox.TabIndex = 11;
@@ -556,14 +586,14 @@
             // 
             // functionUnitsOutputTextBox
             // 
-            this.functionUnitsOutputTextBox.Location = new System.Drawing.Point(339, 107);
+            this.functionUnitsOutputTextBox.Location = new System.Drawing.Point(327, 68);
             this.functionUnitsOutputTextBox.Name = "functionUnitsOutputTextBox";
-            this.functionUnitsOutputTextBox.Size = new System.Drawing.Size(182, 20);
+            this.functionUnitsOutputTextBox.Size = new System.Drawing.Size(188, 20);
             this.functionUnitsOutputTextBox.TabIndex = 17;
             // 
             // functionUnitsInputTextBox
             // 
-            this.functionUnitsInputTextBox.Location = new System.Drawing.Point(3, 107);
+            this.functionUnitsInputTextBox.Location = new System.Drawing.Point(103, 68);
             this.functionUnitsInputTextBox.Name = "functionUnitsInputTextBox";
             this.functionUnitsInputTextBox.Size = new System.Drawing.Size(188, 20);
             this.functionUnitsInputTextBox.TabIndex = 16;
@@ -571,7 +601,7 @@
             // functionByteCheckBox
             // 
             this.functionByteCheckBox.AutoSize = true;
-            this.functionByteCheckBox.Location = new System.Drawing.Point(244, 21);
+            this.functionByteCheckBox.Location = new System.Drawing.Point(20, 68);
             this.functionByteCheckBox.Name = "functionByteCheckBox";
             this.functionByteCheckBox.Size = new System.Drawing.Size(47, 17);
             this.functionByteCheckBox.TabIndex = 9;
@@ -581,7 +611,7 @@
             // label45
             // 
             this.label45.AutoSize = true;
-            this.label45.Location = new System.Drawing.Point(452, 51);
+            this.label45.Location = new System.Drawing.Point(446, 11);
             this.label45.Name = "label45";
             this.label45.Size = new System.Drawing.Size(69, 13);
             this.label45.TabIndex = 100;
@@ -590,7 +620,7 @@
             // label46
             // 
             this.label46.AutoSize = true;
-            this.label46.Location = new System.Drawing.Point(130, 52);
+            this.label46.Location = new System.Drawing.Point(230, 13);
             this.label46.Name = "label46";
             this.label46.Size = new System.Drawing.Size(61, 13);
             this.label46.TabIndex = 99;
@@ -608,7 +638,7 @@
             // label48
             // 
             this.label48.AutoSize = true;
-            this.label48.Location = new System.Drawing.Point(336, 91);
+            this.label48.Location = new System.Drawing.Point(324, 52);
             this.label48.Name = "label48";
             this.label48.Size = new System.Drawing.Size(66, 13);
             this.label48.TabIndex = 97;
@@ -617,7 +647,7 @@
             // functionSignedOutputCheckBox
             // 
             this.functionSignedOutputCheckBox.AutoSize = true;
-            this.functionSignedOutputCheckBox.Location = new System.Drawing.Point(339, 51);
+            this.functionSignedOutputCheckBox.Location = new System.Drawing.Point(327, 11);
             this.functionSignedOutputCheckBox.Name = "functionSignedOutputCheckBox";
             this.functionSignedOutputCheckBox.Size = new System.Drawing.Size(94, 17);
             this.functionSignedOutputCheckBox.TabIndex = 13;
@@ -627,25 +657,16 @@
             // label49
             // 
             this.label49.AutoSize = true;
-            this.label49.Location = new System.Drawing.Point(0, 91);
+            this.label49.Location = new System.Drawing.Point(100, 52);
             this.label49.Name = "label49";
             this.label49.Size = new System.Drawing.Size(58, 13);
             this.label49.TabIndex = 94;
             this.label49.Text = "Input Units";
             // 
-            // label50
-            // 
-            this.label50.AutoSize = true;
-            this.label50.Location = new System.Drawing.Point(0, 184);
-            this.label50.Name = "label50";
-            this.label50.Size = new System.Drawing.Size(56, 13);
-            this.label50.TabIndex = 91;
-            this.label50.Text = "Comments";
-            // 
             // functionSignedInputCheckBox
             // 
             this.functionSignedInputCheckBox.AutoSize = true;
-            this.functionSignedInputCheckBox.Location = new System.Drawing.Point(3, 51);
+            this.functionSignedInputCheckBox.Location = new System.Drawing.Point(103, 12);
             this.functionSignedInputCheckBox.Name = "functionSignedInputCheckBox";
             this.functionSignedInputCheckBox.Size = new System.Drawing.Size(86, 17);
             this.functionSignedInputCheckBox.TabIndex = 10;
@@ -654,6 +675,11 @@
             // 
             // scalarTabPage
             // 
+            this.scalarTabPage.AutoScroll = true;
+            this.scalarTabPage.Controls.Add(this.label3);
+            this.scalarTabPage.Controls.Add(this.scalarMaxTextBox);
+            this.scalarTabPage.Controls.Add(this.label4);
+            this.scalarTabPage.Controls.Add(this.scalarMinTextBox);
             this.scalarTabPage.Controls.Add(this.scalarInlineCommentsCheckBox);
             this.scalarTabPage.Controls.Add(this.scalarScalePrecNumericUpDown);
             this.scalarTabPage.Controls.Add(this.scalarBitFlagsButton);
@@ -666,7 +692,7 @@
             this.scalarTabPage.Controls.Add(this.scalarSignedCheckBox);
             this.scalarTabPage.Location = new System.Drawing.Point(4, 22);
             this.scalarTabPage.Name = "scalarTabPage";
-            this.scalarTabPage.Size = new System.Drawing.Size(523, 181);
+            this.scalarTabPage.Size = new System.Drawing.Size(527, 158);
             this.scalarTabPage.TabIndex = 12;
             this.scalarTabPage.Text = "Scalar";
             this.scalarTabPage.UseVisualStyleBackColor = true;
@@ -677,7 +703,7 @@
             this.scalarInlineCommentsCheckBox.Location = new System.Drawing.Point(3, 108);
             this.scalarInlineCommentsCheckBox.Name = "scalarInlineCommentsCheckBox";
             this.scalarInlineCommentsCheckBox.Size = new System.Drawing.Size(103, 17);
-            this.scalarInlineCommentsCheckBox.TabIndex = 95;
+            this.scalarInlineCommentsCheckBox.TabIndex = 14;
             this.scalarInlineCommentsCheckBox.Text = "Inline Comments";
             this.scalarInlineCommentsCheckBox.UseVisualStyleBackColor = true;
             // 
@@ -774,6 +800,7 @@
             // 
             // elemHeaderPanel
             // 
+            this.elemHeaderPanel.AutoScroll = true;
             this.elemHeaderPanel.Controls.Add(this.label1);
             this.elemHeaderPanel.Controls.Add(this.for8061ComboBox);
             this.elemHeaderPanel.Controls.Add(this.labelTextBox);
@@ -786,7 +813,7 @@
             this.elemHeaderPanel.Dock = System.Windows.Forms.DockStyle.Top;
             this.elemHeaderPanel.Location = new System.Drawing.Point(0, 0);
             this.elemHeaderPanel.Name = "elemHeaderPanel";
-            this.elemHeaderPanel.Size = new System.Drawing.Size(531, 84);
+            this.elemHeaderPanel.Size = new System.Drawing.Size(535, 84);
             this.elemHeaderPanel.TabIndex = 4;
             // 
             // label1
@@ -870,40 +897,156 @@
             // 
             // elemFooterPanel
             // 
+            this.elemFooterPanel.AutoScroll = true;
             this.elemFooterPanel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.elemFooterPanel.Controls.Add(this.sharedIdentificationStatusTrackBar);
+            this.elemFooterPanel.Controls.Add(this.sharedIdentificationDetailsTextBox);
+            this.elemFooterPanel.Controls.Add(this.sharedIdentificationLabel);
+            this.elemFooterPanel.Controls.Add(this.sharedCateg3ComboBox);
+            this.elemFooterPanel.Controls.Add(this.sharedCateg2ComboBox);
+            this.elemFooterPanel.Controls.Add(this.sharedCategsLabel);
+            this.elemFooterPanel.Controls.Add(this.sharedCategComboBox);
+            this.elemFooterPanel.Controls.Add(this.label53);
+            this.elemFooterPanel.Controls.Add(this.sharedDateUpdatedDateTimePicker);
+            this.elemFooterPanel.Controls.Add(this.label52);
+            this.elemFooterPanel.Controls.Add(this.sharedDateCreatedDateTimePicker);
             this.elemFooterPanel.Controls.Add(this.commentsTextBox);
             this.elemFooterPanel.Controls.Add(this.outputCommentsCheckBox);
             this.elemFooterPanel.Controls.Add(this.label33);
             this.elemFooterPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.elemFooterPanel.Location = new System.Drawing.Point(0, 291);
+            this.elemFooterPanel.Location = new System.Drawing.Point(0, 268);
             this.elemFooterPanel.Name = "elemFooterPanel";
-            this.elemFooterPanel.Size = new System.Drawing.Size(531, 67);
+            this.elemFooterPanel.Size = new System.Drawing.Size(535, 239);
             this.elemFooterPanel.TabIndex = 3;
+            // 
+            // sharedIdentificationStatusTrackBar
+            // 
+            this.sharedIdentificationStatusTrackBar.BackColor = System.Drawing.SystemColors.Window;
+            this.sharedIdentificationStatusTrackBar.LargeChange = 10;
+            this.sharedIdentificationStatusTrackBar.Location = new System.Drawing.Point(7, 190);
+            this.sharedIdentificationStatusTrackBar.Maximum = 100;
+            this.sharedIdentificationStatusTrackBar.Name = "sharedIdentificationStatusTrackBar";
+            this.sharedIdentificationStatusTrackBar.Size = new System.Drawing.Size(214, 45);
+            this.sharedIdentificationStatusTrackBar.TabIndex = 60;
+            this.sharedIdentificationStatusTrackBar.TickStyle = System.Windows.Forms.TickStyle.Both;
+            // 
+            // sharedIdentificationDetailsTextBox
+            // 
+            this.sharedIdentificationDetailsTextBox.Location = new System.Drawing.Point(227, 190);
+            this.sharedIdentificationDetailsTextBox.Multiline = true;
+            this.sharedIdentificationDetailsTextBox.Name = "sharedIdentificationDetailsTextBox";
+            this.sharedIdentificationDetailsTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.sharedIdentificationDetailsTextBox.Size = new System.Drawing.Size(292, 45);
+            this.sharedIdentificationDetailsTextBox.TabIndex = 61;
+            // 
+            // sharedIdentificationLabel
+            // 
+            this.sharedIdentificationLabel.AutoSize = true;
+            this.sharedIdentificationLabel.Location = new System.Drawing.Point(4, 174);
+            this.sharedIdentificationLabel.Name = "sharedIdentificationLabel";
+            this.sharedIdentificationLabel.Size = new System.Drawing.Size(67, 13);
+            this.sharedIdentificationLabel.TabIndex = 100;
+            this.sharedIdentificationLabel.Tag = "Identification";
+            this.sharedIdentificationLabel.Text = "Identification";
+            // 
+            // sharedCateg3ComboBox
+            // 
+            this.sharedCateg3ComboBox.FormattingEnabled = true;
+            this.sharedCateg3ComboBox.Location = new System.Drawing.Point(399, 140);
+            this.sharedCateg3ComboBox.Name = "sharedCateg3ComboBox";
+            this.sharedCateg3ComboBox.Size = new System.Drawing.Size(120, 21);
+            this.sharedCateg3ComboBox.Sorted = true;
+            this.sharedCateg3ComboBox.TabIndex = 52;
+            // 
+            // sharedCateg2ComboBox
+            // 
+            this.sharedCateg2ComboBox.FormattingEnabled = true;
+            this.sharedCateg2ComboBox.Location = new System.Drawing.Point(212, 140);
+            this.sharedCateg2ComboBox.Name = "sharedCateg2ComboBox";
+            this.sharedCateg2ComboBox.Size = new System.Drawing.Size(120, 21);
+            this.sharedCateg2ComboBox.Sorted = true;
+            this.sharedCateg2ComboBox.TabIndex = 51;
+            // 
+            // sharedCategsLabel
+            // 
+            this.sharedCategsLabel.AutoSize = true;
+            this.sharedCategsLabel.Location = new System.Drawing.Point(245, 124);
+            this.sharedCategsLabel.Name = "sharedCategsLabel";
+            this.sharedCategsLabel.Size = new System.Drawing.Size(57, 13);
+            this.sharedCategsLabel.TabIndex = 99;
+            this.sharedCategsLabel.Text = "Categories";
+            // 
+            // sharedCategComboBox
+            // 
+            this.sharedCategComboBox.FormattingEnabled = true;
+            this.sharedCategComboBox.Location = new System.Drawing.Point(7, 140);
+            this.sharedCategComboBox.Name = "sharedCategComboBox";
+            this.sharedCategComboBox.Size = new System.Drawing.Size(120, 21);
+            this.sharedCategComboBox.Sorted = true;
+            this.sharedCategComboBox.TabIndex = 50;
+            // 
+            // label53
+            // 
+            this.label53.AutoSize = true;
+            this.label53.Location = new System.Drawing.Point(447, 76);
+            this.label53.Name = "label53";
+            this.label53.Size = new System.Drawing.Size(72, 13);
+            this.label53.TabIndex = 98;
+            this.label53.Text = "Date updated";
+            // 
+            // sharedDateUpdatedDateTimePicker
+            // 
+            this.sharedDateUpdatedDateTimePicker.CustomFormat = "yyyy-MM-dd HH:mm:ss";
+            this.sharedDateUpdatedDateTimePicker.Enabled = false;
+            this.sharedDateUpdatedDateTimePicker.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
+            this.sharedDateUpdatedDateTimePicker.Location = new System.Drawing.Point(339, 92);
+            this.sharedDateUpdatedDateTimePicker.Name = "sharedDateUpdatedDateTimePicker";
+            this.sharedDateUpdatedDateTimePicker.Size = new System.Drawing.Size(180, 20);
+            this.sharedDateUpdatedDateTimePicker.TabIndex = 41;
+            // 
+            // label52
+            // 
+            this.label52.AutoSize = true;
+            this.label52.Location = new System.Drawing.Point(5, 76);
+            this.label52.Name = "label52";
+            this.label52.Size = new System.Drawing.Size(69, 13);
+            this.label52.TabIndex = 97;
+            this.label52.Text = "Date created";
+            // 
+            // sharedDateCreatedDateTimePicker
+            // 
+            this.sharedDateCreatedDateTimePicker.CustomFormat = "yyyy-MM-dd HH:mm:ss";
+            this.sharedDateCreatedDateTimePicker.Enabled = false;
+            this.sharedDateCreatedDateTimePicker.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
+            this.sharedDateCreatedDateTimePicker.Location = new System.Drawing.Point(7, 92);
+            this.sharedDateCreatedDateTimePicker.Name = "sharedDateCreatedDateTimePicker";
+            this.sharedDateCreatedDateTimePicker.Size = new System.Drawing.Size(180, 20);
+            this.sharedDateCreatedDateTimePicker.TabIndex = 40;
             // 
             // commentsTextBox
             // 
-            this.commentsTextBox.Location = new System.Drawing.Point(7, 19);
+            this.commentsTextBox.Location = new System.Drawing.Point(7, 20);
             this.commentsTextBox.Multiline = true;
             this.commentsTextBox.Name = "commentsTextBox";
             this.commentsTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.commentsTextBox.Size = new System.Drawing.Size(512, 42);
-            this.commentsTextBox.TabIndex = 20;
+            this.commentsTextBox.TabIndex = 30;
             // 
             // outputCommentsCheckBox
             // 
             this.outputCommentsCheckBox.AutoSize = true;
             this.outputCommentsCheckBox.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.outputCommentsCheckBox.Location = new System.Drawing.Point(409, 2);
+            this.outputCommentsCheckBox.Location = new System.Drawing.Point(409, 3);
             this.outputCommentsCheckBox.Name = "outputCommentsCheckBox";
             this.outputCommentsCheckBox.Size = new System.Drawing.Size(110, 17);
-            this.outputCommentsCheckBox.TabIndex = 21;
+            this.outputCommentsCheckBox.TabIndex = 31;
             this.outputCommentsCheckBox.Text = "Output Comments";
             this.outputCommentsCheckBox.UseVisualStyleBackColor = true;
             // 
             // label33
             // 
             this.label33.AutoSize = true;
-            this.label33.Location = new System.Drawing.Point(4, 3);
+            this.label33.Location = new System.Drawing.Point(4, 4);
             this.label33.Name = "label33";
             this.label33.Size = new System.Drawing.Size(56, 13);
             this.label33.TabIndex = 65;
@@ -916,7 +1059,7 @@
             this.advSigPanel.Dock = System.Windows.Forms.DockStyle.Top;
             this.advSigPanel.Location = new System.Drawing.Point(0, 0);
             this.advSigPanel.Name = "advSigPanel";
-            this.advSigPanel.Size = new System.Drawing.Size(667, 174);
+            this.advSigPanel.Size = new System.Drawing.Size(671, 174);
             this.advSigPanel.TabIndex = 3;
             // 
             // advSigTextBox
@@ -926,7 +1069,7 @@
             this.advSigTextBox.Multiline = true;
             this.advSigTextBox.Name = "advSigTextBox";
             this.advSigTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.advSigTextBox.Size = new System.Drawing.Size(667, 174);
+            this.advSigTextBox.Size = new System.Drawing.Size(671, 174);
             this.advSigTextBox.TabIndex = 2;
             // 
             // mainToolTip
@@ -964,11 +1107,139 @@
             this.repoToolStripMenuItem.Text = "Related Repository";
             this.repoToolStripMenuItem.ToolTipText = "Results";
             // 
+            // label60
+            // 
+            this.label60.AutoSize = true;
+            this.label60.Location = new System.Drawing.Point(464, 95);
+            this.label60.Name = "label60";
+            this.label60.Size = new System.Drawing.Size(51, 13);
+            this.label60.TabIndex = 77;
+            this.label60.Text = "Maximum";
+            // 
+            // tableCellsMaxTextBox
+            // 
+            this.tableCellsMaxTextBox.Location = new System.Drawing.Point(446, 111);
+            this.tableCellsMaxTextBox.Name = "tableCellsMaxTextBox";
+            this.tableCellsMaxTextBox.Size = new System.Drawing.Size(69, 20);
+            this.tableCellsMaxTextBox.TabIndex = 18;
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(357, 95);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(48, 13);
+            this.label2.TabIndex = 76;
+            this.label2.Text = "Minimum";
+            // 
+            // tableCellsMinTextBox
+            // 
+            this.tableCellsMinTextBox.Location = new System.Drawing.Point(360, 111);
+            this.tableCellsMinTextBox.Name = "tableCellsMinTextBox";
+            this.tableCellsMinTextBox.Size = new System.Drawing.Size(69, 20);
+            this.tableCellsMinTextBox.TabIndex = 17;
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(464, 101);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(51, 13);
+            this.label3.TabIndex = 99;
+            this.label3.Text = "Maximum";
+            // 
+            // scalarMaxTextBox
+            // 
+            this.scalarMaxTextBox.Location = new System.Drawing.Point(446, 117);
+            this.scalarMaxTextBox.Name = "scalarMaxTextBox";
+            this.scalarMaxTextBox.Size = new System.Drawing.Size(69, 20);
+            this.scalarMaxTextBox.TabIndex = 16;
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(467, 56);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(48, 13);
+            this.label4.TabIndex = 98;
+            this.label4.Text = "Minimum";
+            // 
+            // scalarMinTextBox
+            // 
+            this.scalarMinTextBox.Location = new System.Drawing.Point(446, 72);
+            this.scalarMinTextBox.Name = "scalarMinTextBox";
+            this.scalarMinTextBox.Size = new System.Drawing.Size(69, 20);
+            this.scalarMinTextBox.TabIndex = 15;
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(213, 97);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(78, 13);
+            this.label5.TabIndex = 104;
+            this.label5.Text = "Input Maximum";
+            // 
+            // functionMaxInputTextBox
+            // 
+            this.functionMaxInputTextBox.Location = new System.Drawing.Point(222, 113);
+            this.functionMaxInputTextBox.Name = "functionMaxInputTextBox";
+            this.functionMaxInputTextBox.Size = new System.Drawing.Size(69, 20);
+            this.functionMaxInputTextBox.TabIndex = 19;
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(100, 97);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(75, 13);
+            this.label6.TabIndex = 103;
+            this.label6.Text = "Input Minimum";
+            // 
+            // functionMinInputTextBox
+            // 
+            this.functionMinInputTextBox.Location = new System.Drawing.Point(103, 113);
+            this.functionMinInputTextBox.Name = "functionMinInputTextBox";
+            this.functionMinInputTextBox.Size = new System.Drawing.Size(69, 20);
+            this.functionMinInputTextBox.TabIndex = 18;
+            // 
+            // label7
+            // 
+            this.label7.AutoSize = true;
+            this.label7.Location = new System.Drawing.Point(429, 97);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(86, 13);
+            this.label7.TabIndex = 108;
+            this.label7.Text = "Output Maximum";
+            // 
+            // functionMaxOutputTextBox
+            // 
+            this.functionMaxOutputTextBox.Location = new System.Drawing.Point(446, 113);
+            this.functionMaxOutputTextBox.Name = "functionMaxOutputTextBox";
+            this.functionMaxOutputTextBox.Size = new System.Drawing.Size(69, 20);
+            this.functionMaxOutputTextBox.TabIndex = 21;
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Location = new System.Drawing.Point(324, 97);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(83, 13);
+            this.label8.TabIndex = 107;
+            this.label8.Text = "Output Minimum";
+            // 
+            // functionMinOutputTextBox
+            // 
+            this.functionMinOutputTextBox.Location = new System.Drawing.Point(327, 113);
+            this.functionMinOutputTextBox.Name = "functionMinOutputTextBox";
+            this.functionMinOutputTextBox.Size = new System.Drawing.Size(69, 20);
+            this.functionMinOutputTextBox.TabIndex = 20;
+            // 
             // ElemSigForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(667, 561);
+            this.ClientSize = new System.Drawing.Size(671, 710);
             this.Controls.Add(this.advMainPanel);
             this.Controls.Add(this.advHeaderPanel);
             this.Name = "ElemSigForm";
@@ -1001,6 +1272,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.mainTipPictureBox)).EndInit();
             this.elemFooterPanel.ResumeLayout(false);
             this.elemFooterPanel.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.sharedIdentificationStatusTrackBar)).EndInit();
             this.advSigPanel.ResumeLayout(false);
             this.advSigPanel.PerformLayout();
             this.repoContextMenuStrip.ResumeLayout(false);
@@ -1049,7 +1321,6 @@
         private System.Windows.Forms.Label label35;
         private System.Windows.Forms.Label label36;
         private System.Windows.Forms.Label label39;
-        private System.Windows.Forms.Label label40;
         private System.Windows.Forms.CheckBox tableSignedCheckBox;
         private System.Windows.Forms.TabPage functionTabPage;
         private System.Windows.Forms.TextBox functionScaleOutputTextBox;
@@ -1064,7 +1335,6 @@
         private System.Windows.Forms.Label label48;
         private System.Windows.Forms.CheckBox functionSignedOutputCheckBox;
         private System.Windows.Forms.Label label49;
-        private System.Windows.Forms.Label label50;
         private System.Windows.Forms.CheckBox functionSignedInputCheckBox;
         private System.Windows.Forms.TabPage scalarTabPage;
         private System.Windows.Forms.TextBox scalarScaleTextBox;
@@ -1091,5 +1361,32 @@
         private System.Windows.Forms.NumericUpDown functionScalePrecOutputNumericUpDown;
         private System.Windows.Forms.NumericUpDown scalarScalePrecNumericUpDown;
         private System.Windows.Forms.CheckBox scalarInlineCommentsCheckBox;
+        private System.Windows.Forms.TrackBar sharedIdentificationStatusTrackBar;
+        private System.Windows.Forms.TextBox sharedIdentificationDetailsTextBox;
+        private System.Windows.Forms.Label sharedIdentificationLabel;
+        private System.Windows.Forms.ComboBox sharedCateg3ComboBox;
+        private System.Windows.Forms.ComboBox sharedCateg2ComboBox;
+        private System.Windows.Forms.Label sharedCategsLabel;
+        private System.Windows.Forms.ComboBox sharedCategComboBox;
+        private System.Windows.Forms.Label label53;
+        private System.Windows.Forms.DateTimePicker sharedDateUpdatedDateTimePicker;
+        private System.Windows.Forms.Label label52;
+        private System.Windows.Forms.DateTimePicker sharedDateCreatedDateTimePicker;
+        private System.Windows.Forms.Label label60;
+        private System.Windows.Forms.TextBox tableCellsMaxTextBox;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.TextBox tableCellsMinTextBox;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.TextBox scalarMaxTextBox;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.TextBox scalarMinTextBox;
+        private System.Windows.Forms.Label label7;
+        private System.Windows.Forms.TextBox functionMaxOutputTextBox;
+        private System.Windows.Forms.Label label8;
+        private System.Windows.Forms.TextBox functionMinOutputTextBox;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.TextBox functionMaxInputTextBox;
+        private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.TextBox functionMinInputTextBox;
     }
 }

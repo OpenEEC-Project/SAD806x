@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
@@ -57,6 +58,7 @@
             this.settingsSAD806xToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.settingsSADToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.settingsTunerProToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.settingsEABEToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.settings806xUniDbToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator25 = new System.Windows.Forms.ToolStripSeparator();
             this.searchObjectsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -75,17 +77,39 @@
             this.exportCmtFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tunerProFilesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.importXdfFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.importXdfCategsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator10 = new System.Windows.Forms.ToolStripSeparator();
             this.exportXdfFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportXdfResetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.eABEFilesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.importXlsFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportXlsFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.uniDb806xToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.importUniDb806xToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.fileUniDb806xToolStripTextBox = new System.Windows.Forms.ToolStripTextBox();
+            this.selectUniDb806xToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator27 = new System.Windows.Forms.ToolStripSeparator();
-            this.exportUniDb806xToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator28 = new System.Windows.Forms.ToolStripSeparator();
-            this.syncUniDb806xToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.openUniDb806xToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator29 = new System.Windows.Forms.ToolStripSeparator();
-            this.extractBinUniDb806xToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.importUniDb806xToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportUniDb806xToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.syncUniDb806xToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.iesOptionsUniDb806xToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.iesOptPropertiesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.iesOptTablesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.iesOptFunctionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.iesOptScalarsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.iesOptStructuresToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.iesOptRoutinesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.iesOptOperationsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.iesOptOtherToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.iesOptRegistersToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.iesOptSignaturesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator36 = new System.Windows.Forms.ToolStripSeparator();
+            this.iesOptAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.iesOptNoneToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator28 = new System.Windows.Forms.ToolStripSeparator();
+            this.binariesUniDb806xToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.filesUniDb806xToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator11 = new System.Windows.Forms.ToolStripSeparator();
             this.comparisonsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.compareBinariesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -139,6 +163,7 @@
             this.elemsTreeView = new System.Windows.Forms.TreeView();
             this.shortCutsContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.shortCutsElementResetRemoveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.elemsTreeViewStateImageList = new System.Windows.Forms.ImageList(this.components);
             this.elemPanel = new System.Windows.Forms.Panel();
             this.elemMainSplitContainer = new System.Windows.Forms.SplitContainer();
             this.elemBankTextBox = new System.Windows.Forms.TextBox();
@@ -155,6 +180,9 @@
             this.convertToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.elemTabControl = new System.Windows.Forms.TabControl();
             this.s6xPropertiesTabPage = new System.Windows.Forms.TabPage();
+            this.s6xPropertiesNoNumberingShortFormatCheckBox = new System.Windows.Forms.CheckBox();
+            this.s6xPropertiesIgnore8065RegShortcut0x100SFR = new System.Windows.Forms.CheckBox();
+            this.s6xPropertiesIgnore8065RegShortcut0x100 = new System.Windows.Forms.CheckBox();
             this.s6xPropertiesOutputHeaderCheckBox = new System.Windows.Forms.CheckBox();
             this.s6xPropertiesHeaderTextBox = new System.Windows.Forms.TextBox();
             this.label31 = new System.Windows.Forms.Label();
@@ -168,6 +196,10 @@
             this.label28 = new System.Windows.Forms.Label();
             this.s6xPropertiesXdfBaseOffsetTextBox = new System.Windows.Forms.TextBox();
             this.elemScalarPropertiesTabPage = new System.Windows.Forms.TabPage();
+            this.label55 = new System.Windows.Forms.Label();
+            this.scalarMaxTextBox = new System.Windows.Forms.TextBox();
+            this.label54 = new System.Windows.Forms.Label();
+            this.scalarMinTextBox = new System.Windows.Forms.TextBox();
             this.scalarInlineCommentsCheckBox = new System.Windows.Forms.CheckBox();
             this.scalarScalePrecNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.scalarBitFlagsButton = new System.Windows.Forms.Button();
@@ -187,6 +219,14 @@
             this.scalarLabelTextBox = new System.Windows.Forms.TextBox();
             this.scalarSignedCheckBox = new System.Windows.Forms.CheckBox();
             this.elemFunctionPropertiesTabPage = new System.Windows.Forms.TabPage();
+            this.label58 = new System.Windows.Forms.Label();
+            this.functionMaxOutputTextBox = new System.Windows.Forms.TextBox();
+            this.label59 = new System.Windows.Forms.Label();
+            this.functionMinOutputTextBox = new System.Windows.Forms.TextBox();
+            this.label56 = new System.Windows.Forms.Label();
+            this.functionMaxInputTextBox = new System.Windows.Forms.TextBox();
+            this.label57 = new System.Windows.Forms.Label();
+            this.functionMinInputTextBox = new System.Windows.Forms.TextBox();
             this.functionScalePrecOutputNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.functionScalePrecInputNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.functionOutputCommentsCheckBox = new System.Windows.Forms.CheckBox();
@@ -211,6 +251,10 @@
             this.functionLabelTextBox = new System.Windows.Forms.TextBox();
             this.functionSignedInputCheckBox = new System.Windows.Forms.CheckBox();
             this.elemTablePropertiesTabPage = new System.Windows.Forms.TabPage();
+            this.label60 = new System.Windows.Forms.Label();
+            this.tableMaxTextBox = new System.Windows.Forms.TextBox();
+            this.label61 = new System.Windows.Forms.Label();
+            this.tableMinTextBox = new System.Windows.Forms.TextBox();
             this.tableScalePrecNumericUpDown = new System.Windows.Forms.NumericUpDown();
             this.tableColsScalerButton = new System.Windows.Forms.Button();
             this.tableRowsScalerButton = new System.Windows.Forms.Button();
@@ -277,6 +321,10 @@
             this.label25 = new System.Windows.Forms.Label();
             this.opeLabelTextBox = new System.Windows.Forms.TextBox();
             this.elemRegisterTabPage = new System.Windows.Forms.TabPage();
+            this.label38 = new System.Windows.Forms.Label();
+            this.regSignedComboBox = new System.Windows.Forms.ComboBox();
+            this.label37 = new System.Windows.Forms.Label();
+            this.regSizeComboBox = new System.Windows.Forms.ComboBox();
             this.label40 = new System.Windows.Forms.Label();
             this.regConstValueTextBox = new System.Windows.Forms.TextBox();
             this.regRConstCheckBox = new System.Windows.Forms.CheckBox();
@@ -309,10 +357,7 @@
             this.label43 = new System.Windows.Forms.Label();
             this.otherLabelTextBox = new System.Windows.Forms.TextBox();
             this.elemSignatureTabPage = new System.Windows.Forms.TabPage();
-            this.label37 = new System.Windows.Forms.Label();
-            this.signatureCategComboBox = new System.Windows.Forms.ComboBox();
             this.signatureForcedCheckBox = new System.Windows.Forms.CheckBox();
-            this.signatureTipPictureBox = new System.Windows.Forms.PictureBox();
             this.signatureAdvButton = new System.Windows.Forms.Button();
             this.signatureAdvCheckBox = new System.Windows.Forms.CheckBox();
             this.signatureSkipCheckBox = new System.Windows.Forms.CheckBox();
@@ -322,9 +367,8 @@
             this.label26 = new System.Windows.Forms.Label();
             this.label27 = new System.Windows.Forms.Label();
             this.signatureLabelTextBox = new System.Windows.Forms.TextBox();
+            this.signatureTipPictureBox = new System.Windows.Forms.PictureBox();
             this.elemElemSignatureTabPage = new System.Windows.Forms.TabPage();
-            this.label38 = new System.Windows.Forms.Label();
-            this.elementSignatureCategComboBox = new System.Windows.Forms.ComboBox();
             this.elementSignatureTypeComboBox = new System.Windows.Forms.ComboBox();
             this.elementSignatureElemButton = new System.Windows.Forms.Button();
             this.elementSignatureForcedCheckBox = new System.Windows.Forms.CheckBox();
@@ -336,6 +380,18 @@
             this.label50 = new System.Windows.Forms.Label();
             this.elementSignatureLabelTextBox = new System.Windows.Forms.TextBox();
             this.elementSignatureTipPictureBox = new System.Windows.Forms.PictureBox();
+            this.sharedDetailsTabPage = new System.Windows.Forms.TabPage();
+            this.sharedIdentificationStatusTrackBar = new System.Windows.Forms.TrackBar();
+            this.sharedIdentificationDetailsTextBox = new System.Windows.Forms.TextBox();
+            this.sharedIdentificationLabel = new System.Windows.Forms.Label();
+            this.sharedCateg3ComboBox = new System.Windows.Forms.ComboBox();
+            this.sharedCateg2ComboBox = new System.Windows.Forms.ComboBox();
+            this.sharedCategsLabel = new System.Windows.Forms.Label();
+            this.sharedCategComboBox = new System.Windows.Forms.ComboBox();
+            this.label53 = new System.Windows.Forms.Label();
+            this.sharedDateUpdatedDateTimePicker = new System.Windows.Forms.DateTimePicker();
+            this.label52 = new System.Windows.Forms.Label();
+            this.sharedDateCreatedDateTimePicker = new System.Windows.Forms.DateTimePicker();
             this.elemOpsTabPage = new System.Windows.Forms.TabPage();
             this.elemOpsRichTextBox = new System.Windows.Forms.RichTextBox();
             this.elemInfoTabPage = new System.Windows.Forms.TabPage();
@@ -372,6 +428,13 @@
             this.pasteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pasteMultToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator8 = new System.Windows.Forms.ToolStripSeparator();
+            this.sharedCategsDepthToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.sharedCategsDepthMaxToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.sharedCategsDepthMedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.sharedCategsDepthMinToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.sharedCategsDepthNoneToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator35 = new System.Windows.Forms.ToolStripSeparator();
+            this.categMassUpdateToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.categSkipAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.categUnSkipAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator22 = new System.Windows.Forms.ToolStripSeparator();
@@ -398,6 +461,17 @@
             this.saveFileDialogSQLite = new System.Windows.Forms.SaveFileDialog();
             this.openFileDialogSQLite = new System.Windows.Forms.OpenFileDialog();
             this.saveFileDialogCmt = new System.Windows.Forms.SaveFileDialog();
+            this.sqLite806xFileContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.sqLite806xFileLabelToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator33 = new System.Windows.Forms.ToolStripSeparator();
+            this.sqLite806xFileDownloadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.sqLite806xFileUpdateToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator34 = new System.Windows.Forms.ToolStripSeparator();
+            this.sqLite806xFileRemoveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.saveFileDialogBin = new System.Windows.Forms.SaveFileDialog();
+            this.saveFileDialogGeneric = new System.Windows.Forms.SaveFileDialog();
+            this.openFileDialogXls = new System.Windows.Forms.OpenFileDialog();
+            this.saveFileDialogXlsx = new System.Windows.Forms.SaveFileDialog();
             this.menuStripMain.SuspendLayout();
             this.statusStripMain.SuspendLayout();
             this.mainPanel.SuspendLayout();
@@ -434,6 +508,8 @@
             ((System.ComponentModel.ISupportInitialize)(this.signatureTipPictureBox)).BeginInit();
             this.elemElemSignatureTabPage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.elementSignatureTipPictureBox)).BeginInit();
+            this.sharedDetailsTabPage.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.sharedIdentificationStatusTrackBar)).BeginInit();
             this.elemOpsTabPage.SuspendLayout();
             this.elemInfoTabPage.SuspendLayout();
             this.elemButtonsPanel.SuspendLayout();
@@ -441,6 +517,7 @@
             this.categsContextMenuStrip.SuspendLayout();
             this.repoContextMenuStrip.SuspendLayout();
             this.scalerContextMenuStrip.SuspendLayout();
+            this.sqLite806xFileContextMenuStrip.SuspendLayout();
             this.SuspendLayout();
             // 
             // openFileDialogBin
@@ -620,6 +697,7 @@
             this.settingsSAD806xToolStripMenuItem,
             this.settingsSADToolStripMenuItem,
             this.settingsTunerProToolStripMenuItem,
+            this.settingsEABEToolStripMenuItem,
             this.settings806xUniDbToolStripMenuItem});
             this.settingsImpExpToolStripMenuItem.Name = "settingsImpExpToolStripMenuItem";
             this.settingsImpExpToolStripMenuItem.Size = new System.Drawing.Size(149, 22);
@@ -628,28 +706,35 @@
             // settingsSAD806xToolStripMenuItem
             // 
             this.settingsSAD806xToolStripMenuItem.Name = "settingsSAD806xToolStripMenuItem";
-            this.settingsSAD806xToolStripMenuItem.Size = new System.Drawing.Size(207, 22);
+            this.settingsSAD806xToolStripMenuItem.Size = new System.Drawing.Size(223, 22);
             this.settingsSAD806xToolStripMenuItem.Text = "SAD806x...";
             this.settingsSAD806xToolStripMenuItem.Click += new System.EventHandler(this.settingsSAD806xToolStripMenuItem_Click);
             // 
             // settingsSADToolStripMenuItem
             // 
             this.settingsSADToolStripMenuItem.Name = "settingsSADToolStripMenuItem";
-            this.settingsSADToolStripMenuItem.Size = new System.Drawing.Size(207, 22);
+            this.settingsSADToolStripMenuItem.Size = new System.Drawing.Size(223, 22);
             this.settingsSADToolStripMenuItem.Text = "SAD...";
             this.settingsSADToolStripMenuItem.Click += new System.EventHandler(this.settingsSADToolStripMenuItem_Click);
             // 
             // settingsTunerProToolStripMenuItem
             // 
             this.settingsTunerProToolStripMenuItem.Name = "settingsTunerProToolStripMenuItem";
-            this.settingsTunerProToolStripMenuItem.Size = new System.Drawing.Size(207, 22);
+            this.settingsTunerProToolStripMenuItem.Size = new System.Drawing.Size(223, 22);
             this.settingsTunerProToolStripMenuItem.Text = "TunerPro...";
             this.settingsTunerProToolStripMenuItem.Click += new System.EventHandler(this.settingsTunerProToolStripMenuItem_Click);
+            // 
+            // settingsEABEToolStripMenuItem
+            // 
+            this.settingsEABEToolStripMenuItem.Name = "settingsEABEToolStripMenuItem";
+            this.settingsEABEToolStripMenuItem.Size = new System.Drawing.Size(223, 22);
+            this.settingsEABEToolStripMenuItem.Text = "EEC Analyser/Binary Editor...";
+            this.settingsEABEToolStripMenuItem.Click += new System.EventHandler(this.settingsEABEToolStripMenuItem_Click);
             // 
             // settings806xUniDbToolStripMenuItem
             // 
             this.settings806xUniDbToolStripMenuItem.Name = "settings806xUniDbToolStripMenuItem";
-            this.settings806xUniDbToolStripMenuItem.Size = new System.Drawing.Size(207, 22);
+            this.settings806xUniDbToolStripMenuItem.Size = new System.Drawing.Size(223, 22);
             this.settings806xUniDbToolStripMenuItem.Text = "806x universal database...";
             this.settings806xUniDbToolStripMenuItem.Click += new System.EventHandler(this.settings806xUniDbToolStripMenuItem_Click);
             // 
@@ -684,6 +769,7 @@
             this.sad806xFilesToolStripMenuItem,
             this.sadFilesToolStripMenuItem,
             this.tunerProFilesToolStripMenuItem,
+            this.eABEFilesToolStripMenuItem,
             this.uniDb806xToolStripMenuItem});
             this.importExportToolStripMenuItem.Name = "importExportToolStripMenuItem";
             this.importExportToolStripMenuItem.Size = new System.Drawing.Size(192, 22);
@@ -694,7 +780,7 @@
             this.sad806xFilesToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.importSignaturesToolStripMenuItem});
             this.sad806xFilesToolStripMenuItem.Name = "sad806xFilesToolStripMenuItem";
-            this.sad806xFilesToolStripMenuItem.Size = new System.Drawing.Size(198, 22);
+            this.sad806xFilesToolStripMenuItem.Size = new System.Drawing.Size(238, 22);
             this.sad806xFilesToolStripMenuItem.Text = "SAD806x files";
             // 
             // importSignaturesToolStripMenuItem
@@ -715,7 +801,7 @@
             this.exportDirFileToolStripMenuItem,
             this.exportCmtFileToolStripMenuItem});
             this.sadFilesToolStripMenuItem.Name = "sadFilesToolStripMenuItem";
-            this.sadFilesToolStripMenuItem.Size = new System.Drawing.Size(198, 22);
+            this.sadFilesToolStripMenuItem.Size = new System.Drawing.Size(238, 22);
             this.sadFilesToolStripMenuItem.Text = "SAD files";
             // 
             // tfSADVersionToolStripComboBox
@@ -767,95 +853,298 @@
             // 
             this.tunerProFilesToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.importXdfFileToolStripMenuItem,
+            this.importXdfCategsToolStripMenuItem,
             this.toolStripSeparator10,
             this.exportXdfFileToolStripMenuItem,
             this.exportXdfResetToolStripMenuItem});
             this.tunerProFilesToolStripMenuItem.Name = "tunerProFilesToolStripMenuItem";
-            this.tunerProFilesToolStripMenuItem.Size = new System.Drawing.Size(198, 22);
+            this.tunerProFilesToolStripMenuItem.Size = new System.Drawing.Size(238, 22);
             this.tunerProFilesToolStripMenuItem.Text = "TunerPro files";
             // 
             // importXdfFileToolStripMenuItem
             // 
             this.importXdfFileToolStripMenuItem.Name = "importXdfFileToolStripMenuItem";
-            this.importXdfFileToolStripMenuItem.Size = new System.Drawing.Size(233, 22);
+            this.importXdfFileToolStripMenuItem.Size = new System.Drawing.Size(244, 22);
             this.importXdfFileToolStripMenuItem.Text = "Import/Sync Xdf file";
             this.importXdfFileToolStripMenuItem.Click += new System.EventHandler(this.importXdfFileToolStripMenuItem_Click);
+            // 
+            // importXdfCategsToolStripMenuItem
+            // 
+            this.importXdfCategsToolStripMenuItem.Name = "importXdfCategsToolStripMenuItem";
+            this.importXdfCategsToolStripMenuItem.Size = new System.Drawing.Size(244, 22);
+            this.importXdfCategsToolStripMenuItem.Text = "Import/Sync Xdf categories only";
+            this.importXdfCategsToolStripMenuItem.Click += new System.EventHandler(this.importXdfCategsToolStripMenuItem_Click);
             // 
             // toolStripSeparator10
             // 
             this.toolStripSeparator10.Name = "toolStripSeparator10";
-            this.toolStripSeparator10.Size = new System.Drawing.Size(230, 6);
+            this.toolStripSeparator10.Size = new System.Drawing.Size(241, 6);
             // 
             // exportXdfFileToolStripMenuItem
             // 
             this.exportXdfFileToolStripMenuItem.Name = "exportXdfFileToolStripMenuItem";
-            this.exportXdfFileToolStripMenuItem.Size = new System.Drawing.Size(233, 22);
+            this.exportXdfFileToolStripMenuItem.Size = new System.Drawing.Size(244, 22);
             this.exportXdfFileToolStripMenuItem.Text = "Export/Sync Xdf file";
             this.exportXdfFileToolStripMenuItem.Click += new System.EventHandler(this.exportXdfFileToolStripMenuItem_Click);
             // 
             // exportXdfResetToolStripMenuItem
             // 
             this.exportXdfResetToolStripMenuItem.Name = "exportXdfResetToolStripMenuItem";
-            this.exportXdfResetToolStripMenuItem.Size = new System.Drawing.Size(233, 22);
+            this.exportXdfResetToolStripMenuItem.Size = new System.Drawing.Size(244, 22);
             this.exportXdfResetToolStripMenuItem.Text = "Reset UniqueId for new export";
             this.exportXdfResetToolStripMenuItem.Click += new System.EventHandler(this.exportXdfResetToolStripMenuItem_Click);
+            // 
+            // eABEFilesToolStripMenuItem
+            // 
+            this.eABEFilesToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.importXlsFileToolStripMenuItem,
+            this.exportXlsFileToolStripMenuItem});
+            this.eABEFilesToolStripMenuItem.Name = "eABEFilesToolStripMenuItem";
+            this.eABEFilesToolStripMenuItem.Size = new System.Drawing.Size(238, 22);
+            this.eABEFilesToolStripMenuItem.Text = "EEC Analyser/Binary Editor files";
+            // 
+            // importXlsFileToolStripMenuItem
+            // 
+            this.importXlsFileToolStripMenuItem.Name = "importXlsFileToolStripMenuItem";
+            this.importXlsFileToolStripMenuItem.Size = new System.Drawing.Size(173, 22);
+            this.importXlsFileToolStripMenuItem.Text = "Import Xls/Xlsx file";
+            this.importXlsFileToolStripMenuItem.Click += new System.EventHandler(this.importXlsFileToolStripMenuItem_Click);
+            // 
+            // exportXlsFileToolStripMenuItem
+            // 
+            this.exportXlsFileToolStripMenuItem.Name = "exportXlsFileToolStripMenuItem";
+            this.exportXlsFileToolStripMenuItem.Size = new System.Drawing.Size(173, 22);
+            this.exportXlsFileToolStripMenuItem.Text = "Export Xlsx file";
+            this.exportXlsFileToolStripMenuItem.Click += new System.EventHandler(this.exportXlsFileToolStripMenuItem_Click);
             // 
             // uniDb806xToolStripMenuItem
             // 
             this.uniDb806xToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.importUniDb806xToolStripMenuItem,
+            this.fileUniDb806xToolStripTextBox,
+            this.selectUniDb806xToolStripMenuItem,
             this.toolStripSeparator27,
-            this.exportUniDb806xToolStripMenuItem,
-            this.toolStripSeparator28,
-            this.syncUniDb806xToolStripMenuItem,
+            this.openUniDb806xToolStripMenuItem,
             this.toolStripSeparator29,
-            this.extractBinUniDb806xToolStripMenuItem});
+            this.importUniDb806xToolStripMenuItem,
+            this.exportUniDb806xToolStripMenuItem,
+            this.syncUniDb806xToolStripMenuItem,
+            this.iesOptionsUniDb806xToolStripMenuItem,
+            this.toolStripSeparator28,
+            this.binariesUniDb806xToolStripMenuItem,
+            this.filesUniDb806xToolStripMenuItem});
             this.uniDb806xToolStripMenuItem.Name = "uniDb806xToolStripMenuItem";
-            this.uniDb806xToolStripMenuItem.Size = new System.Drawing.Size(198, 22);
+            this.uniDb806xToolStripMenuItem.Size = new System.Drawing.Size(238, 22);
             this.uniDb806xToolStripMenuItem.Text = "806x universal database";
             // 
-            // importUniDb806xToolStripMenuItem
+            // fileUniDb806xToolStripTextBox
             // 
-            this.importUniDb806xToolStripMenuItem.Name = "importUniDb806xToolStripMenuItem";
-            this.importUniDb806xToolStripMenuItem.Size = new System.Drawing.Size(154, 22);
-            this.importUniDb806xToolStripMenuItem.Text = "Import";
-            this.importUniDb806xToolStripMenuItem.Click += new System.EventHandler(this.importUniDb806xToolStripMenuItem_Click);
+            this.fileUniDb806xToolStripTextBox.AutoToolTip = true;
+            this.fileUniDb806xToolStripTextBox.Name = "fileUniDb806xToolStripTextBox";
+            this.fileUniDb806xToolStripTextBox.ReadOnly = true;
+            this.fileUniDb806xToolStripTextBox.Size = new System.Drawing.Size(100, 23);
+            // 
+            // selectUniDb806xToolStripMenuItem
+            // 
+            this.selectUniDb806xToolStripMenuItem.Name = "selectUniDb806xToolStripMenuItem";
+            this.selectUniDb806xToolStripMenuItem.Size = new System.Drawing.Size(166, 22);
+            this.selectUniDb806xToolStripMenuItem.Text = "Select file ...";
+            this.selectUniDb806xToolStripMenuItem.Click += new System.EventHandler(this.selectUniDb806xToolStripMenuItem_Click);
             // 
             // toolStripSeparator27
             // 
             this.toolStripSeparator27.Name = "toolStripSeparator27";
-            this.toolStripSeparator27.Size = new System.Drawing.Size(151, 6);
+            this.toolStripSeparator27.Size = new System.Drawing.Size(163, 6);
             // 
-            // exportUniDb806xToolStripMenuItem
+            // openUniDb806xToolStripMenuItem
             // 
-            this.exportUniDb806xToolStripMenuItem.Name = "exportUniDb806xToolStripMenuItem";
-            this.exportUniDb806xToolStripMenuItem.Size = new System.Drawing.Size(154, 22);
-            this.exportUniDb806xToolStripMenuItem.Text = "Export";
-            this.exportUniDb806xToolStripMenuItem.Click += new System.EventHandler(this.exportUniDb806xToolStripMenuItem_Click);
-            // 
-            // toolStripSeparator28
-            // 
-            this.toolStripSeparator28.Name = "toolStripSeparator28";
-            this.toolStripSeparator28.Size = new System.Drawing.Size(151, 6);
-            // 
-            // syncUniDb806xToolStripMenuItem
-            // 
-            this.syncUniDb806xToolStripMenuItem.Name = "syncUniDb806xToolStripMenuItem";
-            this.syncUniDb806xToolStripMenuItem.Size = new System.Drawing.Size(154, 22);
-            this.syncUniDb806xToolStripMenuItem.Text = "Synchronize";
-            this.syncUniDb806xToolStripMenuItem.Click += new System.EventHandler(this.syncUniDb806xToolStripMenuItem_Click);
+            this.openUniDb806xToolStripMenuItem.Name = "openUniDb806xToolStripMenuItem";
+            this.openUniDb806xToolStripMenuItem.Size = new System.Drawing.Size(166, 22);
+            this.openUniDb806xToolStripMenuItem.Text = "Open Database ...";
+            this.openUniDb806xToolStripMenuItem.Click += new System.EventHandler(this.openUniDb806xToolStripMenuItem_Click);
             // 
             // toolStripSeparator29
             // 
             this.toolStripSeparator29.Name = "toolStripSeparator29";
-            this.toolStripSeparator29.Size = new System.Drawing.Size(151, 6);
+            this.toolStripSeparator29.Size = new System.Drawing.Size(163, 6);
             // 
-            // extractBinUniDb806xToolStripMenuItem
+            // importUniDb806xToolStripMenuItem
             // 
-            this.extractBinUniDb806xToolStripMenuItem.Name = "extractBinUniDb806xToolStripMenuItem";
-            this.extractBinUniDb806xToolStripMenuItem.Size = new System.Drawing.Size(154, 22);
-            this.extractBinUniDb806xToolStripMenuItem.Text = "Extract binaries";
-            this.extractBinUniDb806xToolStripMenuItem.Click += new System.EventHandler(this.extractBinUniDb806xToolStripMenuItem_Click);
+            this.importUniDb806xToolStripMenuItem.Name = "importUniDb806xToolStripMenuItem";
+            this.importUniDb806xToolStripMenuItem.Size = new System.Drawing.Size(166, 22);
+            this.importUniDb806xToolStripMenuItem.Text = "Import";
+            this.importUniDb806xToolStripMenuItem.Click += new System.EventHandler(this.importUniDb806xToolStripMenuItem_Click);
+            // 
+            // exportUniDb806xToolStripMenuItem
+            // 
+            this.exportUniDb806xToolStripMenuItem.Name = "exportUniDb806xToolStripMenuItem";
+            this.exportUniDb806xToolStripMenuItem.Size = new System.Drawing.Size(166, 22);
+            this.exportUniDb806xToolStripMenuItem.Text = "Export";
+            this.exportUniDb806xToolStripMenuItem.Click += new System.EventHandler(this.exportUniDb806xToolStripMenuItem_Click);
+            // 
+            // syncUniDb806xToolStripMenuItem
+            // 
+            this.syncUniDb806xToolStripMenuItem.Name = "syncUniDb806xToolStripMenuItem";
+            this.syncUniDb806xToolStripMenuItem.Size = new System.Drawing.Size(166, 22);
+            this.syncUniDb806xToolStripMenuItem.Text = "Synchronize";
+            this.syncUniDb806xToolStripMenuItem.Click += new System.EventHandler(this.syncUniDb806xToolStripMenuItem_Click);
+            // 
+            // iesOptionsUniDb806xToolStripMenuItem
+            // 
+            this.iesOptionsUniDb806xToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.iesOptPropertiesToolStripMenuItem,
+            this.iesOptTablesToolStripMenuItem,
+            this.iesOptFunctionsToolStripMenuItem,
+            this.iesOptScalarsToolStripMenuItem,
+            this.iesOptStructuresToolStripMenuItem,
+            this.iesOptRoutinesToolStripMenuItem,
+            this.iesOptOperationsToolStripMenuItem,
+            this.iesOptOtherToolStripMenuItem,
+            this.iesOptRegistersToolStripMenuItem,
+            this.iesOptSignaturesToolStripMenuItem,
+            this.toolStripSeparator36,
+            this.iesOptAllToolStripMenuItem,
+            this.iesOptNoneToolStripMenuItem});
+            this.iesOptionsUniDb806xToolStripMenuItem.Name = "iesOptionsUniDb806xToolStripMenuItem";
+            this.iesOptionsUniDb806xToolStripMenuItem.Size = new System.Drawing.Size(166, 22);
+            this.iesOptionsUniDb806xToolStripMenuItem.Text = "Options (I/E/S)";
+            // 
+            // iesOptPropertiesToolStripMenuItem
+            // 
+            this.iesOptPropertiesToolStripMenuItem.AutoToolTip = true;
+            this.iesOptPropertiesToolStripMenuItem.Checked = true;
+            this.iesOptPropertiesToolStripMenuItem.CheckOnClick = true;
+            this.iesOptPropertiesToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.iesOptPropertiesToolStripMenuItem.Name = "iesOptPropertiesToolStripMenuItem";
+            this.iesOptPropertiesToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
+            this.iesOptPropertiesToolStripMenuItem.Text = "Properties";
+            // 
+            // iesOptTablesToolStripMenuItem
+            // 
+            this.iesOptTablesToolStripMenuItem.AutoToolTip = true;
+            this.iesOptTablesToolStripMenuItem.Checked = true;
+            this.iesOptTablesToolStripMenuItem.CheckOnClick = true;
+            this.iesOptTablesToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.iesOptTablesToolStripMenuItem.Name = "iesOptTablesToolStripMenuItem";
+            this.iesOptTablesToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
+            this.iesOptTablesToolStripMenuItem.Text = "Tables";
+            // 
+            // iesOptFunctionsToolStripMenuItem
+            // 
+            this.iesOptFunctionsToolStripMenuItem.AutoToolTip = true;
+            this.iesOptFunctionsToolStripMenuItem.Checked = true;
+            this.iesOptFunctionsToolStripMenuItem.CheckOnClick = true;
+            this.iesOptFunctionsToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.iesOptFunctionsToolStripMenuItem.Name = "iesOptFunctionsToolStripMenuItem";
+            this.iesOptFunctionsToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
+            this.iesOptFunctionsToolStripMenuItem.Text = "Functions";
+            // 
+            // iesOptScalarsToolStripMenuItem
+            // 
+            this.iesOptScalarsToolStripMenuItem.AutoToolTip = true;
+            this.iesOptScalarsToolStripMenuItem.Checked = true;
+            this.iesOptScalarsToolStripMenuItem.CheckOnClick = true;
+            this.iesOptScalarsToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.iesOptScalarsToolStripMenuItem.Name = "iesOptScalarsToolStripMenuItem";
+            this.iesOptScalarsToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
+            this.iesOptScalarsToolStripMenuItem.Text = "Scalars";
+            // 
+            // iesOptStructuresToolStripMenuItem
+            // 
+            this.iesOptStructuresToolStripMenuItem.AutoToolTip = true;
+            this.iesOptStructuresToolStripMenuItem.Checked = true;
+            this.iesOptStructuresToolStripMenuItem.CheckOnClick = true;
+            this.iesOptStructuresToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.iesOptStructuresToolStripMenuItem.Name = "iesOptStructuresToolStripMenuItem";
+            this.iesOptStructuresToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
+            this.iesOptStructuresToolStripMenuItem.Text = "Structures";
+            // 
+            // iesOptRoutinesToolStripMenuItem
+            // 
+            this.iesOptRoutinesToolStripMenuItem.AutoToolTip = true;
+            this.iesOptRoutinesToolStripMenuItem.Checked = true;
+            this.iesOptRoutinesToolStripMenuItem.CheckOnClick = true;
+            this.iesOptRoutinesToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.iesOptRoutinesToolStripMenuItem.Name = "iesOptRoutinesToolStripMenuItem";
+            this.iesOptRoutinesToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
+            this.iesOptRoutinesToolStripMenuItem.Text = "Routines";
+            // 
+            // iesOptOperationsToolStripMenuItem
+            // 
+            this.iesOptOperationsToolStripMenuItem.AutoToolTip = true;
+            this.iesOptOperationsToolStripMenuItem.Checked = true;
+            this.iesOptOperationsToolStripMenuItem.CheckOnClick = true;
+            this.iesOptOperationsToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.iesOptOperationsToolStripMenuItem.Name = "iesOptOperationsToolStripMenuItem";
+            this.iesOptOperationsToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
+            this.iesOptOperationsToolStripMenuItem.Text = "Operations";
+            // 
+            // iesOptOtherToolStripMenuItem
+            // 
+            this.iesOptOtherToolStripMenuItem.AutoToolTip = true;
+            this.iesOptOtherToolStripMenuItem.Checked = true;
+            this.iesOptOtherToolStripMenuItem.CheckOnClick = true;
+            this.iesOptOtherToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.iesOptOtherToolStripMenuItem.Name = "iesOptOtherToolStripMenuItem";
+            this.iesOptOtherToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
+            this.iesOptOtherToolStripMenuItem.Text = "Other addresses";
+            // 
+            // iesOptRegistersToolStripMenuItem
+            // 
+            this.iesOptRegistersToolStripMenuItem.AutoToolTip = true;
+            this.iesOptRegistersToolStripMenuItem.Checked = true;
+            this.iesOptRegistersToolStripMenuItem.CheckOnClick = true;
+            this.iesOptRegistersToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.iesOptRegistersToolStripMenuItem.Name = "iesOptRegistersToolStripMenuItem";
+            this.iesOptRegistersToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
+            this.iesOptRegistersToolStripMenuItem.Text = "Registers";
+            // 
+            // iesOptSignaturesToolStripMenuItem
+            // 
+            this.iesOptSignaturesToolStripMenuItem.AutoToolTip = true;
+            this.iesOptSignaturesToolStripMenuItem.Checked = true;
+            this.iesOptSignaturesToolStripMenuItem.CheckOnClick = true;
+            this.iesOptSignaturesToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.iesOptSignaturesToolStripMenuItem.Name = "iesOptSignaturesToolStripMenuItem";
+            this.iesOptSignaturesToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
+            this.iesOptSignaturesToolStripMenuItem.Text = "Signatures";
+            // 
+            // toolStripSeparator36
+            // 
+            this.toolStripSeparator36.Name = "toolStripSeparator36";
+            this.toolStripSeparator36.Size = new System.Drawing.Size(155, 6);
+            // 
+            // iesOptAllToolStripMenuItem
+            // 
+            this.iesOptAllToolStripMenuItem.AutoToolTip = true;
+            this.iesOptAllToolStripMenuItem.Name = "iesOptAllToolStripMenuItem";
+            this.iesOptAllToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
+            this.iesOptAllToolStripMenuItem.Text = "All";
+            this.iesOptAllToolStripMenuItem.Click += new System.EventHandler(this.iesOptAllToolStripMenuItem_Click);
+            // 
+            // iesOptNoneToolStripMenuItem
+            // 
+            this.iesOptNoneToolStripMenuItem.AutoToolTip = true;
+            this.iesOptNoneToolStripMenuItem.Name = "iesOptNoneToolStripMenuItem";
+            this.iesOptNoneToolStripMenuItem.Size = new System.Drawing.Size(158, 22);
+            this.iesOptNoneToolStripMenuItem.Text = "None";
+            this.iesOptNoneToolStripMenuItem.Click += new System.EventHandler(this.iesOptNoneToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator28
+            // 
+            this.toolStripSeparator28.Name = "toolStripSeparator28";
+            this.toolStripSeparator28.Size = new System.Drawing.Size(163, 6);
+            // 
+            // binariesUniDb806xToolStripMenuItem
+            // 
+            this.binariesUniDb806xToolStripMenuItem.Name = "binariesUniDb806xToolStripMenuItem";
+            this.binariesUniDb806xToolStripMenuItem.Size = new System.Drawing.Size(166, 22);
+            this.binariesUniDb806xToolStripMenuItem.Text = "Binaries";
+            // 
+            // filesUniDb806xToolStripMenuItem
+            // 
+            this.filesUniDb806xToolStripMenuItem.Name = "filesUniDb806xToolStripMenuItem";
+            this.filesUniDb806xToolStripMenuItem.Size = new System.Drawing.Size(166, 22);
+            this.filesUniDb806xToolStripMenuItem.Text = "Other files";
             // 
             // toolStripSeparator11
             // 
@@ -1172,6 +1461,7 @@
             // 
             // analysis1ToolStripStatusLabel
             // 
+            this.analysis1ToolStripStatusLabel.BackColor = System.Drawing.SystemColors.Window;
             this.analysis1ToolStripStatusLabel.BorderSides = ((System.Windows.Forms.ToolStripStatusLabelBorderSides)((((System.Windows.Forms.ToolStripStatusLabelBorderSides.Left | System.Windows.Forms.ToolStripStatusLabelBorderSides.Top)
                         | System.Windows.Forms.ToolStripStatusLabelBorderSides.Right)
                         | System.Windows.Forms.ToolStripStatusLabelBorderSides.Bottom)));
@@ -1184,6 +1474,7 @@
             // 
             // analysis2ToolStripStatusLabel
             // 
+            this.analysis2ToolStripStatusLabel.BackColor = System.Drawing.SystemColors.Window;
             this.analysis2ToolStripStatusLabel.BorderSides = ((System.Windows.Forms.ToolStripStatusLabelBorderSides)((((System.Windows.Forms.ToolStripStatusLabelBorderSides.Left | System.Windows.Forms.ToolStripStatusLabelBorderSides.Top)
                         | System.Windows.Forms.ToolStripStatusLabelBorderSides.Right)
                         | System.Windows.Forms.ToolStripStatusLabelBorderSides.Bottom)));
@@ -1195,6 +1486,7 @@
             // 
             // analysis3ToolStripStatusLabel
             // 
+            this.analysis3ToolStripStatusLabel.BackColor = System.Drawing.SystemColors.Window;
             this.analysis3ToolStripStatusLabel.BorderSides = ((System.Windows.Forms.ToolStripStatusLabelBorderSides)((((System.Windows.Forms.ToolStripStatusLabelBorderSides.Left | System.Windows.Forms.ToolStripStatusLabelBorderSides.Top)
                         | System.Windows.Forms.ToolStripStatusLabelBorderSides.Right)
                         | System.Windows.Forms.ToolStripStatusLabelBorderSides.Bottom)));
@@ -1206,6 +1498,7 @@
             // 
             // analysis4ToolStripStatusLabel
             // 
+            this.analysis4ToolStripStatusLabel.BackColor = System.Drawing.SystemColors.Window;
             this.analysis4ToolStripStatusLabel.BorderSides = ((System.Windows.Forms.ToolStripStatusLabelBorderSides)((((System.Windows.Forms.ToolStripStatusLabelBorderSides.Left | System.Windows.Forms.ToolStripStatusLabelBorderSides.Top)
                         | System.Windows.Forms.ToolStripStatusLabelBorderSides.Right)
                         | System.Windows.Forms.ToolStripStatusLabelBorderSides.Bottom)));
@@ -1269,6 +1562,7 @@
             this.elemsTreeView.Name = "elemsTreeView";
             this.elemsTreeView.ShowNodeToolTips = true;
             this.elemsTreeView.Size = new System.Drawing.Size(237, 587);
+            this.elemsTreeView.StateImageList = this.elemsTreeViewStateImageList;
             this.elemsTreeView.TabIndex = 0;
             // 
             // shortCutsContextMenuStrip
@@ -1286,6 +1580,26 @@
             this.shortCutsElementResetRemoveToolStripMenuItem.Text = "Element Reset/Remove";
             this.shortCutsElementResetRemoveToolStripMenuItem.Visible = false;
             this.shortCutsElementResetRemoveToolStripMenuItem.Click += new System.EventHandler(this.shortCutsElementResetRemoveToolStripMenuItem_Click);
+            // 
+            // elemsTreeViewStateImageList
+            // 
+            this.elemsTreeViewStateImageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("elemsTreeViewStateImageList.ImageStream")));
+            this.elemsTreeViewStateImageList.TransparentColor = System.Drawing.Color.Transparent;
+            this.elemsTreeViewStateImageList.Images.SetKeyName(0, "elemFunction");
+            this.elemsTreeViewStateImageList.Images.SetKeyName(1, "elemOperation");
+            this.elemsTreeViewStateImageList.Images.SetKeyName(2, "elemOther");
+            this.elemsTreeViewStateImageList.Images.SetKeyName(3, "elemProperty");
+            this.elemsTreeViewStateImageList.Images.SetKeyName(4, "elemRegister");
+            this.elemsTreeViewStateImageList.Images.SetKeyName(5, "elemReserved");
+            this.elemsTreeViewStateImageList.Images.SetKeyName(6, "elemRoutine");
+            this.elemsTreeViewStateImageList.Images.SetKeyName(7, "elemScalar");
+            this.elemsTreeViewStateImageList.Images.SetKeyName(8, "elemSignature");
+            this.elemsTreeViewStateImageList.Images.SetKeyName(9, "elemStructure");
+            this.elemsTreeViewStateImageList.Images.SetKeyName(10, "elemTable");
+            this.elemsTreeViewStateImageList.Images.SetKeyName(11, "identification00");
+            this.elemsTreeViewStateImageList.Images.SetKeyName(12, "identification33");
+            this.elemsTreeViewStateImageList.Images.SetKeyName(13, "identification66");
+            this.elemsTreeViewStateImageList.Images.SetKeyName(14, "identification100");
             // 
             // elemPanel
             // 
@@ -1487,6 +1801,7 @@
             this.elemTabControl.Controls.Add(this.elemOtherTabPage);
             this.elemTabControl.Controls.Add(this.elemSignatureTabPage);
             this.elemTabControl.Controls.Add(this.elemElemSignatureTabPage);
+            this.elemTabControl.Controls.Add(this.sharedDetailsTabPage);
             this.elemTabControl.Controls.Add(this.elemOpsTabPage);
             this.elemTabControl.Controls.Add(this.elemInfoTabPage);
             this.elemTabControl.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -1499,6 +1814,9 @@
             // s6xPropertiesTabPage
             // 
             this.s6xPropertiesTabPage.AutoScroll = true;
+            this.s6xPropertiesTabPage.Controls.Add(this.s6xPropertiesNoNumberingShortFormatCheckBox);
+            this.s6xPropertiesTabPage.Controls.Add(this.s6xPropertiesIgnore8065RegShortcut0x100SFR);
+            this.s6xPropertiesTabPage.Controls.Add(this.s6xPropertiesIgnore8065RegShortcut0x100);
             this.s6xPropertiesTabPage.Controls.Add(this.s6xPropertiesOutputHeaderCheckBox);
             this.s6xPropertiesTabPage.Controls.Add(this.s6xPropertiesHeaderTextBox);
             this.s6xPropertiesTabPage.Controls.Add(this.label31);
@@ -1518,6 +1836,38 @@
             this.s6xPropertiesTabPage.Text = "Properties";
             this.s6xPropertiesTabPage.UseVisualStyleBackColor = true;
             // 
+            // s6xPropertiesNoNumberingShortFormatCheckBox
+            // 
+            this.s6xPropertiesNoNumberingShortFormatCheckBox.AutoSize = true;
+            this.s6xPropertiesNoNumberingShortFormatCheckBox.Location = new System.Drawing.Point(150, 42);
+            this.s6xPropertiesNoNumberingShortFormatCheckBox.Name = "s6xPropertiesNoNumberingShortFormatCheckBox";
+            this.s6xPropertiesNoNumberingShortFormatCheckBox.Size = new System.Drawing.Size(106, 17);
+            this.s6xPropertiesNoNumberingShortFormatCheckBox.TabIndex = 2;
+            this.s6xPropertiesNoNumberingShortFormatCheckBox.Text = "With short format";
+            this.s6xPropertiesNoNumberingShortFormatCheckBox.UseVisualStyleBackColor = true;
+            // 
+            // s6xPropertiesIgnore8065RegShortcut0x100SFR
+            // 
+            this.s6xPropertiesIgnore8065RegShortcut0x100SFR.AutoSize = true;
+            this.s6xPropertiesIgnore8065RegShortcut0x100SFR.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.s6xPropertiesIgnore8065RegShortcut0x100SFR.Location = new System.Drawing.Point(526, 87);
+            this.s6xPropertiesIgnore8065RegShortcut0x100SFR.Name = "s6xPropertiesIgnore8065RegShortcut0x100SFR";
+            this.s6xPropertiesIgnore8065RegShortcut0x100SFR.Size = new System.Drawing.Size(192, 17);
+            this.s6xPropertiesIgnore8065RegShortcut0x100SFR.TabIndex = 7;
+            this.s6xPropertiesIgnore8065RegShortcut0x100SFR.Text = "Ignore 8065 Register SFR Shortcut";
+            this.s6xPropertiesIgnore8065RegShortcut0x100SFR.UseVisualStyleBackColor = true;
+            // 
+            // s6xPropertiesIgnore8065RegShortcut0x100
+            // 
+            this.s6xPropertiesIgnore8065RegShortcut0x100.AutoSize = true;
+            this.s6xPropertiesIgnore8065RegShortcut0x100.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.s6xPropertiesIgnore8065RegShortcut0x100.Location = new System.Drawing.Point(550, 64);
+            this.s6xPropertiesIgnore8065RegShortcut0x100.Name = "s6xPropertiesIgnore8065RegShortcut0x100";
+            this.s6xPropertiesIgnore8065RegShortcut0x100.Size = new System.Drawing.Size(168, 17);
+            this.s6xPropertiesIgnore8065RegShortcut0x100.TabIndex = 6;
+            this.s6xPropertiesIgnore8065RegShortcut0x100.Text = "Ignore 8065 Register Shortcut";
+            this.s6xPropertiesIgnore8065RegShortcut0x100.UseVisualStyleBackColor = true;
+            // 
             // s6xPropertiesOutputHeaderCheckBox
             // 
             this.s6xPropertiesOutputHeaderCheckBox.AutoSize = true;
@@ -1525,7 +1875,7 @@
             this.s6xPropertiesOutputHeaderCheckBox.Location = new System.Drawing.Point(622, 214);
             this.s6xPropertiesOutputHeaderCheckBox.Name = "s6xPropertiesOutputHeaderCheckBox";
             this.s6xPropertiesOutputHeaderCheckBox.Size = new System.Drawing.Size(96, 17);
-            this.s6xPropertiesOutputHeaderCheckBox.TabIndex = 46;
+            this.s6xPropertiesOutputHeaderCheckBox.TabIndex = 10;
             this.s6xPropertiesOutputHeaderCheckBox.Text = "Output Header";
             this.s6xPropertiesOutputHeaderCheckBox.UseVisualStyleBackColor = true;
             // 
@@ -1536,7 +1886,7 @@
             this.s6xPropertiesHeaderTextBox.Name = "s6xPropertiesHeaderTextBox";
             this.s6xPropertiesHeaderTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.s6xPropertiesHeaderTextBox.Size = new System.Drawing.Size(715, 60);
-            this.s6xPropertiesHeaderTextBox.TabIndex = 45;
+            this.s6xPropertiesHeaderTextBox.TabIndex = 9;
             // 
             // label31
             // 
@@ -1559,10 +1909,10 @@
             // s6xPropertiesRegListOutputCheckBox
             // 
             this.s6xPropertiesRegListOutputCheckBox.AutoSize = true;
-            this.s6xPropertiesRegListOutputCheckBox.Location = new System.Drawing.Point(3, 64);
+            this.s6xPropertiesRegListOutputCheckBox.Location = new System.Drawing.Point(3, 87);
             this.s6xPropertiesRegListOutputCheckBox.Name = "s6xPropertiesRegListOutputCheckBox";
             this.s6xPropertiesRegListOutputCheckBox.Size = new System.Drawing.Size(118, 17);
-            this.s6xPropertiesRegListOutputCheckBox.TabIndex = 37;
+            this.s6xPropertiesRegListOutputCheckBox.TabIndex = 3;
             this.s6xPropertiesRegListOutputCheckBox.Text = "Registers list output";
             this.s6xPropertiesRegListOutputCheckBox.UseVisualStyleBackColor = true;
             // 
@@ -1571,7 +1921,7 @@
             this.s6xPropertiesLabelTextBox.Location = new System.Drawing.Point(3, 16);
             this.s6xPropertiesLabelTextBox.Name = "s6xPropertiesLabelTextBox";
             this.s6xPropertiesLabelTextBox.Size = new System.Drawing.Size(255, 20);
-            this.s6xPropertiesLabelTextBox.TabIndex = 33;
+            this.s6xPropertiesLabelTextBox.TabIndex = 0;
             // 
             // s6xPropertiesNoNumberingCheckBox
             // 
@@ -1579,7 +1929,7 @@
             this.s6xPropertiesNoNumberingCheckBox.Location = new System.Drawing.Point(3, 42);
             this.s6xPropertiesNoNumberingCheckBox.Name = "s6xPropertiesNoNumberingCheckBox";
             this.s6xPropertiesNoNumberingCheckBox.Size = new System.Drawing.Size(141, 17);
-            this.s6xPropertiesNoNumberingCheckBox.TabIndex = 36;
+            this.s6xPropertiesNoNumberingCheckBox.TabIndex = 1;
             this.s6xPropertiesNoNumberingCheckBox.Text = "No automatic numbering";
             this.s6xPropertiesNoNumberingCheckBox.UseVisualStyleBackColor = true;
             // 
@@ -1599,7 +1949,7 @@
             this.s6xPropertiesXdfBaseOffsetCheckBox.Location = new System.Drawing.Point(609, 19);
             this.s6xPropertiesXdfBaseOffsetCheckBox.Name = "s6xPropertiesXdfBaseOffsetCheckBox";
             this.s6xPropertiesXdfBaseOffsetCheckBox.Size = new System.Drawing.Size(66, 17);
-            this.s6xPropertiesXdfBaseOffsetCheckBox.TabIndex = 34;
+            this.s6xPropertiesXdfBaseOffsetCheckBox.TabIndex = 4;
             this.s6xPropertiesXdfBaseOffsetCheckBox.Text = "Subtract";
             this.s6xPropertiesXdfBaseOffsetCheckBox.UseVisualStyleBackColor = true;
             // 
@@ -1610,29 +1960,33 @@
             this.s6xPropertiesCommentsTextBox.Name = "s6xPropertiesCommentsTextBox";
             this.s6xPropertiesCommentsTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.s6xPropertiesCommentsTextBox.Size = new System.Drawing.Size(715, 60);
-            this.s6xPropertiesCommentsTextBox.TabIndex = 38;
+            this.s6xPropertiesCommentsTextBox.TabIndex = 8;
             // 
             // label28
             // 
             this.label28.AutoSize = true;
-            this.label28.Location = new System.Drawing.Point(637, 0);
+            this.label28.Location = new System.Drawing.Point(618, 0);
             this.label28.Name = "label28";
-            this.label28.Size = new System.Drawing.Size(81, 13);
+            this.label28.Size = new System.Drawing.Size(100, 13);
             this.label28.TabIndex = 43;
-            this.label28.Text = "Xdf Base Offset";
+            this.label28.Text = "Xdf/Xls Base Offset";
             // 
             // s6xPropertiesXdfBaseOffsetTextBox
             // 
             this.s6xPropertiesXdfBaseOffsetTextBox.Location = new System.Drawing.Point(681, 16);
             this.s6xPropertiesXdfBaseOffsetTextBox.Name = "s6xPropertiesXdfBaseOffsetTextBox";
             this.s6xPropertiesXdfBaseOffsetTextBox.Size = new System.Drawing.Size(37, 20);
-            this.s6xPropertiesXdfBaseOffsetTextBox.TabIndex = 35;
+            this.s6xPropertiesXdfBaseOffsetTextBox.TabIndex = 5;
             this.s6xPropertiesXdfBaseOffsetTextBox.Text = "2000";
             this.s6xPropertiesXdfBaseOffsetTextBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
             // elemScalarPropertiesTabPage
             // 
             this.elemScalarPropertiesTabPage.AutoScroll = true;
+            this.elemScalarPropertiesTabPage.Controls.Add(this.label55);
+            this.elemScalarPropertiesTabPage.Controls.Add(this.scalarMaxTextBox);
+            this.elemScalarPropertiesTabPage.Controls.Add(this.label54);
+            this.elemScalarPropertiesTabPage.Controls.Add(this.scalarMinTextBox);
             this.elemScalarPropertiesTabPage.Controls.Add(this.scalarInlineCommentsCheckBox);
             this.elemScalarPropertiesTabPage.Controls.Add(this.scalarScalePrecNumericUpDown);
             this.elemScalarPropertiesTabPage.Controls.Add(this.scalarBitFlagsButton);
@@ -1658,6 +2012,38 @@
             this.elemScalarPropertiesTabPage.TabIndex = 0;
             this.elemScalarPropertiesTabPage.Text = "Scalar Properties";
             this.elemScalarPropertiesTabPage.UseVisualStyleBackColor = true;
+            // 
+            // label55
+            // 
+            this.label55.AutoSize = true;
+            this.label55.Location = new System.Drawing.Point(667, 79);
+            this.label55.Name = "label55";
+            this.label55.Size = new System.Drawing.Size(51, 13);
+            this.label55.TabIndex = 45;
+            this.label55.Text = "Maximum";
+            // 
+            // scalarMaxTextBox
+            // 
+            this.scalarMaxTextBox.Location = new System.Drawing.Point(639, 95);
+            this.scalarMaxTextBox.Name = "scalarMaxTextBox";
+            this.scalarMaxTextBox.Size = new System.Drawing.Size(79, 20);
+            this.scalarMaxTextBox.TabIndex = 11;
+            // 
+            // label54
+            // 
+            this.label54.AutoSize = true;
+            this.label54.Location = new System.Drawing.Point(527, 79);
+            this.label54.Name = "label54";
+            this.label54.Size = new System.Drawing.Size(48, 13);
+            this.label54.TabIndex = 43;
+            this.label54.Text = "Minimum";
+            // 
+            // scalarMinTextBox
+            // 
+            this.scalarMinTextBox.Location = new System.Drawing.Point(530, 95);
+            this.scalarMinTextBox.Name = "scalarMinTextBox";
+            this.scalarMinTextBox.Size = new System.Drawing.Size(79, 20);
+            this.scalarMinTextBox.TabIndex = 10;
             // 
             // scalarInlineCommentsCheckBox
             // 
@@ -1834,6 +2220,14 @@
             // elemFunctionPropertiesTabPage
             // 
             this.elemFunctionPropertiesTabPage.AutoScroll = true;
+            this.elemFunctionPropertiesTabPage.Controls.Add(this.label58);
+            this.elemFunctionPropertiesTabPage.Controls.Add(this.functionMaxOutputTextBox);
+            this.elemFunctionPropertiesTabPage.Controls.Add(this.label59);
+            this.elemFunctionPropertiesTabPage.Controls.Add(this.functionMinOutputTextBox);
+            this.elemFunctionPropertiesTabPage.Controls.Add(this.label56);
+            this.elemFunctionPropertiesTabPage.Controls.Add(this.functionMaxInputTextBox);
+            this.elemFunctionPropertiesTabPage.Controls.Add(this.label57);
+            this.elemFunctionPropertiesTabPage.Controls.Add(this.functionMinInputTextBox);
             this.elemFunctionPropertiesTabPage.Controls.Add(this.functionScalePrecOutputNumericUpDown);
             this.elemFunctionPropertiesTabPage.Controls.Add(this.functionScalePrecInputNumericUpDown);
             this.elemFunctionPropertiesTabPage.Controls.Add(this.functionOutputCommentsCheckBox);
@@ -1864,9 +2258,73 @@
             this.elemFunctionPropertiesTabPage.Text = "Function Properties";
             this.elemFunctionPropertiesTabPage.UseVisualStyleBackColor = true;
             // 
+            // label58
+            // 
+            this.label58.AutoSize = true;
+            this.label58.Location = new System.Drawing.Point(441, 82);
+            this.label58.Name = "label58";
+            this.label58.Size = new System.Drawing.Size(86, 13);
+            this.label58.TabIndex = 53;
+            this.label58.Text = "Output Maximum";
+            // 
+            // functionMaxOutputTextBox
+            // 
+            this.functionMaxOutputTextBox.Location = new System.Drawing.Point(444, 98);
+            this.functionMaxOutputTextBox.Name = "functionMaxOutputTextBox";
+            this.functionMaxOutputTextBox.Size = new System.Drawing.Size(79, 20);
+            this.functionMaxOutputTextBox.TabIndex = 15;
+            // 
+            // label59
+            // 
+            this.label59.AutoSize = true;
+            this.label59.Location = new System.Drawing.Point(441, 42);
+            this.label59.Name = "label59";
+            this.label59.Size = new System.Drawing.Size(83, 13);
+            this.label59.TabIndex = 52;
+            this.label59.Text = "Output Minimum";
+            // 
+            // functionMinOutputTextBox
+            // 
+            this.functionMinOutputTextBox.Location = new System.Drawing.Point(444, 59);
+            this.functionMinOutputTextBox.Name = "functionMinOutputTextBox";
+            this.functionMinOutputTextBox.Size = new System.Drawing.Size(79, 20);
+            this.functionMinOutputTextBox.TabIndex = 9;
+            // 
+            // label56
+            // 
+            this.label56.AutoSize = true;
+            this.label56.Location = new System.Drawing.Point(209, 82);
+            this.label56.Name = "label56";
+            this.label56.Size = new System.Drawing.Size(78, 13);
+            this.label56.TabIndex = 49;
+            this.label56.Text = "Input Maximum";
+            // 
+            // functionMaxInputTextBox
+            // 
+            this.functionMaxInputTextBox.Location = new System.Drawing.Point(212, 98);
+            this.functionMaxInputTextBox.Name = "functionMaxInputTextBox";
+            this.functionMaxInputTextBox.Size = new System.Drawing.Size(79, 20);
+            this.functionMaxInputTextBox.TabIndex = 14;
+            // 
+            // label57
+            // 
+            this.label57.AutoSize = true;
+            this.label57.Location = new System.Drawing.Point(209, 43);
+            this.label57.Name = "label57";
+            this.label57.Size = new System.Drawing.Size(75, 13);
+            this.label57.TabIndex = 48;
+            this.label57.Text = "Input Minimum";
+            // 
+            // functionMinInputTextBox
+            // 
+            this.functionMinInputTextBox.Location = new System.Drawing.Point(212, 59);
+            this.functionMinInputTextBox.Name = "functionMinInputTextBox";
+            this.functionMinInputTextBox.Size = new System.Drawing.Size(79, 20);
+            this.functionMinInputTextBox.TabIndex = 8;
+            // 
             // functionScalePrecOutputNumericUpDown
             // 
-            this.functionScalePrecOutputNumericUpDown.Location = new System.Drawing.Point(687, 58);
+            this.functionScalePrecOutputNumericUpDown.Location = new System.Drawing.Point(687, 60);
             this.functionScalePrecOutputNumericUpDown.Maximum = new decimal(new int[] {
             5,
             0,
@@ -1874,7 +2332,7 @@
             0});
             this.functionScalePrecOutputNumericUpDown.Name = "functionScalePrecOutputNumericUpDown";
             this.functionScalePrecOutputNumericUpDown.Size = new System.Drawing.Size(31, 20);
-            this.functionScalePrecOutputNumericUpDown.TabIndex = 10;
+            this.functionScalePrecOutputNumericUpDown.TabIndex = 12;
             this.functionScalePrecOutputNumericUpDown.Value = new decimal(new int[] {
             2,
             0,
@@ -1883,7 +2341,7 @@
             // 
             // functionScalePrecInputNumericUpDown
             // 
-            this.functionScalePrecInputNumericUpDown.Location = new System.Drawing.Point(160, 59);
+            this.functionScalePrecInputNumericUpDown.Location = new System.Drawing.Point(160, 60);
             this.functionScalePrecInputNumericUpDown.Maximum = new decimal(new int[] {
             5,
             0,
@@ -1891,7 +2349,7 @@
             0});
             this.functionScalePrecInputNumericUpDown.Name = "functionScalePrecInputNumericUpDown";
             this.functionScalePrecInputNumericUpDown.Size = new System.Drawing.Size(31, 20);
-            this.functionScalePrecInputNumericUpDown.TabIndex = 6;
+            this.functionScalePrecInputNumericUpDown.TabIndex = 7;
             this.functionScalePrecInputNumericUpDown.Value = new decimal(new int[] {
             2,
             0,
@@ -1928,10 +2386,10 @@
             // functionSkipCheckBox
             // 
             this.functionSkipCheckBox.AutoSize = true;
-            this.functionSkipCheckBox.Location = new System.Drawing.Point(249, 60);
+            this.functionSkipCheckBox.Location = new System.Drawing.Point(536, 18);
             this.functionSkipCheckBox.Name = "functionSkipCheckBox";
             this.functionSkipCheckBox.Size = new System.Drawing.Size(47, 17);
-            this.functionSkipCheckBox.TabIndex = 7;
+            this.functionSkipCheckBox.TabIndex = 3;
             this.functionSkipCheckBox.Text = "Skip";
             this.functionSkipCheckBox.UseVisualStyleBackColor = true;
             // 
@@ -1956,10 +2414,10 @@
             // 
             // functionScaleOutputTextBox
             // 
-            this.functionScaleOutputTextBox.Location = new System.Drawing.Point(612, 58);
+            this.functionScaleOutputTextBox.Location = new System.Drawing.Point(608, 59);
             this.functionScaleOutputTextBox.Name = "functionScaleOutputTextBox";
             this.functionScaleOutputTextBox.Size = new System.Drawing.Size(69, 20);
-            this.functionScaleOutputTextBox.TabIndex = 9;
+            this.functionScaleOutputTextBox.TabIndex = 11;
             // 
             // label10
             // 
@@ -1975,7 +2433,7 @@
             this.functionScaleInputTextBox.Location = new System.Drawing.Point(85, 59);
             this.functionScaleInputTextBox.Name = "functionScaleInputTextBox";
             this.functionScaleInputTextBox.Size = new System.Drawing.Size(69, 20);
-            this.functionScaleInputTextBox.TabIndex = 5;
+            this.functionScaleInputTextBox.TabIndex = 6;
             // 
             // label8
             // 
@@ -1991,14 +2449,14 @@
             this.functionRowsTextBox.Location = new System.Drawing.Point(649, 16);
             this.functionRowsTextBox.Name = "functionRowsTextBox";
             this.functionRowsTextBox.Size = new System.Drawing.Size(69, 20);
-            this.functionRowsTextBox.TabIndex = 3;
+            this.functionRowsTextBox.TabIndex = 4;
             // 
             // functionUnitsOutputTextBox
             // 
             this.functionUnitsOutputTextBox.Location = new System.Drawing.Point(536, 98);
             this.functionUnitsOutputTextBox.Name = "functionUnitsOutputTextBox";
             this.functionUnitsOutputTextBox.Size = new System.Drawing.Size(182, 20);
-            this.functionUnitsOutputTextBox.TabIndex = 14;
+            this.functionUnitsOutputTextBox.TabIndex = 16;
             // 
             // label7
             // 
@@ -2015,7 +2473,7 @@
             this.functionSignedOutputCheckBox.Location = new System.Drawing.Point(536, 42);
             this.functionSignedOutputCheckBox.Name = "functionSignedOutputCheckBox";
             this.functionSignedOutputCheckBox.Size = new System.Drawing.Size(94, 17);
-            this.functionSignedOutputCheckBox.TabIndex = 8;
+            this.functionSignedOutputCheckBox.TabIndex = 10;
             this.functionSignedOutputCheckBox.Text = "Signed Output";
             this.functionSignedOutputCheckBox.UseVisualStyleBackColor = true;
             // 
@@ -2024,7 +2482,7 @@
             this.functionUnitsInputTextBox.Location = new System.Drawing.Point(3, 98);
             this.functionUnitsInputTextBox.Name = "functionUnitsInputTextBox";
             this.functionUnitsInputTextBox.Size = new System.Drawing.Size(188, 20);
-            this.functionUnitsInputTextBox.TabIndex = 11;
+            this.functionUnitsInputTextBox.TabIndex = 13;
             // 
             // label4
             // 
@@ -2075,13 +2533,17 @@
             this.functionSignedInputCheckBox.Location = new System.Drawing.Point(3, 42);
             this.functionSignedInputCheckBox.Name = "functionSignedInputCheckBox";
             this.functionSignedInputCheckBox.Size = new System.Drawing.Size(86, 17);
-            this.functionSignedInputCheckBox.TabIndex = 4;
+            this.functionSignedInputCheckBox.TabIndex = 5;
             this.functionSignedInputCheckBox.Text = "Signed Input";
             this.functionSignedInputCheckBox.UseVisualStyleBackColor = true;
             // 
             // elemTablePropertiesTabPage
             // 
             this.elemTablePropertiesTabPage.AutoScroll = true;
+            this.elemTablePropertiesTabPage.Controls.Add(this.label60);
+            this.elemTablePropertiesTabPage.Controls.Add(this.tableMaxTextBox);
+            this.elemTablePropertiesTabPage.Controls.Add(this.label61);
+            this.elemTablePropertiesTabPage.Controls.Add(this.tableMinTextBox);
             this.elemTablePropertiesTabPage.Controls.Add(this.tableScalePrecNumericUpDown);
             this.elemTablePropertiesTabPage.Controls.Add(this.tableColsScalerButton);
             this.elemTablePropertiesTabPage.Controls.Add(this.tableRowsScalerButton);
@@ -2116,9 +2578,41 @@
             this.elemTablePropertiesTabPage.Text = "Table Properties";
             this.elemTablePropertiesTabPage.UseVisualStyleBackColor = true;
             // 
+            // label60
+            // 
+            this.label60.AutoSize = true;
+            this.label60.Location = new System.Drawing.Point(667, 89);
+            this.label60.Name = "label60";
+            this.label60.Size = new System.Drawing.Size(51, 13);
+            this.label60.TabIndex = 54;
+            this.label60.Text = "Maximum";
+            // 
+            // tableMaxTextBox
+            // 
+            this.tableMaxTextBox.Location = new System.Drawing.Point(649, 105);
+            this.tableMaxTextBox.Name = "tableMaxTextBox";
+            this.tableMaxTextBox.Size = new System.Drawing.Size(69, 20);
+            this.tableMaxTextBox.TabIndex = 15;
+            // 
+            // label61
+            // 
+            this.label61.AutoSize = true;
+            this.label61.Location = new System.Drawing.Point(670, 48);
+            this.label61.Name = "label61";
+            this.label61.Size = new System.Drawing.Size(48, 13);
+            this.label61.TabIndex = 53;
+            this.label61.Text = "Minimum";
+            // 
+            // tableMinTextBox
+            // 
+            this.tableMinTextBox.Location = new System.Drawing.Point(649, 66);
+            this.tableMinTextBox.Name = "tableMinTextBox";
+            this.tableMinTextBox.Size = new System.Drawing.Size(69, 20);
+            this.tableMinTextBox.TabIndex = 11;
+            // 
             // tableScalePrecNumericUpDown
             // 
-            this.tableScalePrecNumericUpDown.Location = new System.Drawing.Point(687, 66);
+            this.tableScalePrecNumericUpDown.Location = new System.Drawing.Point(601, 66);
             this.tableScalePrecNumericUpDown.Maximum = new decimal(new int[] {
             5,
             0,
@@ -2220,15 +2714,15 @@
             // 
             // tableCellsUnitsTextBox
             // 
-            this.tableCellsUnitsTextBox.Location = new System.Drawing.Point(563, 105);
+            this.tableCellsUnitsTextBox.Location = new System.Drawing.Point(526, 105);
             this.tableCellsUnitsTextBox.Name = "tableCellsUnitsTextBox";
-            this.tableCellsUnitsTextBox.Size = new System.Drawing.Size(155, 20);
-            this.tableCellsUnitsTextBox.TabIndex = 13;
+            this.tableCellsUnitsTextBox.Size = new System.Drawing.Size(106, 20);
+            this.tableCellsUnitsTextBox.TabIndex = 14;
             // 
             // label12
             // 
             this.label12.AutoSize = true;
-            this.label12.Location = new System.Drawing.Point(560, 89);
+            this.label12.Location = new System.Drawing.Point(523, 89);
             this.label12.Name = "label12";
             this.label12.Size = new System.Drawing.Size(56, 13);
             this.label12.TabIndex = 44;
@@ -2253,7 +2747,7 @@
             // label13
             // 
             this.label13.AutoSize = true;
-            this.label13.Location = new System.Drawing.Point(609, 48);
+            this.label13.Location = new System.Drawing.Point(523, 48);
             this.label13.Name = "label13";
             this.label13.Size = new System.Drawing.Size(34, 13);
             this.label13.TabIndex = 37;
@@ -2261,7 +2755,7 @@
             // 
             // tableScaleTextBox
             // 
-            this.tableScaleTextBox.Location = new System.Drawing.Point(612, 66);
+            this.tableScaleTextBox.Location = new System.Drawing.Point(526, 66);
             this.tableScaleTextBox.Name = "tableScaleTextBox";
             this.tableScaleTextBox.Size = new System.Drawing.Size(69, 20);
             this.tableScaleTextBox.TabIndex = 9;
@@ -2287,7 +2781,7 @@
             this.tableRowsUnitsTextBox.Location = new System.Drawing.Point(311, 105);
             this.tableRowsUnitsTextBox.Name = "tableRowsUnitsTextBox";
             this.tableRowsUnitsTextBox.Size = new System.Drawing.Size(153, 20);
-            this.tableRowsUnitsTextBox.TabIndex = 12;
+            this.tableRowsUnitsTextBox.TabIndex = 13;
             // 
             // label15
             // 
@@ -2303,7 +2797,7 @@
             this.tableColsUnitsTextBox.Location = new System.Drawing.Point(3, 105);
             this.tableColsUnitsTextBox.Name = "tableColsUnitsTextBox";
             this.tableColsUnitsTextBox.Size = new System.Drawing.Size(153, 20);
-            this.tableColsUnitsTextBox.TabIndex = 11;
+            this.tableColsUnitsTextBox.TabIndex = 12;
             // 
             // label16
             // 
@@ -2742,6 +3236,10 @@
             // elemRegisterTabPage
             // 
             this.elemRegisterTabPage.AutoScroll = true;
+            this.elemRegisterTabPage.Controls.Add(this.label38);
+            this.elemRegisterTabPage.Controls.Add(this.regSignedComboBox);
+            this.elemRegisterTabPage.Controls.Add(this.label37);
+            this.elemRegisterTabPage.Controls.Add(this.regSizeComboBox);
             this.elemRegisterTabPage.Controls.Add(this.label40);
             this.elemRegisterTabPage.Controls.Add(this.regConstValueTextBox);
             this.elemRegisterTabPage.Controls.Add(this.regRConstCheckBox);
@@ -2771,6 +3269,52 @@
             this.elemRegisterTabPage.Text = "Register Properties";
             this.elemRegisterTabPage.UseVisualStyleBackColor = true;
             // 
+            // label38
+            // 
+            this.label38.AutoSize = true;
+            this.label38.Location = new System.Drawing.Point(247, 43);
+            this.label38.Name = "label38";
+            this.label38.Size = new System.Drawing.Size(40, 13);
+            this.label38.TabIndex = 53;
+            this.label38.Text = "Signed";
+            // 
+            // regSignedComboBox
+            // 
+            this.regSignedComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.regSignedComboBox.FormattingEnabled = true;
+            this.regSignedComboBox.Items.AddRange(new object[] {
+            "",
+            "Signed",
+            "Unsigned"});
+            this.regSignedComboBox.Location = new System.Drawing.Point(250, 58);
+            this.regSignedComboBox.Name = "regSignedComboBox";
+            this.regSignedComboBox.Size = new System.Drawing.Size(75, 21);
+            this.regSignedComboBox.Sorted = true;
+            this.regSignedComboBox.TabIndex = 6;
+            // 
+            // label37
+            // 
+            this.label37.AutoSize = true;
+            this.label37.Location = new System.Drawing.Point(247, 4);
+            this.label37.Name = "label37";
+            this.label37.Size = new System.Drawing.Size(27, 13);
+            this.label37.TabIndex = 51;
+            this.label37.Text = "Size";
+            // 
+            // regSizeComboBox
+            // 
+            this.regSizeComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.regSizeComboBox.FormattingEnabled = true;
+            this.regSizeComboBox.Items.AddRange(new object[] {
+            "",
+            "Byte",
+            "Word"});
+            this.regSizeComboBox.Location = new System.Drawing.Point(250, 19);
+            this.regSizeComboBox.Name = "regSizeComboBox";
+            this.regSizeComboBox.Size = new System.Drawing.Size(75, 21);
+            this.regSizeComboBox.Sorted = true;
+            this.regSizeComboBox.TabIndex = 1;
+            // 
             // label40
             // 
             this.label40.AutoSize = true;
@@ -2785,7 +3329,7 @@
             this.regConstValueTextBox.Location = new System.Drawing.Point(250, 98);
             this.regConstValueTextBox.Name = "regConstValueTextBox";
             this.regConstValueTextBox.Size = new System.Drawing.Size(75, 20);
-            this.regConstValueTextBox.TabIndex = 7;
+            this.regConstValueTextBox.TabIndex = 8;
             this.regConstValueTextBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
             // regRConstCheckBox
@@ -2794,7 +3338,7 @@
             this.regRConstCheckBox.Location = new System.Drawing.Point(331, 101);
             this.regRConstCheckBox.Name = "regRConstCheckBox";
             this.regRConstCheckBox.Size = new System.Drawing.Size(61, 17);
-            this.regRConstCheckBox.TabIndex = 9;
+            this.regRConstCheckBox.TabIndex = 10;
             this.regRConstCheckBox.Text = "RConst";
             this.regRConstCheckBox.UseVisualStyleBackColor = true;
             // 
@@ -2804,7 +3348,7 @@
             this.regRBaseCheckBox.Location = new System.Drawing.Point(331, 82);
             this.regRBaseCheckBox.Name = "regRBaseCheckBox";
             this.regRBaseCheckBox.Size = new System.Drawing.Size(58, 17);
-            this.regRBaseCheckBox.TabIndex = 8;
+            this.regRBaseCheckBox.TabIndex = 9;
             this.regRBaseCheckBox.Text = "RBase";
             this.regRBaseCheckBox.UseVisualStyleBackColor = true;
             // 
@@ -2813,7 +3357,7 @@
             this.regUnitsTextBox.Location = new System.Drawing.Point(528, 98);
             this.regUnitsTextBox.Name = "regUnitsTextBox";
             this.regUnitsTextBox.Size = new System.Drawing.Size(188, 20);
-            this.regUnitsTextBox.TabIndex = 12;
+            this.regUnitsTextBox.TabIndex = 14;
             // 
             // label36
             // 
@@ -2834,7 +3378,7 @@
             0});
             this.regScalePrecNumericUpDown.Name = "regScalePrecNumericUpDown";
             this.regScalePrecNumericUpDown.Size = new System.Drawing.Size(31, 20);
-            this.regScalePrecNumericUpDown.TabIndex = 11;
+            this.regScalePrecNumericUpDown.TabIndex = 13;
             this.regScalePrecNumericUpDown.Value = new decimal(new int[] {
             2,
             0,
@@ -2855,7 +3399,7 @@
             this.regScaleTextBox.Location = new System.Drawing.Point(528, 60);
             this.regScaleTextBox.Name = "regScaleTextBox";
             this.regScaleTextBox.Size = new System.Drawing.Size(151, 20);
-            this.regScaleTextBox.TabIndex = 10;
+            this.regScaleTextBox.TabIndex = 12;
             // 
             // label51
             // 
@@ -2871,7 +3415,7 @@
             this.regWordLabelTextBox.Location = new System.Drawing.Point(3, 98);
             this.regWordLabelTextBox.Name = "regWordLabelTextBox";
             this.regWordLabelTextBox.Size = new System.Drawing.Size(188, 20);
-            this.regWordLabelTextBox.TabIndex = 6;
+            this.regWordLabelTextBox.TabIndex = 7;
             // 
             // label47
             // 
@@ -2894,7 +3438,7 @@
             this.regBitFlagsButton.Location = new System.Drawing.Point(404, 45);
             this.regBitFlagsButton.Name = "regBitFlagsButton";
             this.regBitFlagsButton.Size = new System.Drawing.Size(66, 23);
-            this.regBitFlagsButton.TabIndex = 4;
+            this.regBitFlagsButton.TabIndex = 3;
             this.regBitFlagsButton.Text = "Bit Flags";
             this.regBitFlagsButton.UseVisualStyleBackColor = true;
             this.regBitFlagsButton.Click += new System.EventHandler(this.regBitFlagsButton_Click);
@@ -2913,10 +3457,10 @@
             // regSkipCheckBox
             // 
             this.regSkipCheckBox.AutoSize = true;
-            this.regSkipCheckBox.Location = new System.Drawing.Point(280, 22);
+            this.regSkipCheckBox.Location = new System.Drawing.Point(423, 98);
             this.regSkipCheckBox.Name = "regSkipCheckBox";
             this.regSkipCheckBox.Size = new System.Drawing.Size(47, 17);
-            this.regSkipCheckBox.TabIndex = 1;
+            this.regSkipCheckBox.TabIndex = 11;
             this.regSkipCheckBox.Text = "Skip";
             this.regSkipCheckBox.UseVisualStyleBackColor = true;
             // 
@@ -2934,7 +3478,7 @@
             this.regAddressTextBox.Location = new System.Drawing.Point(643, 20);
             this.regAddressTextBox.Name = "regAddressTextBox";
             this.regAddressTextBox.Size = new System.Drawing.Size(75, 20);
-            this.regAddressTextBox.TabIndex = 3;
+            this.regAddressTextBox.TabIndex = 4;
             this.regAddressTextBox.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
             // regCommentsTextBox
@@ -3069,10 +3613,7 @@
             // elemSignatureTabPage
             // 
             this.elemSignatureTabPage.AutoScroll = true;
-            this.elemSignatureTabPage.Controls.Add(this.label37);
-            this.elemSignatureTabPage.Controls.Add(this.signatureCategComboBox);
             this.elemSignatureTabPage.Controls.Add(this.signatureForcedCheckBox);
-            this.elemSignatureTabPage.Controls.Add(this.signatureTipPictureBox);
             this.elemSignatureTabPage.Controls.Add(this.signatureAdvButton);
             this.elemSignatureTabPage.Controls.Add(this.signatureAdvCheckBox);
             this.elemSignatureTabPage.Controls.Add(this.signatureSkipCheckBox);
@@ -3082,6 +3623,7 @@
             this.elemSignatureTabPage.Controls.Add(this.label26);
             this.elemSignatureTabPage.Controls.Add(this.label27);
             this.elemSignatureTabPage.Controls.Add(this.signatureLabelTextBox);
+            this.elemSignatureTabPage.Controls.Add(this.signatureTipPictureBox);
             this.elemSignatureTabPage.Location = new System.Drawing.Point(4, 22);
             this.elemSignatureTabPage.Name = "elemSignatureTabPage";
             this.elemSignatureTabPage.Size = new System.Drawing.Size(879, 206);
@@ -3089,49 +3631,21 @@
             this.elemSignatureTabPage.Text = "Routine Signature Properties";
             this.elemSignatureTabPage.UseVisualStyleBackColor = true;
             // 
-            // label37
-            // 
-            this.label37.AutoSize = true;
-            this.label37.Location = new System.Drawing.Point(669, 0);
-            this.label37.Name = "label37";
-            this.label37.Size = new System.Drawing.Size(49, 13);
-            this.label37.TabIndex = 60;
-            this.label37.Text = "Category";
-            // 
-            // signatureCategComboBox
-            // 
-            this.signatureCategComboBox.FormattingEnabled = true;
-            this.signatureCategComboBox.Location = new System.Drawing.Point(563, 16);
-            this.signatureCategComboBox.Name = "signatureCategComboBox";
-            this.signatureCategComboBox.Size = new System.Drawing.Size(155, 21);
-            this.signatureCategComboBox.Sorted = true;
-            this.signatureCategComboBox.TabIndex = 5;
-            // 
             // signatureForcedCheckBox
             // 
             this.signatureForcedCheckBox.AutoSize = true;
             this.signatureForcedCheckBox.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.signatureForcedCheckBox.Enabled = false;
-            this.signatureForcedCheckBox.Location = new System.Drawing.Point(380, 19);
+            this.signatureForcedCheckBox.Location = new System.Drawing.Point(473, 19);
             this.signatureForcedCheckBox.Name = "signatureForcedCheckBox";
             this.signatureForcedCheckBox.Size = new System.Drawing.Size(59, 17);
             this.signatureForcedCheckBox.TabIndex = 3;
             this.signatureForcedCheckBox.Text = "Forced";
             this.signatureForcedCheckBox.UseVisualStyleBackColor = true;
             // 
-            // signatureTipPictureBox
-            // 
-            this.signatureTipPictureBox.Image = global::SAD806x.Properties.Resources.question;
-            this.signatureTipPictureBox.Location = new System.Drawing.Point(698, 44);
-            this.signatureTipPictureBox.Name = "signatureTipPictureBox";
-            this.signatureTipPictureBox.Size = new System.Drawing.Size(20, 20);
-            this.signatureTipPictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
-            this.signatureTipPictureBox.TabIndex = 58;
-            this.signatureTipPictureBox.TabStop = false;
-            // 
             // signatureAdvButton
             // 
-            this.signatureAdvButton.Location = new System.Drawing.Point(237, 41);
+            this.signatureAdvButton.Location = new System.Drawing.Point(330, 41);
             this.signatureAdvButton.Name = "signatureAdvButton";
             this.signatureAdvButton.Size = new System.Drawing.Size(202, 23);
             this.signatureAdvButton.TabIndex = 1;
@@ -3143,7 +3657,7 @@
             // 
             this.signatureAdvCheckBox.AutoSize = true;
             this.signatureAdvCheckBox.Enabled = false;
-            this.signatureAdvCheckBox.Location = new System.Drawing.Point(237, 19);
+            this.signatureAdvCheckBox.Location = new System.Drawing.Point(330, 19);
             this.signatureAdvCheckBox.Name = "signatureAdvCheckBox";
             this.signatureAdvCheckBox.Size = new System.Drawing.Size(75, 17);
             this.signatureAdvCheckBox.TabIndex = 2;
@@ -3153,7 +3667,8 @@
             // signatureSkipCheckBox
             // 
             this.signatureSkipCheckBox.AutoSize = true;
-            this.signatureSkipCheckBox.Location = new System.Drawing.Point(478, 19);
+            this.signatureSkipCheckBox.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.signatureSkipCheckBox.Location = new System.Drawing.Point(671, 19);
             this.signatureSkipCheckBox.Name = "signatureSkipCheckBox";
             this.signatureSkipCheckBox.Size = new System.Drawing.Size(47, 17);
             this.signatureSkipCheckBox.TabIndex = 4;
@@ -3212,11 +3727,19 @@
             this.signatureLabelTextBox.Size = new System.Drawing.Size(188, 20);
             this.signatureLabelTextBox.TabIndex = 0;
             // 
+            // signatureTipPictureBox
+            // 
+            this.signatureTipPictureBox.Image = global::SAD806x.Properties.Resources.question;
+            this.signatureTipPictureBox.Location = new System.Drawing.Point(698, 44);
+            this.signatureTipPictureBox.Name = "signatureTipPictureBox";
+            this.signatureTipPictureBox.Size = new System.Drawing.Size(20, 20);
+            this.signatureTipPictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.signatureTipPictureBox.TabIndex = 58;
+            this.signatureTipPictureBox.TabStop = false;
+            // 
             // elemElemSignatureTabPage
             // 
             this.elemElemSignatureTabPage.AutoScroll = true;
-            this.elemElemSignatureTabPage.Controls.Add(this.label38);
-            this.elemElemSignatureTabPage.Controls.Add(this.elementSignatureCategComboBox);
             this.elemElemSignatureTabPage.Controls.Add(this.elementSignatureTypeComboBox);
             this.elemElemSignatureTabPage.Controls.Add(this.elementSignatureElemButton);
             this.elemElemSignatureTabPage.Controls.Add(this.elementSignatureForcedCheckBox);
@@ -3235,24 +3758,6 @@
             this.elemElemSignatureTabPage.Text = "Element Signature Properties";
             this.elemElemSignatureTabPage.UseVisualStyleBackColor = true;
             // 
-            // label38
-            // 
-            this.label38.AutoSize = true;
-            this.label38.Location = new System.Drawing.Point(669, 0);
-            this.label38.Name = "label38";
-            this.label38.Size = new System.Drawing.Size(49, 13);
-            this.label38.TabIndex = 75;
-            this.label38.Text = "Category";
-            // 
-            // elementSignatureCategComboBox
-            // 
-            this.elementSignatureCategComboBox.FormattingEnabled = true;
-            this.elementSignatureCategComboBox.Location = new System.Drawing.Point(563, 16);
-            this.elementSignatureCategComboBox.Name = "elementSignatureCategComboBox";
-            this.elementSignatureCategComboBox.Size = new System.Drawing.Size(155, 21);
-            this.elementSignatureCategComboBox.Sorted = true;
-            this.elementSignatureCategComboBox.TabIndex = 5;
-            // 
             // elementSignatureTypeComboBox
             // 
             this.elementSignatureTypeComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
@@ -3263,14 +3768,14 @@
             "Function",
             "Table",
             "Structure"});
-            this.elementSignatureTypeComboBox.Location = new System.Drawing.Point(318, 17);
+            this.elementSignatureTypeComboBox.Location = new System.Drawing.Point(411, 17);
             this.elementSignatureTypeComboBox.Name = "elementSignatureTypeComboBox";
             this.elementSignatureTypeComboBox.Size = new System.Drawing.Size(121, 21);
             this.elementSignatureTypeComboBox.TabIndex = 3;
             // 
             // elementSignatureElemButton
             // 
-            this.elementSignatureElemButton.Location = new System.Drawing.Point(237, 41);
+            this.elementSignatureElemButton.Location = new System.Drawing.Point(330, 41);
             this.elementSignatureElemButton.Name = "elementSignatureElemButton";
             this.elementSignatureElemButton.Size = new System.Drawing.Size(202, 23);
             this.elementSignatureElemButton.TabIndex = 1;
@@ -3282,7 +3787,7 @@
             // 
             this.elementSignatureForcedCheckBox.AutoSize = true;
             this.elementSignatureForcedCheckBox.Enabled = false;
-            this.elementSignatureForcedCheckBox.Location = new System.Drawing.Point(237, 19);
+            this.elementSignatureForcedCheckBox.Location = new System.Drawing.Point(330, 19);
             this.elementSignatureForcedCheckBox.Name = "elementSignatureForcedCheckBox";
             this.elementSignatureForcedCheckBox.Size = new System.Drawing.Size(59, 17);
             this.elementSignatureForcedCheckBox.TabIndex = 2;
@@ -3292,7 +3797,8 @@
             // elementSignatureSkipCheckBox
             // 
             this.elementSignatureSkipCheckBox.AutoSize = true;
-            this.elementSignatureSkipCheckBox.Location = new System.Drawing.Point(478, 19);
+            this.elementSignatureSkipCheckBox.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.elementSignatureSkipCheckBox.Location = new System.Drawing.Point(671, 19);
             this.elementSignatureSkipCheckBox.Name = "elementSignatureSkipCheckBox";
             this.elementSignatureSkipCheckBox.Size = new System.Drawing.Size(47, 17);
             this.elementSignatureSkipCheckBox.TabIndex = 4;
@@ -3360,6 +3866,132 @@
             this.elementSignatureTipPictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.elementSignatureTipPictureBox.TabIndex = 73;
             this.elementSignatureTipPictureBox.TabStop = false;
+            // 
+            // sharedDetailsTabPage
+            // 
+            this.sharedDetailsTabPage.AutoScroll = true;
+            this.sharedDetailsTabPage.Controls.Add(this.sharedIdentificationStatusTrackBar);
+            this.sharedDetailsTabPage.Controls.Add(this.sharedIdentificationDetailsTextBox);
+            this.sharedDetailsTabPage.Controls.Add(this.sharedIdentificationLabel);
+            this.sharedDetailsTabPage.Controls.Add(this.sharedCateg3ComboBox);
+            this.sharedDetailsTabPage.Controls.Add(this.sharedCateg2ComboBox);
+            this.sharedDetailsTabPage.Controls.Add(this.sharedCategsLabel);
+            this.sharedDetailsTabPage.Controls.Add(this.sharedCategComboBox);
+            this.sharedDetailsTabPage.Controls.Add(this.label53);
+            this.sharedDetailsTabPage.Controls.Add(this.sharedDateUpdatedDateTimePicker);
+            this.sharedDetailsTabPage.Controls.Add(this.label52);
+            this.sharedDetailsTabPage.Controls.Add(this.sharedDateCreatedDateTimePicker);
+            this.sharedDetailsTabPage.Location = new System.Drawing.Point(4, 22);
+            this.sharedDetailsTabPage.Name = "sharedDetailsTabPage";
+            this.sharedDetailsTabPage.Padding = new System.Windows.Forms.Padding(3);
+            this.sharedDetailsTabPage.Size = new System.Drawing.Size(879, 206);
+            this.sharedDetailsTabPage.TabIndex = 13;
+            this.sharedDetailsTabPage.Text = "Details";
+            this.sharedDetailsTabPage.UseVisualStyleBackColor = true;
+            // 
+            // sharedIdentificationStatusTrackBar
+            // 
+            this.sharedIdentificationStatusTrackBar.BackColor = System.Drawing.SystemColors.Window;
+            this.sharedIdentificationStatusTrackBar.LargeChange = 10;
+            this.sharedIdentificationStatusTrackBar.Location = new System.Drawing.Point(3, 159);
+            this.sharedIdentificationStatusTrackBar.Maximum = 100;
+            this.sharedIdentificationStatusTrackBar.Name = "sharedIdentificationStatusTrackBar";
+            this.sharedIdentificationStatusTrackBar.Size = new System.Drawing.Size(244, 45);
+            this.sharedIdentificationStatusTrackBar.TabIndex = 20;
+            this.sharedIdentificationStatusTrackBar.TickStyle = System.Windows.Forms.TickStyle.Both;
+            // 
+            // sharedIdentificationDetailsTextBox
+            // 
+            this.sharedIdentificationDetailsTextBox.Location = new System.Drawing.Point(253, 159);
+            this.sharedIdentificationDetailsTextBox.Multiline = true;
+            this.sharedIdentificationDetailsTextBox.Name = "sharedIdentificationDetailsTextBox";
+            this.sharedIdentificationDetailsTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.sharedIdentificationDetailsTextBox.Size = new System.Drawing.Size(465, 45);
+            this.sharedIdentificationDetailsTextBox.TabIndex = 21;
+            // 
+            // sharedIdentificationLabel
+            // 
+            this.sharedIdentificationLabel.AutoSize = true;
+            this.sharedIdentificationLabel.Location = new System.Drawing.Point(0, 143);
+            this.sharedIdentificationLabel.Name = "sharedIdentificationLabel";
+            this.sharedIdentificationLabel.Size = new System.Drawing.Size(67, 13);
+            this.sharedIdentificationLabel.TabIndex = 78;
+            this.sharedIdentificationLabel.Tag = "Identification";
+            this.sharedIdentificationLabel.Text = "Identification";
+            // 
+            // sharedCateg3ComboBox
+            // 
+            this.sharedCateg3ComboBox.FormattingEnabled = true;
+            this.sharedCateg3ComboBox.Location = new System.Drawing.Point(518, 67);
+            this.sharedCateg3ComboBox.Name = "sharedCateg3ComboBox";
+            this.sharedCateg3ComboBox.Size = new System.Drawing.Size(200, 21);
+            this.sharedCateg3ComboBox.Sorted = true;
+            this.sharedCateg3ComboBox.TabIndex = 4;
+            // 
+            // sharedCateg2ComboBox
+            // 
+            this.sharedCateg2ComboBox.FormattingEnabled = true;
+            this.sharedCateg2ComboBox.Location = new System.Drawing.Point(253, 67);
+            this.sharedCateg2ComboBox.Name = "sharedCateg2ComboBox";
+            this.sharedCateg2ComboBox.Size = new System.Drawing.Size(200, 21);
+            this.sharedCateg2ComboBox.Sorted = true;
+            this.sharedCateg2ComboBox.TabIndex = 3;
+            // 
+            // sharedCategsLabel
+            // 
+            this.sharedCategsLabel.AutoSize = true;
+            this.sharedCategsLabel.Location = new System.Drawing.Point(321, 51);
+            this.sharedCategsLabel.Name = "sharedCategsLabel";
+            this.sharedCategsLabel.Size = new System.Drawing.Size(57, 13);
+            this.sharedCategsLabel.TabIndex = 77;
+            this.sharedCategsLabel.Text = "Categories";
+            // 
+            // sharedCategComboBox
+            // 
+            this.sharedCategComboBox.FormattingEnabled = true;
+            this.sharedCategComboBox.Location = new System.Drawing.Point(3, 67);
+            this.sharedCategComboBox.Name = "sharedCategComboBox";
+            this.sharedCategComboBox.Size = new System.Drawing.Size(200, 21);
+            this.sharedCategComboBox.Sorted = true;
+            this.sharedCategComboBox.TabIndex = 2;
+            // 
+            // label53
+            // 
+            this.label53.AutoSize = true;
+            this.label53.Location = new System.Drawing.Point(646, 1);
+            this.label53.Name = "label53";
+            this.label53.Size = new System.Drawing.Size(72, 13);
+            this.label53.TabIndex = 15;
+            this.label53.Text = "Date updated";
+            // 
+            // sharedDateUpdatedDateTimePicker
+            // 
+            this.sharedDateUpdatedDateTimePicker.CustomFormat = "yyyy-MM-dd HH:mm:ss";
+            this.sharedDateUpdatedDateTimePicker.Enabled = false;
+            this.sharedDateUpdatedDateTimePicker.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
+            this.sharedDateUpdatedDateTimePicker.Location = new System.Drawing.Point(518, 17);
+            this.sharedDateUpdatedDateTimePicker.Name = "sharedDateUpdatedDateTimePicker";
+            this.sharedDateUpdatedDateTimePicker.Size = new System.Drawing.Size(200, 20);
+            this.sharedDateUpdatedDateTimePicker.TabIndex = 1;
+            // 
+            // label52
+            // 
+            this.label52.AutoSize = true;
+            this.label52.Location = new System.Drawing.Point(0, 1);
+            this.label52.Name = "label52";
+            this.label52.Size = new System.Drawing.Size(69, 13);
+            this.label52.TabIndex = 13;
+            this.label52.Text = "Date created";
+            // 
+            // sharedDateCreatedDateTimePicker
+            // 
+            this.sharedDateCreatedDateTimePicker.CustomFormat = "yyyy-MM-dd HH:mm:ss";
+            this.sharedDateCreatedDateTimePicker.Enabled = false;
+            this.sharedDateCreatedDateTimePicker.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
+            this.sharedDateCreatedDateTimePicker.Location = new System.Drawing.Point(3, 17);
+            this.sharedDateCreatedDateTimePicker.Name = "sharedDateCreatedDateTimePicker";
+            this.sharedDateCreatedDateTimePicker.Size = new System.Drawing.Size(200, 20);
+            this.sharedDateCreatedDateTimePicker.TabIndex = 0;
             // 
             // elemOpsTabPage
             // 
@@ -3617,6 +4249,87 @@
             this.pasteToolStripMenuItem,
             this.pasteMultToolStripMenuItem,
             this.toolStripSeparator8,
+            this.sharedCategsDepthToolStripMenuItem,
+            this.toolStripSeparator35,
+            this.categMassUpdateToolStripMenuItem});
+            this.categsContextMenuStrip.Name = "calElemsContextMenuStrip";
+            this.categsContextMenuStrip.Size = new System.Drawing.Size(166, 132);
+            // 
+            // newElemToolStripMenuItem
+            // 
+            this.newElemToolStripMenuItem.Name = "newElemToolStripMenuItem";
+            this.newElemToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
+            this.newElemToolStripMenuItem.Text = "New Element";
+            this.newElemToolStripMenuItem.Click += new System.EventHandler(this.newElemToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator7
+            // 
+            this.toolStripSeparator7.Name = "toolStripSeparator7";
+            this.toolStripSeparator7.Size = new System.Drawing.Size(162, 6);
+            // 
+            // pasteToolStripMenuItem
+            // 
+            this.pasteToolStripMenuItem.Name = "pasteToolStripMenuItem";
+            this.pasteToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
+            this.pasteToolStripMenuItem.Text = "Paste";
+            this.pasteToolStripMenuItem.Click += new System.EventHandler(this.pasteToolStripMenuItem_Click);
+            // 
+            // pasteMultToolStripMenuItem
+            // 
+            this.pasteMultToolStripMenuItem.Name = "pasteMultToolStripMenuItem";
+            this.pasteMultToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
+            this.pasteMultToolStripMenuItem.Text = "Paste Multiple";
+            // 
+            // toolStripSeparator8
+            // 
+            this.toolStripSeparator8.Name = "toolStripSeparator8";
+            this.toolStripSeparator8.Size = new System.Drawing.Size(162, 6);
+            // 
+            // sharedCategsDepthToolStripMenuItem
+            // 
+            this.sharedCategsDepthToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.sharedCategsDepthMaxToolStripMenuItem,
+            this.sharedCategsDepthMedToolStripMenuItem,
+            this.sharedCategsDepthMinToolStripMenuItem,
+            this.sharedCategsDepthNoneToolStripMenuItem});
+            this.sharedCategsDepthToolStripMenuItem.Name = "sharedCategsDepthToolStripMenuItem";
+            this.sharedCategsDepthToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
+            this.sharedCategsDepthToolStripMenuItem.Text = "Categories Depth";
+            // 
+            // sharedCategsDepthMaxToolStripMenuItem
+            // 
+            this.sharedCategsDepthMaxToolStripMenuItem.Checked = true;
+            this.sharedCategsDepthMaxToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.sharedCategsDepthMaxToolStripMenuItem.Name = "sharedCategsDepthMaxToolStripMenuItem";
+            this.sharedCategsDepthMaxToolStripMenuItem.Size = new System.Drawing.Size(129, 22);
+            this.sharedCategsDepthMaxToolStripMenuItem.Text = "Maximum";
+            // 
+            // sharedCategsDepthMedToolStripMenuItem
+            // 
+            this.sharedCategsDepthMedToolStripMenuItem.Name = "sharedCategsDepthMedToolStripMenuItem";
+            this.sharedCategsDepthMedToolStripMenuItem.Size = new System.Drawing.Size(129, 22);
+            this.sharedCategsDepthMedToolStripMenuItem.Text = "Medium";
+            // 
+            // sharedCategsDepthMinToolStripMenuItem
+            // 
+            this.sharedCategsDepthMinToolStripMenuItem.Name = "sharedCategsDepthMinToolStripMenuItem";
+            this.sharedCategsDepthMinToolStripMenuItem.Size = new System.Drawing.Size(129, 22);
+            this.sharedCategsDepthMinToolStripMenuItem.Text = "Minimum";
+            // 
+            // sharedCategsDepthNoneToolStripMenuItem
+            // 
+            this.sharedCategsDepthNoneToolStripMenuItem.Name = "sharedCategsDepthNoneToolStripMenuItem";
+            this.sharedCategsDepthNoneToolStripMenuItem.Size = new System.Drawing.Size(129, 22);
+            this.sharedCategsDepthNoneToolStripMenuItem.Text = "Disabled";
+            // 
+            // toolStripSeparator35
+            // 
+            this.toolStripSeparator35.Name = "toolStripSeparator35";
+            this.toolStripSeparator35.Size = new System.Drawing.Size(162, 6);
+            // 
+            // categMassUpdateToolStripMenuItem
+            // 
+            this.categMassUpdateToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.categSkipAllToolStripMenuItem,
             this.categUnSkipAllToolStripMenuItem,
             this.toolStripSeparator22,
@@ -3626,45 +4339,15 @@
             this.categCommentsInlineNoneToolStripMenuItem,
             this.toolStripSeparator30,
             this.categCleanElements});
-            this.categsContextMenuStrip.Name = "calElemsContextMenuStrip";
-            this.categsContextMenuStrip.Size = new System.Drawing.Size(257, 248);
-            // 
-            // newElemToolStripMenuItem
-            // 
-            this.newElemToolStripMenuItem.Name = "newElemToolStripMenuItem";
-            this.newElemToolStripMenuItem.Size = new System.Drawing.Size(256, 22);
-            this.newElemToolStripMenuItem.Text = "New Element";
-            this.newElemToolStripMenuItem.Click += new System.EventHandler(this.newElemToolStripMenuItem_Click);
-            // 
-            // toolStripSeparator7
-            // 
-            this.toolStripSeparator7.Name = "toolStripSeparator7";
-            this.toolStripSeparator7.Size = new System.Drawing.Size(253, 6);
-            // 
-            // pasteToolStripMenuItem
-            // 
-            this.pasteToolStripMenuItem.Name = "pasteToolStripMenuItem";
-            this.pasteToolStripMenuItem.Size = new System.Drawing.Size(256, 22);
-            this.pasteToolStripMenuItem.Text = "Paste";
-            this.pasteToolStripMenuItem.Click += new System.EventHandler(this.pasteToolStripMenuItem_Click);
-            // 
-            // pasteMultToolStripMenuItem
-            // 
-            this.pasteMultToolStripMenuItem.Name = "pasteMultToolStripMenuItem";
-            this.pasteMultToolStripMenuItem.Size = new System.Drawing.Size(256, 22);
-            this.pasteMultToolStripMenuItem.Text = "Paste Multiple";
-            // 
-            // toolStripSeparator8
-            // 
-            this.toolStripSeparator8.Name = "toolStripSeparator8";
-            this.toolStripSeparator8.Size = new System.Drawing.Size(253, 6);
+            this.categMassUpdateToolStripMenuItem.Name = "categMassUpdateToolStripMenuItem";
+            this.categMassUpdateToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
+            this.categMassUpdateToolStripMenuItem.Text = "Mass update";
             // 
             // categSkipAllToolStripMenuItem
             // 
             this.categSkipAllToolStripMenuItem.Name = "categSkipAllToolStripMenuItem";
             this.categSkipAllToolStripMenuItem.Size = new System.Drawing.Size(256, 22);
             this.categSkipAllToolStripMenuItem.Text = "Skip all";
-            this.categSkipAllToolStripMenuItem.Click += new System.EventHandler(this.categSkipAllToolStripMenuItem_Click);
             // 
             // categUnSkipAllToolStripMenuItem
             // 
@@ -3805,15 +4488,86 @@
             // 
             // saveFileDialogSQLite
             // 
-            this.saveFileDialogSQLite.Filter = "SQLite File|*.db;*.sqlite|All Files|*.*";
+            this.saveFileDialogSQLite.Filter = "SQLite File|*.86x;*.db;*.sqlite|All Files|*.*";
             // 
             // openFileDialogSQLite
             // 
-            this.openFileDialogSQLite.Filter = "SQLite File|*.db;*.sqlite|All Files|*.*";
+            this.openFileDialogSQLite.CheckFileExists = false;
+            this.openFileDialogSQLite.DefaultExt = "86x";
+            this.openFileDialogSQLite.Filter = "SQLite File|*.86x;*.db;*.sqlite|All Files|*.*";
             // 
             // saveFileDialogCmt
             // 
             this.saveFileDialogCmt.Filter = "Comments File|*.cmt|Text File|*.txt|All Files|*.*";
+            // 
+            // sqLite806xFileContextMenuStrip
+            // 
+            this.sqLite806xFileContextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.sqLite806xFileLabelToolStripMenuItem,
+            this.toolStripSeparator33,
+            this.sqLite806xFileDownloadToolStripMenuItem,
+            this.sqLite806xFileUpdateToolStripMenuItem,
+            this.toolStripSeparator34,
+            this.sqLite806xFileRemoveToolStripMenuItem});
+            this.sqLite806xFileContextMenuStrip.Name = "shortCutsContextMenuStrip";
+            this.sqLite806xFileContextMenuStrip.Size = new System.Drawing.Size(129, 104);
+            // 
+            // sqLite806xFileLabelToolStripMenuItem
+            // 
+            this.sqLite806xFileLabelToolStripMenuItem.Name = "sqLite806xFileLabelToolStripMenuItem";
+            this.sqLite806xFileLabelToolStripMenuItem.Size = new System.Drawing.Size(128, 22);
+            this.sqLite806xFileLabelToolStripMenuItem.Text = "File Label";
+            this.sqLite806xFileLabelToolStripMenuItem.Click += new System.EventHandler(this.sqLite806xFileUpdateToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator33
+            // 
+            this.toolStripSeparator33.Name = "toolStripSeparator33";
+            this.toolStripSeparator33.Size = new System.Drawing.Size(125, 6);
+            // 
+            // sqLite806xFileDownloadToolStripMenuItem
+            // 
+            this.sqLite806xFileDownloadToolStripMenuItem.Name = "sqLite806xFileDownloadToolStripMenuItem";
+            this.sqLite806xFileDownloadToolStripMenuItem.Size = new System.Drawing.Size(128, 22);
+            this.sqLite806xFileDownloadToolStripMenuItem.Text = "Download";
+            this.sqLite806xFileDownloadToolStripMenuItem.Click += new System.EventHandler(this.sqLite806xFileDownloadToolStripMenuItem_Click);
+            // 
+            // sqLite806xFileUpdateToolStripMenuItem
+            // 
+            this.sqLite806xFileUpdateToolStripMenuItem.Name = "sqLite806xFileUpdateToolStripMenuItem";
+            this.sqLite806xFileUpdateToolStripMenuItem.Size = new System.Drawing.Size(128, 22);
+            this.sqLite806xFileUpdateToolStripMenuItem.Text = "Update";
+            this.sqLite806xFileUpdateToolStripMenuItem.Click += new System.EventHandler(this.sqLite806xFileUpdateToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator34
+            // 
+            this.toolStripSeparator34.Name = "toolStripSeparator34";
+            this.toolStripSeparator34.Size = new System.Drawing.Size(125, 6);
+            // 
+            // sqLite806xFileRemoveToolStripMenuItem
+            // 
+            this.sqLite806xFileRemoveToolStripMenuItem.Name = "sqLite806xFileRemoveToolStripMenuItem";
+            this.sqLite806xFileRemoveToolStripMenuItem.Size = new System.Drawing.Size(128, 22);
+            this.sqLite806xFileRemoveToolStripMenuItem.Text = "Remove";
+            this.sqLite806xFileRemoveToolStripMenuItem.Click += new System.EventHandler(this.sqLite806xFileRemoveToolStripMenuItem_Click);
+            // 
+            // saveFileDialogBin
+            // 
+            this.saveFileDialogBin.Filter = "Binary File|*.bin|All Files|*.*";
+            // 
+            // saveFileDialogGeneric
+            // 
+            this.saveFileDialogGeneric.Filter = "All Files|*.*";
+            // 
+            // openFileDialogXls
+            // 
+            this.openFileDialogXls.CheckFileExists = false;
+            this.openFileDialogXls.DefaultExt = "xlsx";
+            this.openFileDialogXls.Filter = "EA/BE Xls File|*.xls;*.xlsx|All Files|*.*";
+            // 
+            // saveFileDialogXlsx
+            // 
+            this.saveFileDialogXlsx.DefaultExt = "xlsx";
+            this.saveFileDialogXlsx.Filter = "EA/BE Xlsx File|*.xlsx|All Files|*.*";
             // 
             // MainForm
             // 
@@ -3877,6 +4631,9 @@
             this.elemElemSignatureTabPage.ResumeLayout(false);
             this.elemElemSignatureTabPage.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.elementSignatureTipPictureBox)).EndInit();
+            this.sharedDetailsTabPage.ResumeLayout(false);
+            this.sharedDetailsTabPage.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.sharedIdentificationStatusTrackBar)).EndInit();
             this.elemOpsTabPage.ResumeLayout(false);
             this.elemInfoTabPage.ResumeLayout(false);
             this.elemButtonsPanel.ResumeLayout(false);
@@ -3886,6 +4643,7 @@
             this.repoContextMenuStrip.PerformLayout();
             this.scalerContextMenuStrip.ResumeLayout(false);
             this.scalerContextMenuStrip.PerformLayout();
+            this.sqLite806xFileContextMenuStrip.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -4025,8 +4783,6 @@
         private System.Windows.Forms.OpenFileDialog openFileDialogXdf;
         private System.Windows.Forms.SaveFileDialog saveFileDialogXdf;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator7;
-        private System.Windows.Forms.ToolStripMenuItem categSkipAllToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem categUnSkipAllToolStripMenuItem;
         private System.Windows.Forms.TabPage elemStructurePropertiesTabPage;
         private System.Windows.Forms.CheckBox structureSkipCheckBox;
         private System.Windows.Forms.TextBox structureCommentsTextBox;
@@ -4174,8 +4930,6 @@
         private System.Windows.Forms.ToolStripMenuItem scalerToolStripMenuItem;
         private System.Windows.Forms.Button tableColsScalerButton;
         private System.Windows.Forms.Button tableRowsScalerButton;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator22;
-        private System.Windows.Forms.ToolStripMenuItem categCleanElements;
         private System.Windows.Forms.ToolStripMenuItem compareS6xToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator23;
         private System.Windows.Forms.ToolStripMenuItem compareBinariesDifDefToolStripMenuItem;
@@ -4203,8 +4957,6 @@
         private System.Windows.Forms.ToolStripMenuItem exportUniDb806xToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator28;
         private System.Windows.Forms.ToolStripMenuItem syncUniDb806xToolStripMenuItem;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator29;
-        private System.Windows.Forms.ToolStripMenuItem extractBinUniDb806xToolStripMenuItem;
         private System.Windows.Forms.Panel elemButtonsPanel;
         private System.Windows.Forms.Button elemCancelButton;
         private System.Windows.Forms.Button elemValidateButton;
@@ -4222,15 +4974,10 @@
         private System.Windows.Forms.CheckBox s6xPropertiesOutputHeaderCheckBox;
         private System.Windows.Forms.TextBox s6xPropertiesHeaderTextBox;
         private System.Windows.Forms.Label label31;
-        private System.Windows.Forms.ToolStripMenuItem categCommentsOutputAllToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem categCommentsOutputNoneToolStripMenuItem;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator30;
         private System.Windows.Forms.CheckBox scalarInlineCommentsCheckBox;
         private System.Windows.Forms.CheckBox opeInlineCommentsCheckBox;
         private System.Windows.Forms.CheckBox otherInlineCommentsCheckBox;
         private System.Windows.Forms.CheckBox otherOutputLabelCheckBox;
-        private System.Windows.Forms.ToolStripMenuItem categCommentsInlineAllToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem categCommentsInlineNoneToolStripMenuItem;
         private System.Windows.Forms.CheckBox signatureForcedCheckBox;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator31;
         private System.Windows.Forms.ToolStripMenuItem repoOBDIErrorsToolStripMenuItem;
@@ -4251,14 +4998,98 @@
         private System.Windows.Forms.TextBox regScaleTextBox;
         private System.Windows.Forms.TextBox regUnitsTextBox;
         private System.Windows.Forms.Label label36;
-        private System.Windows.Forms.Label label37;
-        private System.Windows.Forms.ComboBox signatureCategComboBox;
-        private System.Windows.Forms.Label label38;
-        private System.Windows.Forms.ComboBox elementSignatureCategComboBox;
         private System.Windows.Forms.CheckBox regRBaseCheckBox;
         private System.Windows.Forms.CheckBox regRConstCheckBox;
         private System.Windows.Forms.Label label40;
         private System.Windows.Forms.TextBox regConstValueTextBox;
+        private System.Windows.Forms.ToolStripTextBox fileUniDb806xToolStripTextBox;
+        private System.Windows.Forms.ToolStripMenuItem binariesUniDb806xToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem filesUniDb806xToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem selectUniDb806xToolStripMenuItem;
+        private System.Windows.Forms.ContextMenuStrip sqLite806xFileContextMenuStrip;
+        private System.Windows.Forms.ToolStripMenuItem sqLite806xFileDownloadToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem sqLite806xFileUpdateToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem sqLite806xFileRemoveToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem sqLite806xFileLabelToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator33;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator34;
+        private System.Windows.Forms.SaveFileDialog saveFileDialogBin;
+        private System.Windows.Forms.SaveFileDialog saveFileDialogGeneric;
+        private System.Windows.Forms.ToolStripMenuItem openUniDb806xToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator29;
+        private System.Windows.Forms.TabPage sharedDetailsTabPage;
+        private System.Windows.Forms.Label label52;
+        private System.Windows.Forms.DateTimePicker sharedDateCreatedDateTimePicker;
+        private System.Windows.Forms.Label label53;
+        private System.Windows.Forms.DateTimePicker sharedDateUpdatedDateTimePicker;
+        private System.Windows.Forms.Label sharedCategsLabel;
+        private System.Windows.Forms.ComboBox sharedCategComboBox;
+        private System.Windows.Forms.ComboBox sharedCateg3ComboBox;
+        private System.Windows.Forms.ComboBox sharedCateg2ComboBox;
+        private System.Windows.Forms.TextBox sharedIdentificationDetailsTextBox;
+        private System.Windows.Forms.Label sharedIdentificationLabel;
+        private System.Windows.Forms.TrackBar sharedIdentificationStatusTrackBar;
+        private System.Windows.Forms.ToolStripMenuItem sharedCategsDepthToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem sharedCategsDepthMaxToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem sharedCategsDepthMedToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator35;
+        private System.Windows.Forms.ToolStripMenuItem sharedCategsDepthMinToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem sharedCategsDepthNoneToolStripMenuItem;
+        private System.Windows.Forms.ImageList elemsTreeViewStateImageList;
+        private System.Windows.Forms.ToolStripMenuItem categMassUpdateToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem categSkipAllToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem categUnSkipAllToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator22;
+        private System.Windows.Forms.ToolStripMenuItem categCommentsOutputAllToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem categCommentsInlineAllToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem categCommentsOutputNoneToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem categCommentsInlineNoneToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator30;
+        private System.Windows.Forms.ToolStripMenuItem categCleanElements;
+        private System.Windows.Forms.ToolStripMenuItem iesOptionsUniDb806xToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem iesOptPropertiesToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem iesOptTablesToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem iesOptFunctionsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem iesOptScalarsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem iesOptStructuresToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem iesOptRoutinesToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem iesOptOperationsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem iesOptOtherToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem iesOptRegistersToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem iesOptSignaturesToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator36;
+        private System.Windows.Forms.ToolStripMenuItem iesOptAllToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem iesOptNoneToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem importXdfCategsToolStripMenuItem;
+        private System.Windows.Forms.CheckBox s6xPropertiesIgnore8065RegShortcut0x100SFR;
+        private System.Windows.Forms.CheckBox s6xPropertiesIgnore8065RegShortcut0x100;
+        private System.Windows.Forms.OpenFileDialog openFileDialogXls;
+        private System.Windows.Forms.SaveFileDialog saveFileDialogXlsx;
+        private System.Windows.Forms.ToolStripMenuItem settingsEABEToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem eABEFilesToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem importXlsFileToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportXlsFileToolStripMenuItem;
+        private System.Windows.Forms.CheckBox s6xPropertiesNoNumberingShortFormatCheckBox;
+        private System.Windows.Forms.ComboBox regSizeComboBox;
+        private System.Windows.Forms.Label label37;
+        private System.Windows.Forms.Label label38;
+        private System.Windows.Forms.ComboBox regSignedComboBox;
+        private System.Windows.Forms.Label label55;
+        private System.Windows.Forms.TextBox scalarMaxTextBox;
+        private System.Windows.Forms.Label label54;
+        private System.Windows.Forms.TextBox scalarMinTextBox;
+        private System.Windows.Forms.Label label56;
+        private System.Windows.Forms.TextBox functionMaxInputTextBox;
+        private System.Windows.Forms.Label label57;
+        private System.Windows.Forms.TextBox functionMinInputTextBox;
+        private System.Windows.Forms.Label label58;
+        private System.Windows.Forms.TextBox functionMaxOutputTextBox;
+        private System.Windows.Forms.Label label59;
+        private System.Windows.Forms.TextBox functionMinOutputTextBox;
+        private System.Windows.Forms.Label label60;
+        private System.Windows.Forms.TextBox tableMaxTextBox;
+        private System.Windows.Forms.Label label61;
+        private System.Windows.Forms.TextBox tableMinTextBox;
     }
 }
 

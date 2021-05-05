@@ -432,6 +432,7 @@ namespace SAD806x
                                 catch { scale1 = string.Empty; }
                             }
                         }
+
                         opt1 = ":O " + sAddSymbol + s6xElem.ColsNumber.ToString();
                         if (s6xElem.WordOutput) opt1 += " W"; else opt1 += " Y";
                         if (s6xElem.SignedOutput) opt1 += " S";
@@ -473,7 +474,9 @@ namespace SAD806x
                         else
                         {
                             // To Be Reviewed
-                            opt1 = ":Y X O " + sAddSymbol + s6xElem.Structure.Size.ToString();
+                            // 20210426 - PYM  O Option removed for Structures in SAD Version 4
+                            if (tfSADVersion == TFST_SAD_VER_4) opt1 = ":Y X";
+                            else opt1 = ":Y X O " + sAddSymbol + s6xElem.Structure.Size.ToString();
                             elemLine = string.Format(sFormat, "struct", s6xElem.Address, endAddress, s6xElem.BankNum, opt1);
                         }
                     }
@@ -1246,8 +1249,17 @@ namespace SAD806x
                     if (!isTypeConflict(s6xObject, ref sadBin, ref sadS6x))
                     {
                         sadS6x.isSaved = false;
-                        if (sadS6x.slScalars.ContainsKey(s6xObject.UniqueAddress)) sadS6x.slScalars[s6xObject.UniqueAddress] = s6xObject;
-                        else sadS6x.slScalars.Add(s6xObject.UniqueAddress, s6xObject);
+                        s6xObject.DateUpdated = DateTime.UtcNow;
+                        if (sadS6x.slScalars.ContainsKey(s6xObject.UniqueAddress))
+                        {
+                            s6xObject.DateCreated = ((S6xScalar)sadS6x.slScalars[s6xObject.UniqueAddress]).DateCreated;
+                            sadS6x.slScalars[s6xObject.UniqueAddress] = s6xObject;
+                        }
+                        else
+                        {
+                            s6xObject.DateCreated = DateTime.UtcNow;
+                            sadS6x.slScalars.Add(s6xObject.UniqueAddress, s6xObject);
+                        }
                         alNewTreeNodesInfos.Add(new string[] { getCategNameFromS6x(s6xObject), s6xObject.UniqueAddress, s6xObject.Label, defaultNodeToolTipText });
                     }
                 }
@@ -1280,8 +1292,17 @@ namespace SAD806x
                     if (!isTypeConflict(s6xObject, ref sadBin, ref sadS6x))
                     {
                         sadS6x.isSaved = false;
-                        if (sadS6x.slFunctions.ContainsKey(s6xObject.UniqueAddress)) sadS6x.slFunctions[s6xObject.UniqueAddress] = s6xObject;
-                        else sadS6x.slFunctions.Add(s6xObject.UniqueAddress, s6xObject);
+                        s6xObject.DateUpdated = DateTime.UtcNow;
+                        if (sadS6x.slFunctions.ContainsKey(s6xObject.UniqueAddress))
+                        {
+                            s6xObject.DateCreated = ((S6xFunction)sadS6x.slFunctions[s6xObject.UniqueAddress]).DateCreated;
+                            sadS6x.slFunctions[s6xObject.UniqueAddress] = s6xObject;
+                        }
+                        else
+                        {
+                            s6xObject.DateCreated = DateTime.UtcNow;
+                            sadS6x.slFunctions.Add(s6xObject.UniqueAddress, s6xObject);
+                        }
                         alNewTreeNodesInfos.Add(new string[] { getCategNameFromS6x(s6xObject), s6xObject.UniqueAddress, s6xObject.Label, defaultNodeToolTipText });
                     }
                 }
@@ -1314,8 +1335,17 @@ namespace SAD806x
                     if (!isTypeConflict(s6xObject, ref sadBin, ref sadS6x))
                     {
                         sadS6x.isSaved = false;
-                        if (sadS6x.slTables.ContainsKey(s6xObject.UniqueAddress)) sadS6x.slTables[s6xObject.UniqueAddress] = s6xObject;
-                        else sadS6x.slTables.Add(s6xObject.UniqueAddress, s6xObject);
+                        s6xObject.DateUpdated = DateTime.UtcNow;
+                        if (sadS6x.slTables.ContainsKey(s6xObject.UniqueAddress))
+                        {
+                            s6xObject.DateCreated = ((S6xTable)sadS6x.slTables[s6xObject.UniqueAddress]).DateCreated;
+                            sadS6x.slTables[s6xObject.UniqueAddress] = s6xObject;
+                        }
+                        else
+                        {
+                            s6xObject.DateCreated = DateTime.UtcNow;
+                            sadS6x.slTables.Add(s6xObject.UniqueAddress, s6xObject);
+                        }
                         alNewTreeNodesInfos.Add(new string[] { getCategNameFromS6x(s6xObject), s6xObject.UniqueAddress, s6xObject.Label, defaultNodeToolTipText });
                     }
                 }
@@ -1345,8 +1375,17 @@ namespace SAD806x
                     if (!isTypeConflict(s6xObject, ref sadBin, ref sadS6x))
                     {
                         sadS6x.isSaved = false;
-                        if (sadS6x.slStructures.ContainsKey(s6xObject.UniqueAddress)) sadS6x.slStructures[s6xObject.UniqueAddress] = s6xObject;
-                        else sadS6x.slStructures.Add(s6xObject.UniqueAddress, s6xObject);
+                        s6xObject.DateUpdated = DateTime.UtcNow;
+                        if (sadS6x.slStructures.ContainsKey(s6xObject.UniqueAddress))
+                        {
+                            s6xObject.DateCreated = ((S6xStructure)sadS6x.slStructures[s6xObject.UniqueAddress]).DateCreated;
+                            sadS6x.slStructures[s6xObject.UniqueAddress] = s6xObject;
+                        }
+                        else
+                        {
+                            s6xObject.DateCreated = DateTime.UtcNow;
+                            sadS6x.slStructures.Add(s6xObject.UniqueAddress, s6xObject);
+                        }
                         alNewTreeNodesInfos.Add(new string[] { getCategNameFromS6x(s6xObject), s6xObject.UniqueAddress, s6xObject.Label, defaultNodeToolTipText });
                     }
                 }
@@ -1371,6 +1410,7 @@ namespace SAD806x
                     if (!isTypeConflict(s6xObject, ref sadBin, ref sadS6x))
                     {
                         sadS6x.isSaved = false;
+                        s6xObject.DateUpdated = DateTime.UtcNow;
                         // No direct override, using only Labels and ByteArgumentsNum when provided
                         if (sadS6x.slRoutines.ContainsKey(s6xObject.UniqueAddress))
                         {
@@ -1382,9 +1422,14 @@ namespace SAD806x
                             }
                             existingRoutine.ShortLabel = s6xObject.ShortLabel;
                             existingRoutine.Label = s6xObject.Label;
+                            existingRoutine.DateUpdated = s6xObject.DateUpdated;
                             existingRoutine = null;
                         }
-                        else sadS6x.slRoutines.Add(s6xObject.UniqueAddress, s6xObject);
+                        else
+                        {
+                            s6xObject.DateCreated = DateTime.UtcNow;
+                            sadS6x.slRoutines.Add(s6xObject.UniqueAddress, s6xObject);
+                        }
                         alNewTreeNodesInfos.Add(new string[] { getCategNameFromS6x(s6xObject), s6xObject.UniqueAddress, s6xObject.Label, defaultNodeToolTipText });
                     }
                 }
@@ -1409,8 +1454,17 @@ namespace SAD806x
                     if (!isTypeConflict(s6xObject, ref sadBin, ref sadS6x))
                     {
                         sadS6x.isSaved = false;
-                        if (sadS6x.slOperations.ContainsKey(s6xObject.UniqueAddress)) sadS6x.slOperations[s6xObject.UniqueAddress] = s6xObject;
-                        else sadS6x.slOperations.Add(s6xObject.UniqueAddress, s6xObject);
+                        s6xObject.DateUpdated = DateTime.UtcNow;
+                        if (sadS6x.slOperations.ContainsKey(s6xObject.UniqueAddress))
+                        {
+                            s6xObject.DateCreated = ((S6xOperation)sadS6x.slOperations[s6xObject.UniqueAddress]).DateCreated;
+                            sadS6x.slOperations[s6xObject.UniqueAddress] = s6xObject;
+                        }
+                        else
+                        {
+                            s6xObject.DateCreated = DateTime.UtcNow;
+                            sadS6x.slOperations.Add(s6xObject.UniqueAddress, s6xObject);
+                        }
                         alNewTreeNodesInfos.Add(new string[] { getCategNameFromS6x(s6xObject), s6xObject.UniqueAddress, s6xObject.Label, defaultNodeToolTipText });
                     }
                 }
@@ -1426,9 +1480,11 @@ namespace SAD806x
                         {
                             s6xReg = new S6xRegister((int)oLabel[1]);
                             s6xReg.Comments = string.Empty;
+                            s6xReg.DateCreated = DateTime.UtcNow;
                         }
                         s6xReg.Label = oLabel[2].ToString();
                         s6xReg.Store = true;
+                        s6xReg.DateUpdated = DateTime.UtcNow;
                         if (sadS6x.slRegisters.ContainsKey(s6xReg.UniqueAddress)) sadS6x.slRegisters[s6xReg.UniqueAddress] = s6xReg;
                         else sadS6x.slRegisters.Add(s6xReg.UniqueAddress, s6xReg);
                         alNewTreeNodesInfos.Add(new string[] { getCategNameFromS6x(s6xReg), s6xReg.UniqueAddress, s6xReg.Label, defaultNodeToolTipText });
@@ -1446,6 +1502,7 @@ namespace SAD806x
                                 ((S6xScalar)s6xObject).Label = oLabel[2].ToString();
                                 ((S6xScalar)s6xObject).ShortLabel = oLabel[2].ToString();
                                 ((S6xScalar)s6xObject).Store = true;
+                                ((S6xScalar)s6xObject).DateUpdated = DateTime.UtcNow;
                                 alNewTreeNodesInfos.Add(new string[] { getCategNameFromS6x(s6xObject), uniqueAddress, oLabel[2].ToString(), defaultNodeToolTipText });
                             }
                         }
@@ -1457,6 +1514,7 @@ namespace SAD806x
                                 ((S6xFunction)s6xObject).Label = oLabel[2].ToString();
                                 ((S6xFunction)s6xObject).ShortLabel = oLabel[2].ToString();
                                 ((S6xFunction)s6xObject).Store = true;
+                                ((S6xFunction)s6xObject).DateUpdated = DateTime.UtcNow;
                                 alNewTreeNodesInfos.Add(new string[] { getCategNameFromS6x(s6xObject), uniqueAddress, oLabel[2].ToString(), defaultNodeToolTipText });
                             }
                         }
@@ -1468,6 +1526,7 @@ namespace SAD806x
                                 ((S6xTable)s6xObject).Label = oLabel[2].ToString();
                                 ((S6xTable)s6xObject).ShortLabel = oLabel[2].ToString();
                                 ((S6xTable)s6xObject).Store = true;
+                                ((S6xTable)s6xObject).DateUpdated = DateTime.UtcNow;
                                 alNewTreeNodesInfos.Add(new string[] { getCategNameFromS6x(s6xObject), uniqueAddress, oLabel[2].ToString(), defaultNodeToolTipText });
                             }
                         }
@@ -1479,6 +1538,7 @@ namespace SAD806x
                                 ((S6xStructure)s6xObject).Label = oLabel[2].ToString();
                                 ((S6xStructure)s6xObject).ShortLabel = oLabel[2].ToString();
                                 ((S6xStructure)s6xObject).Store = true;
+                                ((S6xStructure)s6xObject).DateUpdated = DateTime.UtcNow;
                                 alNewTreeNodesInfos.Add(new string[] { getCategNameFromS6x(s6xObject), uniqueAddress, oLabel[2].ToString(), defaultNodeToolTipText });
                             }
                         }
@@ -1490,6 +1550,7 @@ namespace SAD806x
                                 ((S6xRoutine)s6xObject).Label = oLabel[2].ToString();
                                 ((S6xRoutine)s6xObject).ShortLabel = oLabel[2].ToString();
                                 ((S6xRoutine)s6xObject).Store = true;
+                                ((S6xRoutine)s6xObject).DateUpdated = DateTime.UtcNow;
                                 alNewTreeNodesInfos.Add(new string[] { getCategNameFromS6x(s6xObject), uniqueAddress, oLabel[2].ToString(), defaultNodeToolTipText });
                             }
                         }
@@ -1500,6 +1561,7 @@ namespace SAD806x
                             {
                                 ((S6xOperation)s6xObject).Label = oLabel[2].ToString();
                                 ((S6xOperation)s6xObject).ShortLabel = oLabel[2].ToString();
+                                ((S6xOperation)s6xObject).DateUpdated = DateTime.UtcNow;
                                 alNewTreeNodesInfos.Add(new string[] { getCategNameFromS6x(s6xObject), uniqueAddress, oLabel[2].ToString(), defaultNodeToolTipText });
                             }
                         }
@@ -1513,9 +1575,12 @@ namespace SAD806x
                             other.Comments = string.Empty;
                             other.InlineComments = false;
                             other.OutputComments = false;
+                            other.DateCreated = DateTime.UtcNow;
+                            other.DateUpdated = DateTime.UtcNow;
                             if (sadS6x.slOtherAddresses.ContainsKey(other.UniqueAddress))
                             {
                                 ((S6xOtherAddress)sadS6x.slOtherAddresses[other.UniqueAddress]).Label = other.Label;
+                                ((S6xOtherAddress)sadS6x.slOtherAddresses[other.UniqueAddress]).DateUpdated = DateTime.UtcNow;
                             }
                             else
                             {
@@ -1549,6 +1614,7 @@ namespace SAD806x
                             string label = bF[1].ToString();
                             string setValue = "1";
                             string notSetValue = "0";
+                            DateTime dtDateCreated = DateTime.UtcNow;
                             // Not overriding specific existing S6x Information
                             if (s6xScalar.BitFlags != null)
                             {
@@ -1559,6 +1625,7 @@ namespace SAD806x
                                         label = s6xBF.Label;
                                         setValue = s6xBF.SetValue;
                                         notSetValue = s6xBF.NotSetValue;
+                                        dtDateCreated = s6xBF.DateCreated;
                                         break;
                                     }
                                 }
@@ -1566,7 +1633,9 @@ namespace SAD806x
                             s6xBitFlag.Label = label;
                             s6xBitFlag.SetValue = setValue;
                             s6xBitFlag.NotSetValue = notSetValue;
+                            s6xBitFlag.DateUpdated = DateTime.UtcNow;
                             s6xScalar.AddBitFlag(s6xBitFlag);
+                            s6xScalar.DateUpdated = DateTime.UtcNow;
                             s6xBitFlag = null;
 
                             sadS6x.isSaved = false;
@@ -1591,6 +1660,8 @@ namespace SAD806x
                             s6xReg.Comments = string.Empty;
                             s6xReg.Label = Tools.RegisterInstruction(s6xReg.Address);
                             s6xReg.Store = true;
+                            s6xReg.DateCreated = DateTime.UtcNow;
+                            s6xReg.DateUpdated = DateTime.UtcNow;
 
                             alNewTreeNodesInfos.Add(new string[] { getCategNameFromS6x(s6xReg), s6xReg.UniqueAddress, s6xReg.Label, defaultNodeToolTipText });
                         }
@@ -1627,6 +1698,7 @@ namespace SAD806x
                             s6xBitFlag.SetValue = setValue;
                             s6xBitFlag.NotSetValue = notSetValue;
                             s6xReg.AddBitFlag(s6xBitFlag);
+                            s6xReg.DateUpdated = DateTime.UtcNow;
                             s6xBitFlag = null;
 
                             sadS6x.isSaved = false;
@@ -2357,6 +2429,7 @@ namespace SAD806x
                         ((S6xFunction)sadS6x.slFunctions[uAddr]).Comments = sComments;
                         ((S6xFunction)sadS6x.slFunctions[uAddr]).OutputComments = true;
                         ((S6xFunction)sadS6x.slFunctions[uAddr]).Store = true;
+                        ((S6xFunction)sadS6x.slFunctions[uAddr]).DateUpdated = DateTime.UtcNow;
                         alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.FUNCTIONS), uAddr, string.Empty, sComments });
                     }
                     else if (sadS6x.slOperations.ContainsKey(uAddr))
@@ -2365,6 +2438,7 @@ namespace SAD806x
                         ((S6xOperation)sadS6x.slOperations[uAddr]).Comments = sComments;
                         ((S6xOperation)sadS6x.slOperations[uAddr]).OutputComments = false;
                         ((S6xOperation)sadS6x.slOperations[uAddr]).InlineComments = false;
+                        ((S6xOperation)sadS6x.slOperations[uAddr]).DateUpdated = DateTime.UtcNow;
                         alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.OPERATIONS), uAddr, string.Empty, sComments });
                     }
                     else if (sadS6x.slRoutines.ContainsKey(uAddr))
@@ -2373,6 +2447,7 @@ namespace SAD806x
                         ((S6xRoutine)sadS6x.slRoutines[uAddr]).Comments = sComments;
                         ((S6xRoutine)sadS6x.slRoutines[uAddr]).OutputComments = true;
                         ((S6xRoutine)sadS6x.slRoutines[uAddr]).Store = true;
+                        ((S6xRoutine)sadS6x.slRoutines[uAddr]).DateUpdated = DateTime.UtcNow;
                         alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.ROUTINES), uAddr, string.Empty, sComments });
                     }
                     else if (sadS6x.slScalars.ContainsKey(uAddr))
@@ -2382,6 +2457,7 @@ namespace SAD806x
                         ((S6xScalar)sadS6x.slScalars[uAddr]).OutputComments = false;
                         ((S6xScalar)sadS6x.slScalars[uAddr]).InlineComments = false;
                         ((S6xScalar)sadS6x.slScalars[uAddr]).Store = true;
+                        ((S6xScalar)sadS6x.slScalars[uAddr]).DateUpdated = DateTime.UtcNow;
                         alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), uAddr, string.Empty, sComments });
                     }
                     else if (sadS6x.slStructures.ContainsKey(uAddr))
@@ -2390,6 +2466,7 @@ namespace SAD806x
                         ((S6xStructure)sadS6x.slStructures[uAddr]).Comments = sComments;
                         ((S6xStructure)sadS6x.slStructures[uAddr]).OutputComments = true;
                         ((S6xStructure)sadS6x.slStructures[uAddr]).Store = true;
+                        ((S6xStructure)sadS6x.slStructures[uAddr]).DateUpdated = DateTime.UtcNow;
                         alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.STRUCTURES), uAddr, string.Empty, sComments });
                     }
                     else if (sadS6x.slTables.ContainsKey(uAddr))
@@ -2398,6 +2475,7 @@ namespace SAD806x
                         ((S6xTable)sadS6x.slTables[uAddr]).Comments = sComments;
                         ((S6xTable)sadS6x.slTables[uAddr]).OutputComments = true;
                         ((S6xTable)sadS6x.slTables[uAddr]).Store = true;
+                        ((S6xTable)sadS6x.slTables[uAddr]).DateUpdated = DateTime.UtcNow;
                         alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.TABLES), uAddr, string.Empty, sComments });
                     }
                     else
@@ -2424,12 +2502,15 @@ namespace SAD806x
                             other.Comments = sComments;
                             other.InlineComments = false;
                             other.OutputComments = true;
+                            other.DateCreated = DateTime.UtcNow;
+                            other.DateUpdated = DateTime.UtcNow;
 
                             if (sadS6x.slOtherAddresses.ContainsKey(other.UniqueAddress))
                             {
                                 ((S6xOtherAddress)sadS6x.slOtherAddresses[other.UniqueAddress]).Comments = other.Comments;
                                 ((S6xOtherAddress)sadS6x.slOtherAddresses[other.UniqueAddress]).InlineComments = other.InlineComments;
                                 ((S6xOtherAddress)sadS6x.slOtherAddresses[other.UniqueAddress]).OutputComments = other.OutputComments;
+                                ((S6xOtherAddress)sadS6x.slOtherAddresses[other.UniqueAddress]).DateUpdated = other.DateUpdated;
                             }
                             else
                             {
@@ -2462,6 +2543,7 @@ namespace SAD806x
                         ((S6xOperation)sadS6x.slOperations[uAddr]).Comments = sComments;
                         ((S6xOperation)sadS6x.slOperations[uAddr]).InlineComments = true;
                         ((S6xOperation)sadS6x.slOperations[uAddr]).OutputComments = true;
+                        ((S6xOperation)sadS6x.slOperations[uAddr]).DateUpdated = DateTime.UtcNow;
                         alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.OPERATIONS), uAddr, string.Empty, sComments });
                     }
                     if (sadS6x.slScalars.ContainsKey(uAddr))
@@ -2471,6 +2553,7 @@ namespace SAD806x
                         ((S6xScalar)sadS6x.slScalars[uAddr]).InlineComments = true;
                         ((S6xScalar)sadS6x.slScalars[uAddr]).OutputComments = true;
                         ((S6xScalar)sadS6x.slScalars[uAddr]).Store = true;
+                        ((S6xScalar)sadS6x.slScalars[uAddr]).DateUpdated = DateTime.UtcNow;
                         alNewTreeNodesInfos.Add(new string[] { S6xNav.getHeaderCategName(S6xNavHeaderCategory.SCALARS), uAddr, string.Empty, sComments });
                     }
                     else
@@ -2497,12 +2580,15 @@ namespace SAD806x
                             other.Comments = sComments;
                             other.InlineComments = true;
                             other.OutputComments = true;
+                            other.DateCreated = DateTime.UtcNow;
+                            other.DateUpdated = DateTime.UtcNow;
 
                             if (sadS6x.slOtherAddresses.ContainsKey(other.UniqueAddress))
                             {
                                 ((S6xOtherAddress)sadS6x.slOtherAddresses[other.UniqueAddress]).Comments = other.Comments;
                                 ((S6xOtherAddress)sadS6x.slOtherAddresses[other.UniqueAddress]).InlineComments = other.InlineComments;
                                 ((S6xOtherAddress)sadS6x.slOtherAddresses[other.UniqueAddress]).OutputComments = other.OutputComments;
+                                ((S6xOtherAddress)sadS6x.slOtherAddresses[other.UniqueAddress]).DateUpdated = other.DateUpdated;
                             }
                             else
                             {
