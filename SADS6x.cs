@@ -905,6 +905,8 @@ namespace SAD806x
                             Properties.XdfBaseOffsetSubtract = xdfFile.xdfHeader.baseoffset1_50.Contains("-");
                             break;
                         case "1.60":
+                        case "1.70":
+                        default:
                             Properties.XdfBaseOffset = string.Format("{0:x4}", Convert.ToInt32(xdfFile.xdfHeader.xdfBaseOffset.offset));
                             Properties.XdfBaseOffsetSubtract = (xdfFile.xdfHeader.xdfBaseOffset.subtract == "1");
                             break;
@@ -2012,6 +2014,8 @@ namespace SAD806x
                             if (xdfFile.xdfHeader.baseoffset1_50.Contains("-")) xdfBaseOffset *= -1;
                             break;
                         case "1.60":
+                        case "1.70":
+                        default:
                             xdfBaseOffset = Convert.ToInt32(xdfFile.xdfHeader.xdfBaseOffset.offset);
                             if (xdfFile.xdfHeader.xdfBaseOffset.subtract == "1") xdfBaseOffset *= -1;
                             break;

@@ -3602,9 +3602,15 @@ namespace SAD806x
                 S6xNav.s6xNavCategoriesLoad(headerCateg, sharedCateg2ComboBox, S6xNavCategoryLevel.TWO, ref s6xNavCategories);
                 S6xNav.s6xNavCategoriesLoad(headerCateg, sharedCateg3ComboBox, S6xNavCategoryLevel.THREE, ref s6xNavCategories);
 
+                // 20210511 - PYM - It was not working properly
+                /*
                 sharedCategComboBox.SelectedText = string.Empty;
                 sharedCateg2ComboBox.SelectedText = string.Empty;
                 sharedCateg3ComboBox.SelectedText = string.Empty;
+                */
+                sharedCategComboBox.Text = string.Empty;
+                sharedCateg2ComboBox.Text = string.Empty;
+                sharedCateg3ComboBox.Text = string.Empty;
             }
             
             sharedIdentificationStatusTrackBar.Value = 0;
@@ -6705,7 +6711,7 @@ namespace SAD806x
                     tnNode.ToolTipText = s6xFunction.Comments;
                     tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xFunction.IdentificationStatus);
 
-                    // Indicated an Update
+                    // Indicate an Update
                     //      Reset on Table Properties for scalers
                     s6xNICateg.Node.Tag = true;
 
@@ -7214,8 +7220,18 @@ namespace SAD806x
                                 S6xNavInfo niNI = new S6xNavInfo(tnNode);
                                 if (niNI.Category != navCateg1 || niNI.Category2 != navCateg2 || niNI.Category3 != navCateg3)
                                 {
+                                    // 20211109 To prevent non necessary reload or history
+                                    nextElemS6xNavInfo = null;
+                                    elemsTreeView.SelectedNode = null;
+
                                     tnNode.Parent.Nodes.Remove(tnNode);
                                     s6xNICateg.AddNode(tnNode, navCateg1, navCateg2, navCateg3, false, categoryDepth);
+
+                                    lastElemS6xNavInfo = null;
+                                    nextElemS6xNavInfo = new S6xNavInfo(tnNode);
+
+                                    // 20211109 To reselect rigth node
+                                    elemsTreeView.SelectedNode = tnNode;
                                 }
                                 niNI = null;
                             }
@@ -7866,7 +7882,7 @@ namespace SAD806x
                 tsMI.ToolTipText = nInfo.Node.ToolTipText;
                 tsMI.Click += new EventHandler(elemBackToolStripMenuItem_Click);
                 elemBackContextMenuStrip.Items.Add(tsMI);
-                // Limited to 50
+                // Limited to 20
                 if (elemBackContextMenuStrip.Items.Count >= 20) break;
             }
         }

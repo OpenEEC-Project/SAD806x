@@ -976,7 +976,7 @@ namespace SAD806x
             ArrayList alXdfScalars = null;
             int xdfBaseOffset = 0;
 
-            version = "1.60";
+            version = "1.70";
 
             xdfHeader = new XdfHeader();
             xdfHeader.xdfBaseOffset = new XdfHeaderBaseOffset();

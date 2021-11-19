@@ -9175,12 +9175,35 @@ namespace SAD806x
                                     //Operation[] ops = getFollowingOPs(ope.AddressNextInt, 16, 1, false, true, true, true, true, true, false, true);
                                     // 20210301 - PYM - Extended from 8 Ops to 16 Ops
                                     Operation[] ops = getFollowingOpsTree(ope.AddressNextInt, 16, true);
+                                    // 20211012 - PYM - Tree Node Mngt
+                                    int treeNodeNextOpeBankNum = -1;
+                                    int treeNodeNextOpeAddress = -1;
+                                    bool treeNodeReach = false;
                                     foreach (Operation nextOpe in ops)
                                     {
                                         // 20181119 - Not with getFollowingOpsTree
                                         // Do not use with getFollowingOpsTree
                                         //if (nextOpe == null) break;
                                         //if (nextOpe.isReturn) break;
+
+                                        // 20211012 - PYM - Tree Node Mngt
+                                        if (treeNodeReach)
+                                        {
+                                            if (nextOpe.BankNum == treeNodeNextOpeBankNum && nextOpe.AddressInt == treeNodeNextOpeAddress)
+                                            {
+                                                treeNodeNextOpeBankNum = -1;
+                                                treeNodeNextOpeAddress = -1;
+                                                treeNodeReach = false;
+                                            }
+                                            else continue;
+                                        }
+
+                                        if (nextOpe.CallType == CallType.Goto || nextOpe.CallType == CallType.Call || nextOpe.CallType == CallType.ShortCall)
+                                        {
+                                            treeNodeNextOpeBankNum = nextOpe.BankNum;
+                                            treeNodeNextOpeAddress = nextOpe.AddressNextInt;
+                                            continue;
+                                        }
 
                                         switch (nextOpe.OriginalInstruction.ToLower())
                                         {
@@ -9189,9 +9212,14 @@ namespace SAD806x
                                                 //Invalid because just used to be stored in another register
                                                 if (nextOpe.OriginalOpArr[nextOpe.OriginalOpArr.Length - 1] == regCpy)
                                                 {
-                                                    ope.OtherElemAddress = string.Empty;
-                                                    regCpy = string.Empty;    // Break Condition only
-                                                    regCpyTb = string.Empty;
+                                                    // 20211012 - PYM - Not applied while Tree Node is not fully processed
+                                                    if (treeNodeNextOpeBankNum != -1) treeNodeReach = true;
+                                                    else
+                                                    {
+                                                        ope.OtherElemAddress = string.Empty;
+                                                        regCpy = string.Empty;    // Break Condition only
+                                                        regCpyTb = string.Empty;
+                                                    }
                                                 }
                                                 break;
                                             default:
@@ -10162,8 +10190,17 @@ namespace SAD806x
             {
                 if (s6xObject.BankNum == Num && !s6xObject.isCalibrationElement)
                 {
-                    if (Calibration.slExtStructures.ContainsKey(s6xObject.UniqueAddress)) Calibration.slExtStructures[s6xObject.UniqueAddress] =  new Structure(s6xObject);
-                    else Calibration.slExtStructures.Add(s6xObject.UniqueAddress, new Structure(s6xObject));
+                    //20210902 - PYM - Coming from definition, at leadt AddressEndInt to be calculated
+                    Structure sStruct = new Structure(s6xObject);
+                    if (sStruct.isValid && !sStruct.isEmpty && sStruct.Number > 0)
+                    {
+                        string[] arrBytes = getBytesArray(sStruct.AddressInt, sStruct.MaxSizeSingle * sStruct.Number);
+                        try { sStruct.Read(ref arrBytes, sStruct.Number); }
+                        catch { }
+                    }
+
+                    if (Calibration.slExtStructures.ContainsKey(s6xObject.UniqueAddress)) Calibration.slExtStructures[s6xObject.UniqueAddress] = sStruct;
+                    else Calibration.slExtStructures.Add(s6xObject.UniqueAddress, sStruct);
                 }
             }
 
@@ -10602,6 +10639,8 @@ namespace SAD806x
                                 // Reset at One, like it is originally defaulted, because can be processed many times
                                 sStruct.Number = 1;
 
+                                // 20210902 - PYM - Inside Parent Mngt
+                                bool insideParent = false;
                                 if (saSA.StructNewAddressInt == -1)
                                 {
                                     // Adder check on 0 value
@@ -10610,35 +10649,55 @@ namespace SAD806x
                                         saSA.StructNewAddressInt = saSA.StructAddressInt + sStruct.MaxSizeSingle;
                                         if (isOtherElemAddressInConflict(saSA.StructNewAddressInt, saSA.StructAddressInt, typeof(Structure)))
                                         {
-                                            saSA.StructNewAddressInt = -1;
-                                            continue;
+                                            // Elem Inside another Ext Structure => Get Parent Structure Address
+                                            saSA.StructNewAddressInt = getParentAddressForOtherElemAddressInsideExtStructure(saSA.StructAddressInt, saSA.StructAddressInt, typeof(Structure));
+                                            if (saSA.StructNewAddressInt != -1)
+                                            {
+                                                insideParent = true;
+                                                while (true)
+                                                {
+                                                    Structure oOther = (Structure)Calibration.slExtStructures[Tools.UniqueAddress(saSA.StructBankNum, saSA.StructNewAddressInt)];
+                                                    if (oOther == null) 
+                                                    {
+                                                        saSA.StructNewAddressInt = -1;
+                                                        insideParent = false;
+                                                        break;
+                                                    }
+                                                    if (oOther.ParentAddressInt == -1) break;
+                                                    if (oOther.ParentAddressInt >= oOther.AddressInt) break;
+                                                    saSA.StructNewAddressInt = oOther.ParentAddressInt;
+                                                }
+                                            }
                                         }
                                     }
                                 }
 
-                                Structure stAdd = new Structure();
-                                stAdd.BankNum = sStruct.BankNum;
-                                stAdd.AddressInt = sStruct.AddressInt;
-                                if (saSA.StructNewAddressInt > saSA.StructAddressInt) stAdd.AddressInt = saSA.StructNewAddressInt;
-                                stAdd.StructDefString = sStruct.StructDefString;
-                                stAdd.Number = 1;
-                                while (stAdd.AddressInt + stAdd.MaxSizeSingle * stAdd.Number < arrBytes.Length)
+                                if (!insideParent)
                                 {
-                                    // Security Limit - 16 for this type
-                                    if (sStruct.Number >= 16) break;
+                                    Structure stAdd = new Structure();
+                                    stAdd.BankNum = sStruct.BankNum;
+                                    stAdd.AddressInt = sStruct.AddressInt;
+                                    if (saSA.StructNewAddressInt > saSA.StructAddressInt) stAdd.AddressInt = saSA.StructNewAddressInt;
+                                    stAdd.StructDefString = sStruct.StructDefString;
+                                    stAdd.Number = 1;
+                                    while (stAdd.AddressInt + stAdd.MaxSizeSingle * stAdd.Number < arrBytes.Length)
+                                    {
+                                        // Security Limit - 16 for this type
+                                        if (sStruct.Number >= 16) break;
 
-                                    if (isOtherElemAddressInConflict(stAdd.AddressInt, sStruct.AddressInt, typeof(Structure))) break;
+                                        if (isOtherElemAddressInConflict(stAdd.AddressInt, sStruct.AddressInt, typeof(Structure))) break;
 
-                                    string[] arrStAddBytes = getBytesArray(stAdd.AddressInt, stAdd.MaxSizeSingle * stAdd.Number);
+                                        string[] arrStAddBytes = getBytesArray(stAdd.AddressInt, stAdd.MaxSizeSingle * stAdd.Number);
 
-                                    if (arrStAddBytes.Length == 0) break;
+                                        if (arrStAddBytes.Length == 0) break;
 
-                                    if (stAdd.AddressInt != sStruct.AddressInt) sStruct.Number++;
+                                        if (stAdd.AddressInt != sStruct.AddressInt) sStruct.Number++;
 
-                                    stAdd.Read(ref arrStAddBytes, stAdd.Number);
-                                    stAdd.AddressInt += stAdd.Size;
+                                        stAdd.Read(ref arrStAddBytes, stAdd.Number);
+                                        stAdd.AddressInt += stAdd.Size;
+                                    }
+                                    stAdd = null;
                                 }
-                                stAdd = null;
                             }
                             if (sStruct.Number > 1) sStruct.Defaulted = false;
                             if (saSA.StructNewAddressInt != -1 && saSA.StructNewAddressInt != saSA.StructAddressInt) sStruct.ParentAddressInt = saSA.StructNewAddressInt;
@@ -13603,10 +13662,23 @@ namespace SAD806x
                     Structure oOther = (Structure)Calibration.slExtStructures.GetByIndex(iIndex);
                     int iAddressInt = oOther.AddressInt;
                     int iAddressEndInt = oOther.AddressEndInt;
+                    // 20210902 - PYM - Parent Structure Mngt
+                    if (oOther.ParentStructure != null)
+                    {
+                        if (oOther.ParentStructure.AddressInt < iAddressInt) iAddressInt = oOther.ParentStructure.AddressInt;
+                        if (oOther.ParentStructure.AddressEndInt > iAddressEndInt) iAddressEndInt = oOther.ParentStructure.AddressEndInt;
+                        if (iAddressEndInt < iAddressInt) iAddressEndInt = iAddressInt;
+                    }
+                    // 20210902 - PYM - Parent Structure Mngt Review
                     // Structure not read
                     if (oOther.ParentStructure == null && oOther.ParentAddressInt != -1)
                     {
-                        iAddressInt = oOther.ParentAddressInt;
+                        if (oOther.ParentAddressInt < iAddressInt) iAddressInt = oOther.ParentAddressInt;
+                        Structure oParent = (Structure)Calibration.slExtStructures[Tools.UniqueAddress(oOther.BankNum, oOther.ParentAddressInt)];
+                        if (oParent != null)
+                        {
+                            if (oParent.AddressEndInt > iAddressEndInt) iAddressEndInt = oParent.AddressEndInt;
+                        }
                         if (iAddressEndInt < iAddressInt) iAddressEndInt = iAddressInt;
                     }
                     if (iAddressEndInt == iAddressInt && oOther.Number > 0 && oOther.MaxSizeSingle > 0 && oOther.ParentStructure == null)
@@ -13615,8 +13687,13 @@ namespace SAD806x
                     }
                     if (oOther.AddressInt != initialOtherElemAddress && otherElemAddress >= iAddressInt && otherElemAddress <= iAddressEndInt) return true;
                     //if (otherElemAddress >= oOther.AddressInt && otherElemAddress <= iAddressEndInt) return true;
+                    /*
+                    20210902 - PYM - Issue corrected
                     if (iStep == 1 && otherElemAddress < iAddressEndInt) break;
                     else if (iStep == -1 && otherElemAddress > iAddressInt) break;
+                    */
+                    if (iStep == 1 && initialOtherElemAddress < iAddressEndInt) break;
+                    else if (iStep == -1 && initialOtherElemAddress > iAddressInt) break;
 
                     iIndex += iStep;
                     bLoopCond = (iStep == 1) ? iIndex < Calibration.slExtStructures.Count : iIndex >= 0;
@@ -13624,6 +13701,63 @@ namespace SAD806x
             }
 
             return false;
+        }
+
+        // 20210902 - PYM - For new purpose
+        // Elem Inside another Ext Structure
+        // Based on isOtherElemAddressInsideExtStructure
+        public int getParentAddressForOtherElemAddressInsideExtStructure(int otherElemAddress, int initialOtherElemAddress, Type targetType)
+        {
+            int iIndex = -1;
+            int iStep = 0;
+            bool bLoopCond = false;
+
+            if (Calibration.slExtStructures.Count > 0)
+            {
+                if (Calibration.slExtStructures.ContainsKey(Tools.UniqueAddress(Num, otherElemAddress)))
+                {
+                    if (otherElemAddress != initialOtherElemAddress || typeof(Structure) != targetType) return -1;
+                }
+                iIndex = (Calibration.slExtStructures.Count - 1) / 2;
+                iStep = (otherElemAddress > ((Structure)Calibration.slExtStructures.GetByIndex(iIndex)).AddressInt) ? 1 : -1;
+                iIndex += iStep;
+                bLoopCond = (iStep == 1) ? iIndex < Calibration.slExtStructures.Count : iIndex >= 0;
+                while (bLoopCond)
+                {
+                    Structure oOther = (Structure)Calibration.slExtStructures.GetByIndex(iIndex);
+                    int iAddressInt = oOther.AddressInt;
+                    int iAddressEndInt = oOther.AddressEndInt;
+                    if (oOther.ParentStructure != null)
+                    {
+                        if (oOther.ParentStructure.AddressInt < iAddressInt) iAddressInt = oOther.ParentStructure.AddressInt;
+                        if (oOther.ParentStructure.AddressEndInt > iAddressEndInt) iAddressEndInt = oOther.ParentStructure.AddressEndInt;
+                        if (iAddressEndInt < iAddressInt) iAddressEndInt = iAddressInt;
+                    }
+                    // Structure not read
+                    if (oOther.ParentStructure == null && oOther.ParentAddressInt != -1)
+                    {
+                        if (oOther.ParentAddressInt < iAddressInt) iAddressInt = oOther.ParentAddressInt;
+                        Structure oParent = (Structure)Calibration.slExtStructures[Tools.UniqueAddress(oOther.BankNum, oOther.ParentAddressInt)];
+                        if (oParent != null)
+                        {
+                            if (oParent.AddressEndInt > iAddressEndInt) iAddressEndInt = oParent.AddressEndInt;
+                        }
+                        if (iAddressEndInt < iAddressInt) iAddressEndInt = iAddressInt;
+                    }
+                    if (iAddressEndInt == iAddressInt && oOther.Number > 0 && oOther.MaxSizeSingle > 0 && oOther.ParentStructure == null)
+                    {
+                        iAddressEndInt = iAddressInt + oOther.Number * oOther.MaxSizeSingle - 1;
+                    }
+                    if (oOther.AddressInt != initialOtherElemAddress && otherElemAddress >= iAddressInt && otherElemAddress <= iAddressEndInt) return oOther.AddressInt;
+                    if (iStep == 1 && initialOtherElemAddress < iAddressEndInt) break;
+                    else if (iStep == -1 && initialOtherElemAddress > iAddressInt) break;
+
+                    iIndex += iStep;
+                    bLoopCond = (iStep == 1) ? iIndex < Calibration.slExtStructures.Count : iIndex >= 0;
+                }
+            }
+
+            return -1;
         }
 
         // Elem Inside another Operation

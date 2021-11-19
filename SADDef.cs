@@ -519,9 +519,13 @@ namespace SAD806x
             new string[] {"DEFAULT", "(uns) %P2% >= %P1%"},
             new string[] {"CY", "CY == 1"},
             new string[] {"CMP", "(uns) %P2% >= %P1%"},
-            new string[] {"+W", "%P2% + %P1% > ffff"},
-            new string[] {"+B", "%P2% + %P1% > ff"},
-            new string[] {"-", "(uns) %P2% < %P1%"},
+            // 20200720 - PYM
+            //new string[] {"+W", "%P2% + %P1% > ffff"},
+            //new string[] {"+B", "%P2% + %P1% > ff"},
+            //new string[] {"-", "(uns) %P2% < %P1%"},
+            new string[] {"+W", "%P2% > ffff"},
+            new string[] {"+B", "%P2% > ff"},
+            new string[] {"-", "%P2% >= 0"},
             new string[] {"*W", "%P2% * %P1% > ffff"},
             new string[] {"*B", "%P2% * %P1% > ff"}
         };
@@ -530,9 +534,13 @@ namespace SAD806x
             new string[] {"DEFAULT", "(uns) %P2% < %P1%"},
             new string[] {"CY", "CY == 0"},
             new string[] {"CMP", "(uns) %P2% < %P1%"},
-            new string[] {"+W", "%P2% + %P1% <= ffff"},
-            new string[] {"+B", "%P2% + %P1% <= ff"},
-            new string[] {"-", "(uns) %P2% >= %P1%"},
+            // 20200720 - PYM
+            //new string[] {"+W", "%P2% + %P1% <= ffff"},
+            //new string[] {"+B", "%P2% + %P1% <= ff"},
+            //new string[] {"-", "(uns) %P2% >= %P1%"},
+            new string[] {"+W", "%P2% <= ffff"},
+            new string[] {"+B", "%P2% <= ff"},
+            new string[] {"-", "%P2% < 0"},
             new string[] {"*W", "%P2% * %P1% <= ffff"},
             new string[] {"*B", "%P2% * %P1% <= ff"}
         };
@@ -555,7 +563,9 @@ namespace SAD806x
                     new object[] {0xC, new object[] {"SHRDW", 2, "VB", "RW", "%2%,%1%", "%2%L = %2%L / %2^%;", "logical right shift double word"}},
                     new object[] {0xD, new object[] {"SHLDW", 2, "VB", "RW", "%2%,%1%", "%2%L = %2%L * %2^%;", "shift double word left"}},
                     new object[] {0xE, new object[] {"ASRDW", 2, "VB", "RW", "%2%,%1%", "%2%L = %2%L / %2^%;", "arithmetic right shift double word"}},
-                    new object[] {0xF, new object[] {"NORM", 2, "RW", "RW", "%2%,%1%", "%2%L = %2%L Norm %1%L;", "normalize long integer, shift left bits of double word"}}
+                    // 20210630 - PYM - Right meaning
+                    //new object[] {0xF, new object[] {"NORM", 2, "RW", "RW", "%2%,%1%", "%2%L = %2%L Norm %1%L;", "normalize long integer, shift left bits of double word"}}
+                    new object[] {0xF, new object[] {"NORM", 2, "RW", "RW", "%2%,%1%", "%1%L = Norm %2%L;", "normalize long integer, shift left bits of double word"}}
                 }
             },
             new object[] { 0x1, new object[] {"BOP"},

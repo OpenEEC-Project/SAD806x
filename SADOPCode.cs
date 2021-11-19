@@ -551,7 +551,7 @@ namespace SAD806x
                     ope.isReturn = true;
                     // Goto Op Params coming from last compatible Op
                     // Trace stored on Return instruction to provide params to multiple call/scall
-                    if (gopParams == null) ope.GotoOpParams = new GotoOpParams(ope.BankNum, ope.AddressInt);
+                    if (gopParams == null) ope.GotoOpParams = new GotoOpParams(ope, ope.BankNum, ope.AddressInt);
                     else ope.GotoOpParams = gopParams.Clone();
                     break;
             }
@@ -974,7 +974,7 @@ namespace SAD806x
             // Goto Op Params coming from last compatible Op, will be used for translations
             if (ope.CallType == CallType.Goto && Type == OPCodeType.GotoOP)
             {
-                if (gopParams == null) ope.GotoOpParams = new GotoOpParams(ope.BankNum, ope.AddressInt);
+                if (gopParams == null) ope.GotoOpParams = new GotoOpParams(ope, ope.BankNum, ope.AddressInt);
                 else ope.GotoOpParams = gopParams.Clone();
             }
 
@@ -1337,6 +1337,7 @@ namespace SAD806x
                 }
 
                 object regParam = null;
+                object regParam2 = null;
                 // Embedded Params Register linking
                 if (arrPointersValues.Length == 3)
                 {
@@ -1352,18 +1353,32 @@ namespace SAD806x
                     }
                     else
                     {
-                        // 20200816 - No need to exclude registers, the first value will always be properly managed.
-                        /*
-                        // 0x24 to 0x58 to keep only real adders
-                        // 0x100 to prevent basic registers to be calculated or shown for second part
-                        if ((int)arrPointersValues[2] >= 0x24 && (int)arrPointersValues[2] <= 0x58 && (int)arrPointersValues[4] >= 0x100)
+                        // 20210909 - PYM - Second Part Register mngt
+                        //ope.OperationParams[iParam].EmbeddedParam = new object[] { Calibration.slRegisters[Tools.RegisterUniqueAddress((int)arrPointersValues[2])], arrPointersValues[3] };
+
+                        regParam = Calibration.slRegisters[Tools.RegisterUniqueAddress((int)arrPointersValues[2])];
+                        bool isRegParamRBase = false;
+                        if (regParam != null) if (((Register)regParam).RBase != null) isRegParamRBase = true;
+
+                        // Added Second part is a register
+                        // If first part is not a RBase register and if addresses match
+                        if (!isRegParamRBase && ((int)arrPointersValues[4] >= 0x0 || (int)arrPointersValues[4] <= 0x2000 || (!is8061 && (int)arrPointersValues[4] >= 0xf000 && (int)arrPointersValues[4] <= 0xffff)))
                         {
-                        ope.OperationParams[iParam].EmbeddedParam = new object[] { Calibration.slRegisters[Tools.RegisterUniqueAddress((int)arrPointersValues[2])], arrPointersValues[3] };
+                            regParam2 = Calibration.slRegisters[Tools.RegisterUniqueAddress((int)arrPointersValues[4])];
+                            if (regParam2 != null)
+                            {
+                                // 20210921 - PYM - Not for EecRegisters
+                                if (((Register)regParam2).EecRegister != null) regParam2 = arrPointersValues[3];
+                            }
                         }
-                        */
-                        ope.OperationParams[iParam].EmbeddedParam = new object[] { Calibration.slRegisters[Tools.RegisterUniqueAddress((int)arrPointersValues[2])], arrPointersValues[3] };
+                        else
+                        {
+                            regParam2 = arrPointersValues[3];
+                        }
+                        ope.OperationParams[iParam].EmbeddedParam = new object[] { regParam, regParam2 };
                     }
                 }
+                regParam2 = null;
                 regParam = null;
                 
                 // 8061 KAM / CC / EC Additional Detection and Flags
@@ -1426,10 +1441,38 @@ namespace SAD806x
             // GotoOpParams are updated only by non Goto operations
             if (ope.CallType != CallType.Unknown) return;
 
-            if (gopParams == null) gopParams = new GotoOpParams(ope.BankNum, ope.AddressInt);
+            // 20210630 - PYM
+            // GotoOpParams are updated only for some deterministics OpCodes
+            switch (Instruction.ToLower())
+            {
+                case "rbnk":
+                case "bank0":
+                case "bank1":
+                case "bank2":
+                case "bank3":
+                case "di":
+                case "ei":
+                case "ret":
+                case "reti":
+                case "push":
+                case "pop":
+                case "pushp":
+                case "popp":
+                case "ldb":
+                case "ldw":
+                case "ldzbw":
+                case "ldsbw":
+                case "stb":
+                case "stw":
+                    return;
+            }
 
+            if (gopParams == null) gopParams = new GotoOpParams(ope, ope.BankNum, ope.AddressInt);
+
+            gopParams.Ope = ope;
             gopParams.OpeBankNum = ope.BankNum;
             gopParams.OpeAddressInt = ope.AddressInt;
+            gopParams.OpeReversedMeaning = false;
 
             bool foundElement = false;            
             if (ope.alCalibrationElems != null)
@@ -1449,17 +1492,73 @@ namespace SAD806x
                 gopParams.ElemAddressInt = Convert.ToInt32(ope.OtherElemAddress, 16) - SADDef.EecBankStartAddress;
             }
 
-            if (ope.OperationParams.Length >= 1)
+            // 20210630 - PYM
+            // GotoOpParams are now managing specific cases on instructions
+            switch (Instruction.ToLower())
             {
-                gopParams.OpeDefaultParamTranslation1 = ope.OperationParams[0].DefaultTranslatedParam;
-                gopParams.OpeEmbeddedParam1 = ope.OperationParams[0].EmbeddedParam;
-            }
-            if (ope.OperationParams.Length >= 2)
-            {
-                gopParams.OpeDefaultParamTranslation2 = ope.OperationParams[1].DefaultTranslatedParam;
-                gopParams.OpeEmbeddedParam2 = ope.OperationParams[1].EmbeddedParam;
+                case "sb2b":
+                case "sb2w":
+                case "sb3b":
+                case "sb3w":
+                case "sbbb":
+                case "sbbw":
+                case "ad2b":
+                case "ad2w":
+                case "ad3b":
+                case "ad3w":
+                case "adcw":
+                case "adcb":
+                    // After substraction or addition we can compare result to 0
+                    gopParams.OpeDefaultParamTranslation1 = "0";
+                    gopParams.OpeEmbeddedParam1 = null;
+                    if (ope.OperationParams[ope.OperationParams.Length - 1].InstructedParam == "0")
+                    {
+                        gopParams.OpeDefaultParamTranslation2 = ope.OperationParams[ope.OperationParams.Length - 2].DefaultTranslatedParam;
+                        gopParams.OpeEmbeddedParam2 = ope.OperationParams[ope.OperationParams.Length - 2].EmbeddedParam;
+                    }
+                    else
+                    {
+                        gopParams.OpeDefaultParamTranslation2 = ope.OperationParams[ope.OperationParams.Length - 1].DefaultTranslatedParam;
+                        gopParams.OpeEmbeddedParam2 = ope.OperationParams[ope.OperationParams.Length - 1].EmbeddedParam;
+                    }
+                    break;
+                case "an3b":
+                case "an3w":
+                    // Specificity - Inverted Meaning
+                    if (ope.OperationParams[ope.OperationParams.Length - 1].InstructedParam == "0")
+                    {
+                        gopParams.OpeReversedMeaning = true;
+                        gopParams.OpeDefaultParamTranslation1 = ope.OperationParams[0].DefaultTranslatedParam;
+                        gopParams.OpeEmbeddedParam1 = ope.OperationParams[0].EmbeddedParam;
+                        gopParams.OpeDefaultParamTranslation2 = ope.OperationParams[1].DefaultTranslatedParam;
+                        gopParams.OpeEmbeddedParam2 = ope.OperationParams[1].EmbeddedParam;
+                    }
+                    else
+                    {
+                        gopParams.OpeDefaultParamTranslation1 = "0";
+                        gopParams.OpeEmbeddedParam1 = null;
+                        gopParams.OpeDefaultParamTranslation2 = ope.OperationParams[ope.OperationParams.Length - 1].DefaultTranslatedParam;
+                        gopParams.OpeEmbeddedParam2 = ope.OperationParams[ope.OperationParams.Length - 1].EmbeddedParam;
+                    }
+                    break;
+                case "cmpb":
+                case "cmpw":
+                default:
+                    // Classical way
+                    if (ope.OperationParams.Length >= 1)
+                    {
+                        gopParams.OpeDefaultParamTranslation1 = ope.OperationParams[0].DefaultTranslatedParam;
+                        gopParams.OpeEmbeddedParam1 = ope.OperationParams[0].EmbeddedParam;
+                    }
+                    if (ope.OperationParams.Length >= 2)
+                    {
+                        gopParams.OpeDefaultParamTranslation2 = ope.OperationParams[1].DefaultTranslatedParam;
+                        gopParams.OpeEmbeddedParam2 = ope.OperationParams[1].EmbeddedParam;
+                    }
+                    break;
             }
 
+            Operation cyOpe = gopParams.CarryOpe;
             int cyOpeBankNum = gopParams.CarryOpeBankNum;
             int cyOpeAddressInt = gopParams.CarryOpeAddressInt;
             CarryMode cyMode = gopParams.CarryOpeMode;
@@ -1467,11 +1566,13 @@ namespace SAD806x
             object cyEP2 = gopParams.CarryOpeEmbeddedParam2;
             string cyP1 = gopParams.CarryOpeDefaultParamTranslation1;
             string cyP2 = gopParams.CarryOpeDefaultParamTranslation2;
+
             switch (Instruction.ToLower())
             {
                 // Carry Flag operations
                 case "clc":
                 case "stc":
+                    cyOpe = ope;
                     cyOpeBankNum = ope.BankNum;
                     cyOpeAddressInt = ope.AddressInt;
                     cyMode = CarryMode.Carry;
@@ -1479,6 +1580,7 @@ namespace SAD806x
                 // Comparison operations
                 case "cmpb":
                 case "cmpw":
+                    cyOpe = ope;
                     cyOpeBankNum = ope.BankNum;
                     cyOpeAddressInt = ope.AddressInt;
                     cyMode = CarryMode.Comparison;
@@ -1497,37 +1599,74 @@ namespace SAD806x
                 case "sbbw":
                 case "sb2w":
                 case "sb3w":
+                    cyOpe = ope;
                     cyOpeBankNum = ope.BankNum;
                     cyOpeAddressInt = ope.AddressInt;
                     cyMode = CarryMode.Substract;
+                    // 20210720 - PYM - To match other GotoOpeParams
+                    /*
                     if (ope.OperationParams.Length >= 2)
                     {
                         cyEP1 = ope.OperationParams[0].EmbeddedParam;
                         cyEP2 = ope.OperationParams[1].EmbeddedParam;
                         cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
                         cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
+                    }
+                    */
+                    // After substraction we can compare result to 0
+                    cyP1 = "0";
+                    cyEP1 = null;
+                    if (ope.OperationParams[ope.OperationParams.Length - 1].InstructedParam == "0")
+                    {
+                        cyP2 = ope.OperationParams[ope.OperationParams.Length - 2].DefaultTranslatedParam;
+                        cyEP2 = ope.OperationParams[ope.OperationParams.Length - 2].EmbeddedParam;
+                    }
+                    else
+                    {
+                        cyP2 = ope.OperationParams[ope.OperationParams.Length - 1].DefaultTranslatedParam;
+                        cyEP2 = ope.OperationParams[ope.OperationParams.Length - 1].EmbeddedParam;
                     }
                     break;
                 case "adcb":
                 case "ad2b":
                 case "ad3b":
+                    cyOpe = ope;
                     cyOpeBankNum = ope.BankNum;
                     cyOpeAddressInt = ope.AddressInt;
                     cyMode = CarryMode.AddBytes;
+                    // 20210720 - PYM - To match other GotoOpeParams
+                    /*
                     if (ope.OperationParams.Length >= 2)
                     {
                         cyEP1 = ope.OperationParams[0].EmbeddedParam;
                         cyEP2 = ope.OperationParams[1].EmbeddedParam;
                         cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
                         cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
+                    }
+                    */
+                    // After addition we can compare result to ff/ffff
+                    cyP1 = "ff";
+                    cyEP1 = null;
+                    if (ope.OperationParams[ope.OperationParams.Length - 1].InstructedParam == "0")
+                    {
+                        cyP2 = ope.OperationParams[ope.OperationParams.Length - 2].DefaultTranslatedParam;
+                        cyEP2 = ope.OperationParams[ope.OperationParams.Length - 2].EmbeddedParam;
+                    }
+                    else
+                    {
+                        cyP2 = ope.OperationParams[ope.OperationParams.Length - 1].DefaultTranslatedParam;
+                        cyEP2 = ope.OperationParams[ope.OperationParams.Length - 1].EmbeddedParam;
                     }
                     break;
                 case "adcw":
                 case "ad2w":
                 case "ad3w":
+                    cyOpe = ope;
                     cyOpeBankNum = ope.BankNum;
                     cyOpeAddressInt = ope.AddressInt;
                     cyMode = CarryMode.AddWords;
+                    // 20210720 - PYM - To match other GotoOpeParams
+                    /*
                     if (ope.OperationParams.Length >= 2)
                     {
                         cyEP1 = ope.OperationParams[0].EmbeddedParam;
@@ -1535,10 +1674,86 @@ namespace SAD806x
                         cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
                         cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
                     }
+                    */
+                    // After addition we can compare result to ff/ffff
+                    cyP1 = "ffff";
+                    cyEP1 = null;
+                    if (ope.OperationParams[ope.OperationParams.Length - 1].InstructedParam == "0")
+                    {
+                        cyP2 = ope.OperationParams[ope.OperationParams.Length - 2].DefaultTranslatedParam;
+                        cyEP2 = ope.OperationParams[ope.OperationParams.Length - 2].EmbeddedParam;
+                    }
+                    else
+                    {
+                        cyP2 = ope.OperationParams[ope.OperationParams.Length - 1].DefaultTranslatedParam;
+                        cyEP2 = ope.OperationParams[ope.OperationParams.Length - 1].EmbeddedParam;
+                    }
+                    break;
+                case "decb":
+                case "decw":
+                    cyOpe = ope;
+                    cyOpeBankNum = ope.BankNum;
+                    cyOpeAddressInt = ope.AddressInt;
+                    cyMode = CarryMode.Substract;
+                    // 20210720 - PYM - To match other GotoOpeParams
+                    /*
+                    if (ope.OperationParams.Length >= 1)
+                    {
+                        cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                        cyEP2 = "1";
+                        cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                        cyP2 = "1";
+                    }
+                    */
+                    cyP1 = "0";
+                    cyEP1 = null;
+                    cyP2 = ope.OperationParams[ope.OperationParams.Length - 1].DefaultTranslatedParam;
+                    cyEP2 = ope.OperationParams[ope.OperationParams.Length - 1].EmbeddedParam;
+                    break;
+                case "incb":
+                    cyOpe = ope;
+                    cyOpeBankNum = ope.BankNum;
+                    cyOpeAddressInt = ope.AddressInt;
+                    cyMode = CarryMode.AddBytes;
+                    // 20210720 - PYM - To match other GotoOpeParams
+                    /*
+                    if (ope.OperationParams.Length >= 1)
+                    {
+                        cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                        cyEP2 = "1";
+                        cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                        cyP2 = "1";
+                    }
+                    */
+                    cyP1 = "ff";
+                    cyEP1 = null;
+                    cyP2 = ope.OperationParams[ope.OperationParams.Length - 1].DefaultTranslatedParam;
+                    cyEP2 = ope.OperationParams[ope.OperationParams.Length - 1].EmbeddedParam;
+                    break;
+                case "incw":
+                    cyOpe = ope;
+                    cyOpeBankNum = ope.BankNum;
+                    cyOpeAddressInt = ope.AddressInt;
+                    cyMode = CarryMode.AddWords;
+                    // 20210720 - PYM - To match other GotoOpeParams
+                    /*
+                    if (ope.OperationParams.Length >= 1)
+                    {
+                        cyEP1 = ope.OperationParams[0].EmbeddedParam;
+                        cyEP2 = "1";
+                        cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
+                        cyP2 = "1";
+                    }
+                    */
+                    cyP1 = "ffff";
+                    cyEP1 = null;
+                    cyP2 = ope.OperationParams[ope.OperationParams.Length - 1].DefaultTranslatedParam;
+                    cyEP2 = ope.OperationParams[ope.OperationParams.Length - 1].EmbeddedParam;
                     break;
                 case "ml2b":
                 case "ml3b":
                 case "shlb":
+                    cyOpe = ope;
                     cyOpeBankNum = ope.BankNum;
                     cyOpeAddressInt = ope.AddressInt;
                     cyMode = CarryMode.MultiplyBytes;
@@ -1554,6 +1769,7 @@ namespace SAD806x
                 case "ml3w":
                 case "shlw":
                 case "shldw":
+                    cyOpe = ope;
                     cyOpeBankNum = ope.BankNum;
                     cyOpeAddressInt = ope.AddressInt;
                     cyMode = CarryMode.MultiplyWords;
@@ -1565,44 +1781,8 @@ namespace SAD806x
                         cyP2 = ope.OperationParams[1].DefaultTranslatedParam;
                     }
                     break;
-                case "decb":
-                case "decw":
-                    cyOpeBankNum = ope.BankNum;
-                    cyOpeAddressInt = ope.AddressInt;
-                    cyMode = CarryMode.Substract;
-                    if (ope.OperationParams.Length >= 1)
-                    {
-                        cyEP1 = ope.OperationParams[0].EmbeddedParam;
-                        cyEP2 = "1";
-                        cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
-                        cyP2 = "1";
-                    }
-                    break;
-                case "incb":
-                    cyOpeBankNum = ope.BankNum;
-                    cyOpeAddressInt = ope.AddressInt;
-                    cyMode = CarryMode.AddBytes;
-                    if (ope.OperationParams.Length >= 1)
-                    {
-                        cyEP1 = ope.OperationParams[0].EmbeddedParam;
-                        cyEP2 = "1";
-                        cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
-                        cyP2 = "1";
-                    }
-                    break;
-                case "incw":
-                    cyOpeBankNum = ope.BankNum;
-                    cyOpeAddressInt = ope.AddressInt;
-                    cyMode = CarryMode.AddWords;
-                    if (ope.OperationParams.Length >= 1)
-                    {
-                        cyEP1 = ope.OperationParams[0].EmbeddedParam;
-                        cyEP2 = "1";
-                        cyP1 = ope.OperationParams[0].DefaultTranslatedParam;
-                        cyP2 = "1";
-                    }
-                    break;
             }
+            gopParams.CarryOpe = cyOpe;
             gopParams.CarryOpeBankNum = cyOpeBankNum;
             gopParams.CarryOpeAddressInt = cyOpeAddressInt;
             gopParams.CarryOpeMode = cyMode;
@@ -1965,11 +2145,36 @@ namespace SAD806x
             {
                 if (CarryTranslations == null)
                 {
+                    // 20210909 - PYM - Reverse meaning mngt
+                    if (ope.GotoOpParams.OpeReversedMeaning)
+                    {
+                        if (sTranslation.Contains("==")) sTranslation = sTranslation.Replace("==", "!=");
+                        else if (sTranslation.Contains("!=")) sTranslation = sTranslation.Replace("!=", "==");
+                        else if (sTranslation.Contains(" (")) sTranslation = sTranslation.Replace(" (", " !(");
+                    }
                     sTranslation = sTranslation.Replace("%P1%", ope.OPCode.getParamTranslation(ope.GotoOpParams.OpeEmbeddedParam1, ope.GotoOpParams.OpeDefaultParamTranslation1, false)).Replace("%P2%", ope.OPCode.getParamTranslation(ope.GotoOpParams.OpeEmbeddedParam2, ope.GotoOpParams.OpeDefaultParamTranslation2, false));
+                    // 20210909 - PYM - Address Replacement
+                    // GotoOpe Address Replacement
+                    if (ope.GotoOpParams.Ope != null)
+                    {
+                        if (ope.GotoOpParams.Ope.TranslationReplacementAddress != string.Empty && ope.GotoOpParams.Ope.TranslationReplacementLabel != string.Empty)
+                        {
+                            sTranslation = sTranslation.Replace(ope.GotoOpParams.Ope.TranslationReplacementAddress, ope.GotoOpParams.Ope.TranslationReplacementLabel);
+                        }
+                    }
                 }
                 else
                 {
                     sTranslation = sTranslation.Replace("%CY%", CarryTranslations[ope.GotoOpParams.CarryOpeMode].ToString()).Replace("%P1%", ope.OPCode.getParamTranslation(ope.GotoOpParams.CarryOpeEmbeddedParam1, ope.GotoOpParams.CarryOpeDefaultParamTranslation1, false)).Replace("%P2%", ope.OPCode.getParamTranslation(ope.GotoOpParams.CarryOpeEmbeddedParam2, ope.GotoOpParams.CarryOpeDefaultParamTranslation2, false));
+                    // 20210909 - PYM - Address Replacement
+                    // Carry Address Replacement
+                    if (ope.GotoOpParams.CarryOpe != null)
+                    {
+                        if (ope.GotoOpParams.CarryOpe.TranslationReplacementAddress != string.Empty && ope.GotoOpParams.CarryOpe.TranslationReplacementLabel != string.Empty)
+                        {
+                            sTranslation = sTranslation.Replace(ope.GotoOpParams.CarryOpe.TranslationReplacementAddress, ope.GotoOpParams.CarryOpe.TranslationReplacementLabel);
+                        }
+                    }
                 }
             }
 
@@ -2132,7 +2337,22 @@ namespace SAD806x
                         }
                         return defaultTranslation.Replace(rReg.Address + SADDef.AdditionSeparator, regLabel + SADDef.AdditionSeparator);
                     }
-                    return defaultTranslation.Replace(rReg.Instruction, Tools.PointerTranslation(regLabel));
+                    if (defaultTranslation.StartsWith(SADDef.ShortRegisterPrefix) || (defaultTranslation.StartsWith(SADDef.LongRegisterPointerPrefix) && defaultTranslation.EndsWith(SADDef.LongRegisterPointerSuffix)))
+                    {
+                        return defaultTranslation.Replace(rReg.Instruction, Tools.PointerTranslation(regLabel));
+                    }
+                    else if (defaultTranslation.StartsWith(SADDef.LongRegisterPointerPrefix))
+                    {
+                        return SADDef.LongRegisterPointerPrefix + regLabel;
+                    }
+                    else if (defaultTranslation.EndsWith(SADDef.LongRegisterPointerSuffix))
+                    {
+                        return regLabel + SADDef.LongRegisterPointerPrefix;
+                    }
+                    else
+                    {
+                        return regLabel;
+                    }
                 }
                 return defaultTranslation;
             }
@@ -2190,7 +2410,20 @@ namespace SAD806x
                         sTranslation = rReg.EecRegister.TranslationReadByte;
                         break;
                 }
-                sTranslation = defaultTranslation.Replace(rReg.EecRegister.InstructionTrans, sTranslation);
+
+                if (defaultTranslation.StartsWith(SADDef.ShortRegisterPrefix) || (defaultTranslation.StartsWith(SADDef.LongRegisterPointerPrefix) && defaultTranslation.EndsWith(SADDef.LongRegisterPointerSuffix)))
+                {
+                    sTranslation = defaultTranslation.Replace(rReg.EecRegister.InstructionTrans, sTranslation);
+                }
+                else if (defaultTranslation.StartsWith(SADDef.LongRegisterPointerPrefix))
+                {
+                    sTranslation = SADDef.LongRegisterPointerPrefix + sTranslation;
+                }
+                else if (defaultTranslation.EndsWith(SADDef.LongRegisterPointerSuffix))
+                {
+                    sTranslation = sTranslation + SADDef.LongRegisterPointerPrefix;
+                }
+
                 return sTranslation;
             }
 
@@ -2198,9 +2431,26 @@ namespace SAD806x
             //  Default Translation for Special Registers
             if (is8061)
             {
-                if (rReg.is8061KAMRegister) return defaultTranslation.Replace(rReg.Instruction, Tools.PointerTranslation(SADDef.KAMRegister8061Template.Replace("%LREG%", rReg.Address)));
-                if (rReg.is8061CCRegister) return defaultTranslation.Replace(rReg.Instruction, Tools.PointerTranslation(SADDef.CCRegister8061Template.Replace("%LREG%", rReg.Address)));
-                if (rReg.is8061ECRegister) return defaultTranslation.Replace(rReg.Instruction, Tools.PointerTranslation(SADDef.ECRegister8061Template.Replace("%LREG%", rReg.Address)));
+                if (rReg.is8061KAMRegister) sTranslation = Tools.PointerTranslation(SADDef.KAMRegister8061Template.Replace("%LREG%", rReg.Address));
+                if (rReg.is8061CCRegister) sTranslation =  Tools.PointerTranslation(SADDef.CCRegister8061Template.Replace("%LREG%", rReg.Address));
+                if (rReg.is8061ECRegister) sTranslation = Tools.PointerTranslation(SADDef.ECRegister8061Template.Replace("%LREG%", rReg.Address));
+
+                if (sTranslation != string.Empty)
+                {
+                    if (defaultTranslation.StartsWith(SADDef.ShortRegisterPrefix) || (defaultTranslation.StartsWith(SADDef.LongRegisterPointerPrefix) && defaultTranslation.EndsWith(SADDef.LongRegisterPointerSuffix)))
+                    {
+                        sTranslation = defaultTranslation.Replace(rReg.Instruction, sTranslation);
+                    }
+                    else if (defaultTranslation.StartsWith(SADDef.LongRegisterPointerPrefix))
+                    {
+                        sTranslation = SADDef.LongRegisterPointerPrefix + sTranslation;
+                    }
+                    else if (defaultTranslation.EndsWith(SADDef.LongRegisterPointerSuffix))
+                    {
+                        sTranslation = sTranslation + SADDef.LongRegisterPointerPrefix;
+                    }
+                    return sTranslation;
+                }
             }
             
             // No Translation

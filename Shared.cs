@@ -3488,6 +3488,10 @@ namespace SAD806x
             AddressBinInt = s6xStruct.AddressBinInt;
             S6xStructure = s6xStruct;
             StructDefString = S6xStructure.StructDef;
+            //20210902 - PYM - Coming from definition
+            Number = s6xStruct.Number;
+            Defaulted = false;
+
             Lines = new ArrayList();
         }
 
@@ -4352,6 +4356,9 @@ namespace SAD806x
     // GotoOpParam[Ope UniqueAddress, Ope Elem UniqueAddress, P1, P2, CY Ope UniqueAddress, CY Mode, CY P1, CY P2]
     public class GotoOpParams
     {
+        // 20210909 - PYM - Reference to Operation for better results
+        public Operation Ope = null;
+        
         public int OpeBankNum = -1;
         public int OpeAddressInt = -1;
 
@@ -4361,8 +4368,14 @@ namespace SAD806x
         public string OpeDefaultParamTranslation1 = "0";
         public string OpeDefaultParamTranslation2 = "0";
 
+        // 20210909 - PYM - Reversed meaning mngt
+        public bool OpeReversedMeaning = false;
+        
         public int ElemBankNum = -1;
         public int ElemAddressInt = -1;
+
+        // 20210909 - PYM - Reference to Carry Operation for better results
+        public Operation CarryOpe = null;
 
         public int CarryOpeBankNum = -1;
         public int CarryOpeAddressInt = -1;
@@ -4383,15 +4396,16 @@ namespace SAD806x
         public string ElemAddress { get { return string.Format("{0:x4}", ElemAddressInt + SADDef.EecBankStartAddress); } }
         public string CarryOpeAddress { get { return string.Format("{0:x4}", CarryOpeAddressInt + SADDef.EecBankStartAddress); } }
 
-        public GotoOpParams(int opeBankNum, int opeAddressInt)
+        public GotoOpParams(Operation oOpe, int opeBankNum, int opeAddressInt)
         {
+            Ope = oOpe;
             OpeBankNum = opeBankNum;
             OpeAddressInt = opeAddressInt;
         }
 
         public GotoOpParams Clone()
         {
-            GotoOpParams clone = new GotoOpParams(OpeBankNum, OpeAddressInt);
+            GotoOpParams clone = new GotoOpParams(Ope, OpeBankNum, OpeAddressInt);
 
             clone.OpeEmbeddedParam1 = OpeEmbeddedParam1;
             clone.OpeEmbeddedParam2 = OpeEmbeddedParam2;
@@ -4399,8 +4413,12 @@ namespace SAD806x
             clone.OpeDefaultParamTranslation1 = OpeDefaultParamTranslation1;
             clone.OpeDefaultParamTranslation2 = OpeDefaultParamTranslation2;
 
+            clone.OpeReversedMeaning = OpeReversedMeaning;
+            
             clone.ElemBankNum = ElemBankNum;
             clone.ElemAddressInt = ElemAddressInt;
+
+            clone.CarryOpe = CarryOpe;
 
             clone.CarryOpeBankNum = CarryOpeBankNum;
             clone.CarryOpeAddressInt = CarryOpeAddressInt;

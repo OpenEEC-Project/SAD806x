@@ -2481,7 +2481,7 @@ namespace SAD806x
                             // gopParams Update
                             if (opeCorrected.CallType == CallType.Goto && opeCorrected.OPCode.Type == OPCodeType.GotoOP)
                             {
-                                if (gopParams == null) opeCorrected.GotoOpParams = new GotoOpParams(opeCorrected.BankNum, opeCorrected.AddressInt);
+                                if (gopParams == null) opeCorrected.GotoOpParams = new GotoOpParams(opeCorrected, opeCorrected.BankNum, opeCorrected.AddressInt);
                                 else opeCorrected.GotoOpParams = gopParams.Clone();
                             }
 
@@ -2492,7 +2492,7 @@ namespace SAD806x
                             // No update for next operation in some cases
                             if (opeCorrected.isReturn || opeCorrected.CallType == CallType.Jump || opeCorrected.CallType == CallType.ShortJump)
                             {
-                                if (gopParams == null) opeCorrected.GotoOpParams = new GotoOpParams(opeCorrected.BankNum, opeCorrected.AddressInt);
+                                if (gopParams == null) opeCorrected.GotoOpParams = new GotoOpParams(opeCorrected, opeCorrected.BankNum, opeCorrected.AddressInt);
                                 else opeCorrected.GotoOpParams = gopParams.Clone();
                             }
                             
@@ -2505,14 +2505,14 @@ namespace SAD806x
 
                             if (nextOpe.CallType == CallType.Goto && nextOpe.OPCode.Type == OPCodeType.GotoOP)
                             {
-                                if (gopParams == null) nextOpe.GotoOpParams = new GotoOpParams(nextOpe.BankNum, nextOpe.AddressInt);
+                                if (gopParams == null) nextOpe.GotoOpParams = new GotoOpParams(nextOpe, nextOpe.BankNum, nextOpe.AddressInt);
                                 else nextOpe.GotoOpParams = gopParams.Clone();
                             }
 
                             // No update for next operation in some cases
                             if (nextOpe.isReturn || nextOpe.CallType == CallType.Jump || nextOpe.CallType == CallType.ShortJump)
                             {
-                                if (gopParams == null) nextOpe.GotoOpParams = new GotoOpParams(nextOpe.BankNum, nextOpe.AddressInt);
+                                if (gopParams == null) nextOpe.GotoOpParams = new GotoOpParams(nextOpe, nextOpe.BankNum, nextOpe.AddressInt);
                                 else nextOpe.GotoOpParams = gopParams.Clone();
                             }
                         }
