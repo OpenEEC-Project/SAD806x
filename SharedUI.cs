@@ -261,9 +261,13 @@ namespace SAD806x
         public S6xNavHeaderCategory HeaderCategory { get { return (tnHeaderCategory == null) ? S6xNavHeaderCategory.UNDEFINED : S6xNav.getHeaderCateg(tnHeaderCategory.Name); } }
         public string HeaderCategoryName { get { return (tnHeaderCategory == null) ? Enum.GetName(typeof(S6xNavHeaderCategory), S6xNavHeaderCategory.UNDEFINED) : tnHeaderCategory.Name; } }
 
-        public S6xNavCategory Category { get { return (tnCategory == null ? null : new S6xNavCategory(tnCategory.Name)); } }
-        public S6xNavCategory Category2 { get { return (tnCategory2 == null ? null : new S6xNavCategory(tnCategory2.Name)); } }
-        public S6xNavCategory Category3 { get { return (tnCategory3 == null ? null : new S6xNavCategory(tnCategory3.Name)); } }
+        // 20211122 - PYM - To get the right result
+        //public S6xNavCategory Category { get { return (tnCategory == null ? null : new S6xNavCategory(tnCategory.Name)); } }
+        //public S6xNavCategory Category2 { get { return (tnCategory2 == null ? null : new S6xNavCategory(tnCategory2.Name)); } }
+        //public S6xNavCategory Category3 { get { return (tnCategory3 == null ? null : new S6xNavCategory(tnCategory3.Name)); } }
+        public S6xNavCategory Category { get { return (tnCategory == null ? null : new S6xNavCategory(tnCategory.Text)); } }
+        public S6xNavCategory Category2 { get { return (tnCategory2 == null ? null : new S6xNavCategory(tnCategory2.Text)); } }
+        public S6xNavCategory Category3 { get { return (tnCategory3 == null ? null : new S6xNavCategory(tnCategory3.Text)); } }
 
         public int ElementsCount
         {

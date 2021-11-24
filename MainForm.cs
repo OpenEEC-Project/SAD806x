@@ -2625,17 +2625,16 @@ namespace SAD806x
             // Duplicates
             foreach (S6xTable s6xTable in sadS6x.slDupTables.Values)
             {
-                if (!niHeaderCateg.Node.Nodes.ContainsKey(s6xTable.UniqueAddress)) continue;
-                if (niHeaderCateg.Node.Nodes[s6xTable.UniqueAddress].Nodes.ContainsKey(s6xTable.DuplicateAddress)) continue;
+                TreeNode tnParent = niHeaderCateg.FindElement(s6xTable.UniqueAddress);
+                if (tnParent == null) continue;
+                if (tnParent.Nodes.ContainsKey(s6xTable.DuplicateAddress)) continue;
                 tnNode = new TreeNode();
                 tnNode.Name = s6xTable.DuplicateAddress;
                 tnNode.Text = s6xTable.Label;
                 tnNode.ToolTipText = s6xTable.UniqueAddressHex + "\r\n" + s6xTable.ShortLabel + "\r\n\r\n" + s6xTable.Comments;
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
                 tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xTable.IdentificationStatus);
-                //niHeaderCateg.DirectNodes[s6xTable.UniqueAddress].Nodes.Add(tnNode);
-                TreeNode tnParent = niHeaderCateg.FindElement(s6xTable.UniqueAddress);
-                if (tnParent != null) tnParent.Nodes.Add(tnNode);
+                tnParent.Nodes.Add(tnNode);
                 tnParent = null;
                 tnNode = null;
             }
@@ -2663,17 +2662,16 @@ namespace SAD806x
             // Duplicates
             foreach (S6xFunction s6xFunction in sadS6x.slDupFunctions.Values)
             {
-                if (!niHeaderCateg.Node.Nodes.ContainsKey(s6xFunction.UniqueAddress)) continue;
-                if (niHeaderCateg.Node.Nodes[s6xFunction.UniqueAddress].Nodes.ContainsKey(s6xFunction.DuplicateAddress)) continue;
+                TreeNode tnParent = niHeaderCateg.FindElement(s6xFunction.UniqueAddress);
+                if (tnParent == null) continue;
+                if (tnParent.Nodes.ContainsKey(s6xFunction.DuplicateAddress)) continue;
                 tnNode = new TreeNode();
                 tnNode.Name = s6xFunction.DuplicateAddress;
                 tnNode.Text = s6xFunction.Label;
                 tnNode.ToolTipText = s6xFunction.UniqueAddressHex + "\r\n" + s6xFunction.ShortLabel + "\r\n\r\n" + s6xFunction.Comments;
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
                 tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xFunction.IdentificationStatus);
-                //niHeaderCateg.DirectNodes[s6xFunction.UniqueAddress].Nodes.Add(tnNode);
-                TreeNode tnParent = niHeaderCateg.FindElement(s6xFunction.UniqueAddress);
-                if (tnParent != null) tnParent.Nodes.Add(tnNode);
+                tnParent.Nodes.Add(tnNode);
                 tnParent = null;
                 tnNode = null;
             }
@@ -2701,17 +2699,16 @@ namespace SAD806x
             // Duplicates
             foreach (S6xScalar s6xScalar in sadS6x.slDupScalars.Values)
             {
-                if (!niHeaderCateg.Node.Nodes.ContainsKey(s6xScalar.UniqueAddress)) continue;
-                if (niHeaderCateg.Node.Nodes[s6xScalar.UniqueAddress].Nodes.ContainsKey(s6xScalar.DuplicateAddress)) continue;
+                TreeNode tnParent = niHeaderCateg.FindElement(s6xScalar.UniqueAddress);
+                if (tnParent == null) continue;
+                if (tnParent.Nodes.ContainsKey(s6xScalar.DuplicateAddress)) continue;
                 tnNode = new TreeNode();
                 tnNode.Name = s6xScalar.DuplicateAddress;
                 tnNode.Text = s6xScalar.Label;
                 tnNode.ToolTipText = s6xScalar.UniqueAddressHex + "\r\n" + s6xScalar.ShortLabel + "\r\n\r\n" + s6xScalar.Comments;
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
                 tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xScalar.IdentificationStatus);
-                //niHeaderCateg.DirectNodes[s6xScalar.UniqueAddress].Nodes.Add(tnNode);
-                TreeNode tnParent = niHeaderCateg.FindElement(s6xScalar.UniqueAddress);
-                if (tnParent != null) tnParent.Nodes.Add(tnNode);
+                tnParent.Nodes.Add(tnNode);
                 tnParent = null;
                 tnNode = null;
             }
@@ -2739,17 +2736,16 @@ namespace SAD806x
             // Duplicates
             foreach (S6xStructure s6xStructure in sadS6x.slDupStructures.Values)
             {
-                if (!niHeaderCateg.Node.Nodes.ContainsKey(s6xStructure.UniqueAddress)) continue;
-                if (niHeaderCateg.Node.Nodes[s6xStructure.UniqueAddress].Nodes.ContainsKey(s6xStructure.DuplicateAddress)) continue;
+                TreeNode tnParent = niHeaderCateg.FindElement(s6xStructure.UniqueAddress);
+                if (tnParent == null) continue;
+                if (tnParent.Nodes.ContainsKey(s6xStructure.DuplicateAddress)) continue;
                 tnNode = new TreeNode();
                 tnNode.Name = s6xStructure.DuplicateAddress;
                 tnNode.Text = s6xStructure.Label;
                 tnNode.ToolTipText = s6xStructure.UniqueAddressHex + "\r\n" + s6xStructure.ShortLabel + "\r\n\r\n" + s6xStructure.Comments;
                 tnNode.ContextMenuStrip = elemsContextMenuStrip;
                 tnNode.StateImageKey = S6xNav.getIdentificationStatusStateImageKey(s6xStructure.IdentificationStatus);
-                //niHeaderCateg.DirectNodes[s6xStructure.UniqueAddress].Nodes.Add(tnNode);
-                TreeNode tnParent = niHeaderCateg.FindElement(s6xStructure.UniqueAddress);
-                if (tnParent != null) tnParent.Nodes.Add(tnNode);
+                tnParent.Nodes.Add(tnNode);
                 tnParent = null;
                 tnNode = null;
             }
@@ -7218,7 +7214,16 @@ namespace SAD806x
                             // Node has to be moved
                             {
                                 S6xNavInfo niNI = new S6xNavInfo(tnNode);
-                                if (niNI.Category != navCateg1 || niNI.Category2 != navCateg2 || niNI.Category3 != navCateg3)
+                                bool categoryChange = false;
+                                if (!categoryChange) categoryChange = (niNI.Category == null) != (navCateg1 == null);
+                                if (!categoryChange && niNI.Category != null && navCateg1 != null) categoryChange = niNI.Category.Name != navCateg1.Name;
+                                if (!categoryChange) categoryChange = (niNI.Category2 == null) != (navCateg2 == null);
+                                if (!categoryChange && niNI.Category2 != null && navCateg2 != null) categoryChange = niNI.Category2.Name != navCateg2.Name;
+                                if (!categoryChange) categoryChange = (niNI.Category3 == null) != (navCateg3 == null);
+                                if (!categoryChange && niNI.Category3 != null && navCateg3 != null) categoryChange = niNI.Category3.Name != navCateg3.Name;
+                                niNI = null;
+
+                                if (categoryChange)
                                 {
                                     // 20211109 To prevent non necessary reload or history
                                     nextElemS6xNavInfo = null;
@@ -7233,7 +7238,6 @@ namespace SAD806x
                                     // 20211109 To reselect rigth node
                                     elemsTreeView.SelectedNode = tnNode;
                                 }
-                                niNI = null;
                             }
                         }
                         tnNode.Tag = null;
@@ -9173,6 +9177,12 @@ namespace SAD806x
 
         private void unDuplicateToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            if (elemsTreeView.Tag == null) return;
+            
+            S6xNavInfo s6xNICateg = (S6xNavInfo)elemsTreeView.Tag;
+            if (!s6xNICateg.isValid) return;
+            if (!s6xNICateg.isHeaderCategory) return;
+
             S6xNavInfo navInfo = new S6xNavInfo(elemsTreeView.SelectedNode);
             if (!navInfo.isValid) return;
             if (!navInfo.isDuplicate) return;
@@ -9183,6 +9193,8 @@ namespace SAD806x
             string nText = string.Empty;
             string nToolTipText = string.Empty;
 
+            S6xNavCategory[] dupCategories = new S6xNavCategory[3];
+            
             switch (navInfo.HeaderCategory)
             {
                 case S6xNavHeaderCategory.TABLES:
@@ -9197,6 +9209,10 @@ namespace SAD806x
                     sadS6x.slTables[navInfo.MainNode.Name] = dupTable;
                     sadS6x.slDupTables[navInfo.DuplicateNode.Name] = mainTable;
 
+                    dupCategories[0] = s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, dupTable.Category);
+                    dupCategories[1] = s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, dupTable.Category2); ;
+                    dupCategories[2] = s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, dupTable.Category3); ;
+                    
                     dupTable = null;
                     mainTable = null;
                     break;
@@ -9229,6 +9245,10 @@ namespace SAD806x
                     sadS6x.slFunctions[navInfo.MainNode.Name] = dupFunction;
                     sadS6x.slDupFunctions[navInfo.DuplicateNode.Name] = mainFunction;
 
+                    dupCategories[0] = s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, dupFunction.Category);
+                    dupCategories[1] = s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, dupFunction.Category2); ;
+                    dupCategories[2] = s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, dupFunction.Category3); ;
+
                     dupFunction = null;
                     mainFunction = null;
                     break;
@@ -9244,6 +9264,10 @@ namespace SAD806x
                     sadS6x.slScalars[navInfo.MainNode.Name] = dupScalar;
                     sadS6x.slDupScalars[navInfo.DuplicateNode.Name] = mainScalar;
 
+                    dupCategories[0] = s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, dupScalar.Category);
+                    dupCategories[1] = s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, dupScalar.Category2); ;
+                    dupCategories[2] = s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, dupScalar.Category3); ;
+
                     dupScalar = null;
                     mainScalar = null;
                     break;
@@ -9258,6 +9282,10 @@ namespace SAD806x
 
                     sadS6x.slStructures[navInfo.MainNode.Name] = dupStructure;
                     sadS6x.slDupStructures[navInfo.DuplicateNode.Name] = mainStructure;
+
+                    dupCategories[0] = s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.ONE, true, dupStructure.Category);
+                    dupCategories[1] = s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.TWO, true, dupStructure.Category2); ;
+                    dupCategories[2] = s6xNavCategories.getCategory(s6xNICateg.HeaderCategory, S6xNavCategoryLevel.THREE, true, dupStructure.Category3); ;
 
                     dupStructure = null;
                     mainStructure = null;
@@ -9276,12 +9304,34 @@ namespace SAD806x
 
             sadS6x.isSaved = false;
 
+            // 20211122 - Duplicate Different Category mngt
+            bool categoryChange = false;
+            if (!categoryChange) categoryChange = (navInfo.Category == null) != (dupCategories[0] == null);
+            if (!categoryChange && navInfo.Category != null && dupCategories[0] != null) categoryChange = navInfo.Category.Name != dupCategories[0].Name;
+            if (!categoryChange) categoryChange = (navInfo.Category2 == null) != (dupCategories[1] == null);
+            if (!categoryChange && navInfo.Category2 != null && dupCategories[1] != null) categoryChange = navInfo.Category2.Name != dupCategories[1].Name;
+            if (!categoryChange) categoryChange = (navInfo.Category3 == null) != (dupCategories[2] == null);
+            if (!categoryChange && navInfo.Category3 != null && dupCategories[2] != null) categoryChange = navInfo.Category3.Name != dupCategories[2].Name;
+
+            if (categoryChange)
+            {
+                // To prevent non necessary reload or history
+                nextElemS6xNavInfo = null;
+                elemsTreeView.SelectedNode = null;
+
+                navInfo.MainNode.Parent.Nodes.Remove(navInfo.MainNode);
+                s6xNICateg.AddNode(navInfo.MainNode, dupCategories[0], dupCategories[1], dupCategories[2], false, getS6xNavCategoryDepth());
+
+                lastElemS6xNavInfo = null;
+                nextElemS6xNavInfo = new S6xNavInfo(navInfo.MainNode);
+            }
+            
             elemsTreeView.SelectedNode = navInfo.MainNode;
             elemsTreeView.SelectedNode.ForeColor = Color.Purple;
             navInfo.DuplicateNode.ForeColor = Color.Purple;
 
             navInfo = null;
-}
+        }
 
         private void importSignaturesToolStripMenuItem_Click(object sender, EventArgs e)
         {
