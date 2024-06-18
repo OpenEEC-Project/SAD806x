@@ -1496,7 +1496,14 @@ namespace SAD806x
             {
                 if (s6xObject.Store && !s6xObject.Skip)
                 {
-                    if (sadBin.Calibration.slExtStructures.ContainsKey(s6xObject.UniqueAddress))
+                    if (sadBin.Calibration.slCalibrationElements.ContainsKey(s6xObject.UniqueAddress))
+                    {
+                        if (((CalibrationElement)sadBin.Calibration.slCalibrationElements[s6xObject.UniqueAddress]).isStructure)
+                        {
+                            ((CalibrationElement)sadBin.Calibration.slCalibrationElements[s6xObject.UniqueAddress]).StructureElem.S6xStructure = s6xObject;
+                        }
+                    }
+                    else if (sadBin.Calibration.slExtStructures.ContainsKey(s6xObject.UniqueAddress))
                     {
                         ((Structure)sadBin.Calibration.slExtStructures[s6xObject.UniqueAddress]).S6xStructure = s6xObject;
                     }

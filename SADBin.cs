@@ -1911,6 +1911,12 @@ namespace SAD806x
                         Calibration.AddressBankEndInt = ((Operation)Bank8.slOPs.GetByIndex(Bank8.slOPs.IndexOfKey(Tools.UniqueAddress(8, opeAddress)) + 1)).AddressInt - 1;
                         Calibration.AddressBinEndInt = Calibration.AddressBinInt + Calibration.AddressBankEndInt - Calibration.AddressBankInt;
                         ((RBase)Calibration.slRbases.GetByIndex(0)).AddressBankEndInt = Calibration.AddressBankEndInt;
+
+                        // 20240524 - PYM - Consequence on isCalibrationElement property for S6x Process Elements
+                        foreach (S6xScalar s6xObject in S6x.slProcessScalars.Values) s6xObject.isCalibrationElement = Calibration.isCalibrationAddress(s6xObject.AddressInt);
+                        foreach (S6xFunction s6xObject in S6x.slProcessFunctions.Values) s6xObject.isCalibrationElement = Calibration.isCalibrationAddress(s6xObject.AddressInt);
+                        foreach (S6xTable s6xObject in S6x.slProcessTables.Values) s6xObject.isCalibrationElement = Calibration.isCalibrationAddress(s6xObject.AddressInt);
+                        foreach (S6xStructure s6xObject in S6x.slProcessStructures.Values) s6xObject.isCalibrationElement = Calibration.isCalibrationAddress(s6xObject.AddressInt);
                     }
                     catch { }
                 }

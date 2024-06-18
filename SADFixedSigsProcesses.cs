@@ -12,11 +12,14 @@ namespace SAD806x
         //  20200402 - PYM - New process added
         public static void processForcedFoundSignatures(ref SADCalib Calibration, ref SADBank Bank0, ref SADBank Bank1, ref SADBank Bank8, ref SADBank Bank9, ref SADS6x S6x, ref ArrayList alErrors)
         {
-            // OBDIIRegistersRoutines Process
+            // OBDIIRegistersRoutines Process ant other
             ArrayList alBaseRegistersRoutines = new ArrayList();
             ArrayList alOBDIIRegistersRoutines = new ArrayList();
             ArrayList alOBDI3DRegistersRoutines = new ArrayList();
             ArrayList alOBDI2DRegistersRoutines = new ArrayList();
+
+            // Added Other Elements for reading, because not done anywhere else
+            ArrayList alAddedOtherElementsUniqueAddressesToRead = new ArrayList();
 
             // Found Signatures generate Routines in ProcessRoutines list
             //  Interesting Found Signatures are Signature Forced ones
@@ -85,7 +88,7 @@ namespace SAD806x
             // RegistersRoutines Process
             try
             {
-                processForcedFoundSignaturesBaseRegistersRoutines(ref alBaseRegistersRoutines, ref Calibration, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
+                processForcedFoundSignaturesBaseRegistersRoutines(ref alBaseRegistersRoutines, ref Calibration, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x, ref alAddedOtherElementsUniqueAddressesToRead);
             }
             catch
             {
@@ -95,7 +98,7 @@ namespace SAD806x
             // OBDI3DRegistersRoutines Process
             try
             {
-                processForcedFoundSignaturesOBDI2DRegistersRoutines(ref alOBDI2DRegistersRoutines, ref Calibration, ref Bank8, ref S6x);
+                processForcedFoundSignaturesOBDI2DRegistersRoutines(ref alOBDI2DRegistersRoutines, ref Calibration, ref Bank8, ref S6x, ref alAddedOtherElementsUniqueAddressesToRead);
             }
             catch
             {
@@ -105,7 +108,7 @@ namespace SAD806x
             // OBDI3DRegistersRoutines Process
             try
             {
-                processForcedFoundSignaturesOBDI3DRegistersRoutines(ref alOBDI3DRegistersRoutines, ref Calibration, ref Bank8, ref S6x);
+                processForcedFoundSignaturesOBDI3DRegistersRoutines(ref alOBDI3DRegistersRoutines, ref Calibration, ref Bank8, ref S6x, ref alAddedOtherElementsUniqueAddressesToRead);
             }
             catch
             {
@@ -115,21 +118,27 @@ namespace SAD806x
             // OBDIIRegistersRoutines Process
             try
             {
-                processForcedFoundSignaturesOBDIIRegistersRoutines(ref alOBDIIRegistersRoutines, ref Calibration, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x);
+                processForcedFoundSignaturesOBDIIRegistersRoutines(ref alOBDIIRegistersRoutines, ref Calibration, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref S6x, ref alAddedOtherElementsUniqueAddressesToRead);
             }
             catch
             {
                 alErrors.Add("Processing OBDII signatures and elements has failed.");
             }
 
+            // Reading generated elements
+            readAddedOtherElements(ref alAddedOtherElementsUniqueAddressesToRead, ref Calibration, ref Bank0, ref Bank1, ref Bank8, ref Bank9);
+
+            alAddedOtherElementsUniqueAddressesToRead = null;
+            
             alOBDI2DRegistersRoutines = null;
             alOBDI3DRegistersRoutines = null;
             alOBDIIRegistersRoutines = null;
+            alBaseRegistersRoutines = null;
         }
 
         // Forced Signatures BaseRegistersRoutines part
         //  20200502 - PYM - New process added
-        private static void processForcedFoundSignaturesBaseRegistersRoutines(ref ArrayList alRoutines, ref SADCalib Calibration, ref SADBank Bank0, ref SADBank Bank1, ref SADBank Bank8, ref SADBank Bank9, ref SADS6x S6x)
+        private static void processForcedFoundSignaturesBaseRegistersRoutines(ref ArrayList alRoutines, ref SADCalib Calibration, ref SADBank Bank0, ref SADBank Bank1, ref SADBank Bank8, ref SADBank Bank9, ref SADS6x S6x, ref ArrayList alAddedOtherElementsUniqueAddressesToRead)
         {
             S6xRoutine rtRpmMngt = null;
             SADFixedSigs.Fixed_Routines rtRpmMngtSource = SADFixedSigs.Fixed_Routines.UNKNOWN;
@@ -164,7 +173,7 @@ namespace SAD806x
             ArrayList alS6xFunctions = new ArrayList();
             ArrayList alS6xScalars = new ArrayList();
             ArrayList alS6xStructures = new ArrayList();
-            
+
             if (rtRpmMngt != null)
             {
                 getBaseRegistersRoutinesRPM(ref rtRpmMngt, rtRpmMngtSource, ref Bank0, ref Bank1, ref Bank8, ref Bank9, ref alS6xRegisters, ref alS6xTables, ref alS6xFunctions, ref alS6xScalars, ref alS6xStructures);
@@ -176,10 +185,28 @@ namespace SAD806x
             }
 
             foreach (S6xRegister s6xReg in alS6xRegisters) addRegister(s6xReg, ref Calibration, ref S6x);
-            foreach (S6xScalar s6xScal in alS6xScalars) addScalar(s6xScal, ref Calibration);
-            foreach (S6xFunction s6xFunc in alS6xFunctions) addFunction(s6xFunc, ref Calibration);
-            //foreach (S6xTable s6xTable in alS6xTables) addTable(s6xTable, ref Calibration);
-            //foreach (S6xStructure s6xStruct in alS6xStructures) addStructure(s6xStruct, ref Calibration, XXXX);
+            foreach (S6xScalar s6xScal in alS6xScalars)
+            {
+                addScalar(s6xScal, ref Calibration);
+                alAddedOtherElementsUniqueAddressesToRead.Add(s6xScal.UniqueAddress);
+            }
+            foreach (S6xFunction s6xFunc in alS6xFunctions)
+            {
+                addFunction(s6xFunc, ref Calibration);
+                alAddedOtherElementsUniqueAddressesToRead.Add(s6xFunc.UniqueAddress);
+            }
+            /*
+            foreach (S6xTable s6xTable in alS6xTables)
+            {
+                addTable(s6xTable, ref Calibration);
+                alAddedOtherElementsUniqueAddressesToRead.Add(s6xTable.UniqueAddress);
+            }
+            foreach (S6xStructure s6xStruct in alS6xStructures)
+            {
+                addStructure(s6xStruct, ref Calibration, XXXX);
+                alAddedOtherElementsUniqueAddressesToRead.Add(s6xStruct.UniqueAddress);
+            }
+            */
         }
 
         // Forced Signatures BaseRegistersRoutines part
@@ -590,7 +617,7 @@ namespace SAD806x
 
         // Forced Signatures OBDI2DRegistersRoutines part
         //  20200406 - PYM - New process added
-        private static void processForcedFoundSignaturesOBDI2DRegistersRoutines(ref ArrayList alRoutines, ref SADCalib Calibration, ref SADBank Bank8, ref SADS6x S6x)
+        private static void processForcedFoundSignaturesOBDI2DRegistersRoutines(ref ArrayList alRoutines, ref SADCalib Calibration, ref SADBank Bank8, ref SADS6x S6x, ref ArrayList alAddedOtherElementsUniqueAddressesToRead)
         {
             S6xRoutine rtCodes = null;
             S6xRoutine rtTimings = null;
@@ -711,7 +738,8 @@ namespace SAD806x
                 }
                 if (Convert.ToInt32(cCode.Substring(0, 1), 16) != Convert.ToInt32(cCode.Substring(0, 1))) break;
                 if (Convert.ToInt32(cCode.Substring(1, 1), 16) != Convert.ToInt32(cCode.Substring(1, 1))) break;
-                if (cCode != "00" && cCode.EndsWith("0")) break;
+                // 20240523 - PYM - It often ends with 70
+                if (cCode != "00" && cCode != "70" && cCode.EndsWith("0")) break;
                 if (alCodes.Count > 80) break;
                 alCodes.Add(cCode);
                 iAddress++;
@@ -811,6 +839,7 @@ namespace SAD806x
                 s6xNoFault.Comments = s6xNoFault.ShortLabel + " - " + s6xNoFault.Label;
                 s6xNoFault.Store = true;
                 addScalar(s6xNoFault, ref Calibration);
+                alAddedOtherElementsUniqueAddressesToRead.Add(s6xNoFault.UniqueAddress); 
                 s6xNoFault = null;
             }
 
@@ -839,6 +868,7 @@ namespace SAD806x
             s6xCodes.Store = true;
             arrBytes = Bank8.getBytesArray(s6xCodes.AddressInt, codesNumber);
             addStructure(s6xCodes, ref Calibration, ref arrBytes);
+            alAddedOtherElementsUniqueAddressesToRead.Add(s6xCodes.UniqueAddress);
             s6xCodes = null;
             arrBytes = null;
 
@@ -857,6 +887,7 @@ namespace SAD806x
             s6xRegs.Store = true;
             arrBytes = Bank8.getBytesArray(s6xRegs.AddressInt, arrRegs.Length);
             addStructure(s6xRegs, ref Calibration, ref arrBytes);
+            alAddedOtherElementsUniqueAddressesToRead.Add(s6xRegs.UniqueAddress);
             s6xRegs = null;
             arrBytes = null;
 
@@ -875,6 +906,7 @@ namespace SAD806x
             s6xRegsSvc.Store = true;
             arrBytes = Bank8.getBytesArray(s6xRegsSvc.AddressInt, arrRegsSvc.Length);
             addStructure(s6xRegsSvc, ref Calibration, ref arrBytes);
+            alAddedOtherElementsUniqueAddressesToRead.Add(s6xRegsSvc.UniqueAddress);
             s6xRegsSvc = null;
             arrBytes = null;
 
@@ -928,6 +960,7 @@ namespace SAD806x
                     s6xTimingStep.Store = true;
                     arrBytes = Bank8.getBytesArray(s6xTimingStep.AddressInt, 5 * 2);
                     addStructure(s6xTimingStep, ref Calibration, ref arrBytes);
+                    alAddedOtherElementsUniqueAddressesToRead.Add(s6xTimingStep.UniqueAddress);
                     arrBytes = null;
                 }
             }
@@ -935,7 +968,7 @@ namespace SAD806x
 
         // Forced Signatures OBDI3DRegistersRoutines part
         //  20200405 - PYM - New process added
-        private static void processForcedFoundSignaturesOBDI3DRegistersRoutines(ref ArrayList alRoutines, ref SADCalib Calibration, ref SADBank Bank8, ref SADS6x S6x)
+        private static void processForcedFoundSignaturesOBDI3DRegistersRoutines(ref ArrayList alRoutines, ref SADCalib Calibration, ref SADBank Bank8, ref SADS6x S6x, ref ArrayList alAddedOtherElementsUniqueAddressesToRead)
         {
             S6xRoutine rtCodes = null;
             S6xRoutine rtCount = null;
@@ -1055,6 +1088,7 @@ namespace SAD806x
             s6xCodes.Comments += "\r\n0x244 will be 2 long long, 4 long and 4 short.";
             s6xCodes.Store = true;
             addStructure(s6xCodes, ref Calibration, ref arrBytes);
+            alAddedOtherElementsUniqueAddressesToRead.Add(s6xCodes.UniqueAddress);
             s6xCodes = null;
             arrBytes = null;
 
@@ -1137,6 +1171,7 @@ namespace SAD806x
                         }
                         s6xCount.Store = true;
                         addScalar(s6xCount, ref Calibration);
+                        alAddedOtherElementsUniqueAddressesToRead.Add(s6xCount.UniqueAddress);
                         s6xCount = null;
                     }
                     rCountFirst = null;
@@ -1165,6 +1200,7 @@ namespace SAD806x
                         }
                         s6xCount.Store = true;
                         addScalar(s6xCount, ref Calibration);
+                        alAddedOtherElementsUniqueAddressesToRead.Add(s6xCount.UniqueAddress);
                         s6xCount = null;
                     }
                     rCountFirst = null;
@@ -1330,7 +1366,7 @@ namespace SAD806x
 
         // Forced Signatures OBDIIRegistersRoutines part
         //  20200402 - PYM - New process added
-        private static void processForcedFoundSignaturesOBDIIRegistersRoutines(ref ArrayList alRoutines, ref SADCalib Calibration, ref SADBank Bank0, ref SADBank Bank1, ref SADBank Bank8, ref SADBank Bank9, ref SADS6x S6x)
+        private static void processForcedFoundSignaturesOBDIIRegistersRoutines(ref ArrayList alRoutines, ref SADCalib Calibration, ref SADBank Bank0, ref SADBank Bank1, ref SADBank Bank8, ref SADBank Bank9, ref SADS6x S6x, ref ArrayList alAddedOtherElementsUniqueAddressesToRead)
         {
             SADBank Bank = null;
             
@@ -1632,6 +1668,7 @@ namespace SAD806x
             s6xCodes.Comments += "\r\nValue is related to register [" + rFirst.Address + " + RowNumber]. RowNumber starts at 0.";
             s6xCodes.Store = true;
             addStructure(s6xCodes, ref Calibration, ref arrBytes);
+            alAddedOtherElementsUniqueAddressesToRead.Add(s6xCodes.UniqueAddress);
             s6xCodes = null;
             arrBytes = null;
 
@@ -1726,6 +1763,7 @@ namespace SAD806x
                 s6xSwitches.Comments += "\r\nValue is related to register [" + rFirst.Address + " + RowNumber]. RowNumber starts at 0.";
                 s6xSwitches.Store = true;
                 addStructure(s6xSwitches, ref Calibration, ref arrBytes);
+                alAddedOtherElementsUniqueAddressesToRead.Add(s6xSwitches.UniqueAddress);
                 s6xSwitches = null;
                 arrBytes = null;
 
@@ -1748,6 +1786,7 @@ namespace SAD806x
                     }
                     s6xSwitch.Store = true;
                     addScalar(s6xSwitch, ref Calibration);
+                    alAddedOtherElementsUniqueAddressesToRead.Add(s6xSwitch.UniqueAddress);
                 }
             }
 
@@ -1761,6 +1800,7 @@ namespace SAD806x
                 s6xFlags.Store = true;
                 arrBytes = calibrationBank.getBytesArray(s6xFlags.AddressInt, s6xFlags.Number);
                 addStructure(s6xFlags, ref Calibration, ref arrBytes);
+                alAddedOtherElementsUniqueAddressesToRead.Add(s6xFlags.UniqueAddress);
                 s6xFlags = null;
                 arrBytes = null;
             }
@@ -2218,7 +2258,9 @@ namespace SAD806x
                 sStruct.S6xStructure.Comments = s6xStructTemplate.Comments;
             }
 
-            if (readBytes != null) sStruct.Read(ref readBytes, sStruct.Number);
+            // 20240523 - PYM - Overwritting is not necessary and can generate issues
+            //if (readBytes != null) sStruct.Read(ref readBytes, sStruct.Number);
+            if (sStruct.Defaulted && readBytes != null) sStruct.Read(ref readBytes, sStruct.Number);
 
             sStruct = null;
 
@@ -2358,6 +2400,134 @@ namespace SAD806x
             }
 
             return true;
+        }
+
+        private static void readAddedOtherElements(ref ArrayList alAddedOtherElementsToRead, ref SADCalib Calibration, ref SADBank Bank0, ref SADBank Bank1, ref SADBank Bank8, ref SADBank Bank9)
+        {
+            foreach (string uniqueAddress in alAddedOtherElementsToRead)
+            {
+                SADBank bBank = null;
+                string[] arrElemBytes = null;
+
+                if (Calibration.slExtTables.ContainsKey(uniqueAddress))
+                {
+                    Table extTable = (Table)Calibration.slExtTables[uniqueAddress];
+                    if (extTable.S6xTable == null) continue;
+                    if (extTable.S6xTable.ColsNumber < 1) continue;
+                    if (extTable.S6xTable.RowsNumber < 1) continue;
+                    
+                    switch (extTable.BankNum)
+                    {
+                        case 8:
+                            bBank = Bank8;
+                            break;
+                        case 1:
+                            bBank = Bank1;
+                            break;
+                        case 9:
+                            bBank = Bank9;
+                            break;
+                        case 0:
+                            bBank = Bank0;
+                            break;
+                    }
+
+                    // Manages non calculated AddressBinInt
+                    if (extTable.AddressBinInt == -1) extTable.AddressBinInt = extTable.AddressInt + bBank.AddressBinInt;
+
+                    arrElemBytes = bBank.getBytesArray(extTable.AddressInt, extTable.S6xTable.ColsNumber * extTable.S6xTable.RowsNumber);
+                    extTable.Read(arrElemBytes);
+
+                    continue;
+                }
+                if (Calibration.slExtFunctions.ContainsKey(uniqueAddress))
+                {
+                    Function extFunction = (Function)Calibration.slExtFunctions[uniqueAddress];
+                    if (extFunction.S6xFunction == null) continue;
+                    if (extFunction.S6xFunction.RowsNumber < 1) continue;
+
+                    switch (extFunction.BankNum)
+                    {
+                        case 8:
+                            bBank = Bank8;
+                            break;
+                        case 1:
+                            bBank = Bank1;
+                            break;
+                        case 9:
+                            bBank = Bank9;
+                            break;
+                        case 0:
+                            bBank = Bank0;
+                            break;
+                    }
+
+                    // Manages non calculated AddressBinInt
+                    if (extFunction.AddressBinInt == -1) extFunction.AddressBinInt = extFunction.AddressInt + bBank.AddressBinInt;
+
+                    arrElemBytes = bBank.getBytesArray(extFunction.AddressInt, extFunction.SizeLine * extFunction.S6xFunction.RowsNumber);
+                    extFunction.Read(arrElemBytes);
+
+                    continue;
+                }
+                if (Calibration.slExtScalars.ContainsKey(uniqueAddress))
+                {
+                    Scalar extScalar = (Scalar)Calibration.slExtScalars[uniqueAddress];
+
+                    switch (extScalar.BankNum)
+                    {
+                        case 8:
+                            bBank = Bank8;
+                            break;
+                        case 1:
+                            bBank = Bank1;
+                            break;
+                        case 9:
+                            bBank = Bank9;
+                            break;
+                        case 0:
+                            bBank = Bank0;
+                            break;
+                    }
+
+                    // Manages non calculated AddressBinInt
+                    if (extScalar.AddressBinInt == -1) extScalar.AddressBinInt = extScalar.AddressInt + bBank.AddressBinInt;
+
+                    arrElemBytes = bBank.getBytesArray(extScalar.AddressInt, extScalar.Size);
+                    extScalar.Read(arrElemBytes);
+
+                    continue;
+                }
+                if (Calibration.slExtStructures.ContainsKey(uniqueAddress))
+                {
+                    Structure extStructure = (Structure)Calibration.slExtStructures[uniqueAddress];
+                    if (extStructure.S6xStructure == null) continue;
+                    if (extStructure.S6xStructure.Number < 1) continue;
+
+                    switch (extStructure.BankNum)
+                    {
+                        case 8:
+                            bBank = Bank8;
+                            break;
+                        case 1:
+                            bBank = Bank1;
+                            break;
+                        case 9:
+                            bBank = Bank9;
+                            break;
+                        case 0:
+                            bBank = Bank0;
+                            break;
+                    }
+
+                    // Manages non calculated AddressBinInt
+                    if (extStructure.AddressBinInt == -1) extStructure.AddressBinInt = extStructure.AddressInt + bBank.AddressBinInt;
+
+                    // No Read process here
+
+                    continue;
+                }
+            }
         }
     }
 }
